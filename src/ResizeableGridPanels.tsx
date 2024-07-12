@@ -1,10 +1,15 @@
 "use client";
 
 import React from "react";
-import { MoveMoveEvent, useId, useMove } from "react-aria";
+import { useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
+
+interface Offset {
+  deltaX: number;
+  deltaY: number;
+}
 
 type PixelUnit = `${number}px`;
 type PercentUnit = `${number}%`;
@@ -43,7 +48,9 @@ interface PanelData extends Constraints {
 }
 
 interface ActivePanelData extends PanelData {
-  currentValue: number | "1fr";
+  currentValue: number | string;
+  min: Unit;
+  max: Unit;
 }
 
 function isPanelData(value: Item): value is ActivePanelData {
@@ -85,7 +92,7 @@ interface UnregisterPanelHandleEvent {
 interface DragHandleEvent {
   type: "dragHandle";
   id: string;
-  value: MoveMoveEvent;
+  value: Offset;
 }
 
 interface SetSizeEvent {
@@ -149,19 +156,71 @@ function layoutGroup(context: GroupMachineContext) {
   return templateItems as Array<Item>;
 }
 
+function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
+  const parsed = parseUnit(unit);
+
+  if (parsed.type === "pixel") {
+    return parsed.value;
+  }
+
+  return (parsed.value / 100) * context.size;
+}
+
 function clampUnit(
   context: GroupMachineContext,
-  item: PanelData,
+  item: ActivePanelData,
   value: number
 ) {
-  const minUnit = parseUnit(item.min || "0px");
-  const maxUnit = parseUnit(item.max || "100%");
-
   return clamp(
     value,
-    minUnit.type === "pixel" ? minUnit.value : minUnit.value * context.size,
-    maxUnit.type === "pixel" ? maxUnit.value : maxUnit.value * context.size
+    getUnitPixelValue(context, item.min),
+    getUnitPixelValue(context, item.max)
   );
+}
+
+function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
+  if (typeof item.currentValue === "string") {
+    throw new Error("getPanelHasSpace only works with number values");
+  }
+
+  const panelSize = item.currentValue;
+  const min = getUnitPixelValue(context, item.min);
+  const max = getUnitPixelValue(context, item.max);
+
+  return panelSize > min;
+}
+
+function findPanelWithSpace(
+  context: GroupMachineContext,
+  items: Array<Item>,
+  start: number,
+  direction: number
+) {
+  if (direction === -1) {
+    for (let i = start; i >= 0; i--) {
+      const panel = items[i];
+
+      if (!panel) {
+        return;
+      }
+
+      if (isPanelData(panel) && getPanelHasSpace(context, panel)) {
+        return panel;
+      }
+    }
+  } else {
+    for (let i = start; i < items.length; i++) {
+      const panel = items[i];
+
+      if (!panel) {
+        return;
+      }
+
+      if (isPanelData(panel) && getPanelHasSpace(context, panel)) {
+        return panel;
+      }
+    }
+  }
 }
 
 function updateLayout(
@@ -176,12 +235,6 @@ function updateLayout(
     return context.items;
   }
 
-  let availableSpace = context.size;
-  availableSpace -= context.items
-    .filter(isPanelHandle)
-    .map((item) => parseUnit(item.size).value)
-    .reduce((a, b) => a + b, 0);
-
   const handle = context.items[handleIndex] as PanelHandleData;
   const newItems = [...context.items];
   const itemsWithFractions = newItems
@@ -192,6 +245,12 @@ function updateLayout(
 
   // If there are any items with fractions, distribute them evenly
   if (itemsWithFractions.length > 0) {
+    let availableSpace = context.size;
+    availableSpace -= context.items
+      .filter(isPanelHandle)
+      .map((item) => parseUnit(item.size).value)
+      .reduce((a, b) => a + b, 0);
+
     let fractionSpace = availableSpace;
     let remaining = itemsWithFractions.length;
 
@@ -219,12 +278,21 @@ function updateLayout(
       : dragEvent.value.deltaY;
   // TODO these need to take delta into accounte
   const directionModifier = moveUnit < 0 ? 1 : -1;
-  console.log({ moveUnit, directionModifier });
-  const panelBefore = newItems[handleIndex - directionModifier];
+  const panelBefore = findPanelWithSpace(
+    context,
+    newItems,
+    handleIndex - directionModifier,
+    -directionModifier
+  );
+
   const panelAfter = newItems[handleIndex + directionModifier];
 
+  if (!panelBefore) {
+    return context.items;
+  }
+
   // Error if the handle is not in the correct position
-  if (!panelBefore || !isPanelData(panelBefore)) {
+  if (!isPanelData(panelBefore)) {
     throw new Error(`Expected panel before: ${handle.id}`);
   }
 
@@ -241,7 +309,6 @@ function updateLayout(
     return newItems;
   }
 
-  console.log({ panelBefore, panelAfter });
   const panelBeforePreviousValue = panelBefore.currentValue as number;
   const panelBeforeNewValue = clampUnit(
     context,
@@ -249,17 +316,42 @@ function updateLayout(
     (panelBefore.currentValue as number) - moveUnit * -directionModifier
   );
 
+  // If the panel before didn't change, we don't need to do anything
   if (panelBeforePreviousValue === panelBeforeNewValue) {
     return context.items;
   }
 
-  panelBefore.currentValue = panelBeforeNewValue;
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  panelAfter.currentValue = clampUnit(
+  const panelAfterPreviousValue = panelAfter.currentValue as number;
+  const panelAfterNewValue = clampUnit(
     context,
     panelAfter,
     (panelAfter.currentValue as number) + applied
   );
+
+  // If the panel after didn't change, we don't need to do anything
+  if (panelAfterPreviousValue === panelAfterNewValue) {
+    return context.items;
+  }
+
+  panelBefore.currentValue = panelBeforeNewValue;
+  panelAfter.currentValue = panelAfterNewValue;
+
+  const leftoverSpace =
+    context.size -
+    newItems.reduce(
+      (acc, b) =>
+        acc +
+        (b.type === "panel"
+          ? typeof b.currentValue === "number"
+            ? b.currentValue
+            : parseUnit(b.currentValue as Unit).value
+          : parseUnit(b.size).value),
+      0
+    );
+
+  // TODO: this is wrong
+  panelBefore.currentValue += leftoverSpace;
 
   return newItems;
 }
@@ -339,10 +431,19 @@ const groupMachine = createMachine(
           return [
             ...context.items,
             {
-              type: "panel" as const,
+              type: "panel",
               ...event.data,
-              currentValue: "1fr" as const,
-            },
+              min: event.data.min || "0px",
+              max: event.data.max || "100%",
+              currentValue:
+                event.data.min && event.data.max
+                  ? `minmax(${event.data.min}, ${event.data.max})`
+                  : event.data.max
+                    ? `minmax(0, ${event.data.max})`
+                    : event.data.min
+                      ? `minmax(${event.data.min}, 1fr)`
+                      : "1fr",
+            } as const,
           ];
         },
       }),
@@ -409,7 +510,6 @@ function PanelGroupImplementation({ children }: PanelGroupProps) {
   );
   const size = GroupMachineContext.useSelector((state) => state.context.size);
 
-  console.log({ template });
   const ref = React.useRef<HTMLDivElement>(null);
 
   React.useLayoutEffect(() => {
