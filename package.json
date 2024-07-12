@@ -2,8 +2,14 @@
   "name": "react-resizable-grid-panels",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "build": "tshy"
+    "build": "tshy",
+    "lint": "eslint src",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "keywords": [],
   "author": "Andrew Lisowski",
@@ -13,12 +19,28 @@
     "react-dom": ">=16"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^1.6.1",
+    "@eslint/compat": "^1.1.1",
+    "@eslint/js": "^9.6.0",
+    "@storybook/addon-essentials": "^8.2.2",
+    "@storybook/addon-interactions": "^8.2.2",
+    "@storybook/addon-links": "^8.2.2",
+    "@storybook/addon-onboarding": "^8.2.2",
+    "@storybook/blocks": "^8.2.2",
+    "@storybook/react": "^8.2.2",
+    "@storybook/react-vite": "^8.2.2",
+    "@storybook/test": "^8.2.2",
     "@types/node": "^20.14.10",
     "@types/react": "^16",
+    "eslint": "9.x",
+    "eslint-plugin-react": "^7.34.3",
+    "globals": "^15.8.0",
     "react": "^16",
     "react-dom": "^16",
+    "storybook": "^8.2.2",
     "tshy": "^3.0.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^7.16.0"
   },
   "tshy": {
     "exports": [
@@ -38,5 +60,13 @@
       }
     },
     "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@types/invariant": "^2.2.37",
+    "@xstate/react": "^4.1.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "invariant": "^2.2.4",
+    "react-aria": "^3.33.1",
+    "xstate": "^5.14.0"
   }
 }

@@ -5,7 +5,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
-    "jsx": "react",
+    "jsx": "preserve",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "noUncheckedIndexedAccess": true,
