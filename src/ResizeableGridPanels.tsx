@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useId, useMove } from "react-aria";
+import { mergeProps, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
@@ -40,6 +40,7 @@ interface Rect {
 interface Constraints {
   min?: Unit;
   max?: Unit;
+  default?: Unit;
 }
 
 interface PanelData extends Constraints {
@@ -89,15 +90,30 @@ interface UnregisterPanelHandleEvent {
   id: string;
 }
 
+interface DragHandleStartEvent {
+  type: "dragHandleStart";
+  id: string;
+}
+
 interface DragHandleEvent {
   type: "dragHandle";
   id: string;
   value: Offset;
 }
 
+interface DragHandleEndEvent {
+  type: "dragHandleEnd";
+  id: string;
+}
+
 interface SetSizeEvent {
   type: "setSize";
   size: Rect;
+}
+
+interface SetOrientationEvent {
+  type: "setOrientation";
+  orientation: Orientation;
 }
 
 interface GroupMachineContext {
@@ -117,7 +133,10 @@ type GroupMachineEvent =
   | RegisterPanelHandleEvent
   | UnregisterPanelHandleEvent
   | DragHandleEvent
-  | SetSizeEvent;
+  | SetSizeEvent
+  | SetOrientationEvent
+  | DragHandleStartEvent
+  | DragHandleEndEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> =
   T extends "registerPanel"
@@ -132,7 +151,13 @@ type EventForType<T extends GroupMachineEvent["type"]> =
             ? DragHandleEvent
             : T extends "setSize"
               ? SetSizeEvent
-              : never;
+              : T extends "setOrientation"
+                ? SetOrientationEvent
+                : T extends "dragHandleStart"
+                  ? DragHandleStartEvent
+                  : T extends "dragHandleEnd"
+                    ? DragHandleEndEvent
+                    : never;
 
 function isEvent<T extends GroupMachineEvent["type"]>(
   event: GroupMachineEvent,
@@ -142,18 +167,6 @@ function isEvent<T extends GroupMachineEvent["type"]>(
     eventType.includes(event.type as T),
     `Invalid event type: ${eventType}. Expected: ${eventType.join(" | ")}`
   );
-}
-
-function layoutGroup(context: GroupMachineContext) {
-  // If there is no space, just return the items as is
-  if (context.size === 0) {
-    return context.items;
-  }
-
-  // const panels = context.items.filter(isPanelData);
-  const templateItems = context.items;
-
-  return templateItems as Array<Item>;
 }
 
 function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
@@ -223,35 +236,34 @@ function findPanelWithSpace(
   }
 }
 
-function updateLayout(
-  context: GroupMachineContext,
-  dragEvent: DragHandleEvent
-) {
-  const handleIndex = context.items.findIndex(
-    (item) => item.id === dragEvent.id
-  );
+function getAvailableSpace(context: GroupMachineContext) {
+  let availableSpace = context.size;
 
-  if (handleIndex === -1) {
-    return context.items;
-  }
+  availableSpace -= context.items
+    .filter(isPanelHandle)
+    .map((item) => parseUnit(item.size).value)
+    .reduce((a, b) => a + b, 0);
 
-  const handle = context.items[handleIndex] as PanelHandleData;
+  return availableSpace;
+}
+
+/** Converts the items to pixels */
+function onDragStart(context: GroupMachineContext) {
   const newItems = [...context.items];
+
   const itemsWithFractions = newItems
     .map((i, index) =>
-      isPanelData(i) && typeof i.currentValue === "string" ? index : -1
+      isPanelData(i) &&
+      typeof i.currentValue === "string" &&
+      (i.currentValue.includes("fr") || i.currentValue.includes("minmax"))
+        ? index
+        : -1
     )
     .filter((i) => i !== -1);
 
   // If there are any items with fractions, distribute them evenly
   if (itemsWithFractions.length > 0) {
-    let availableSpace = context.size;
-    availableSpace -= context.items
-      .filter(isPanelHandle)
-      .map((item) => parseUnit(item.size).value)
-      .reduce((a, b) => a + b, 0);
-
-    let fractionSpace = availableSpace;
+    let fractionSpace = getAvailableSpace(context);
     let remaining = itemsWithFractions.length;
 
     for (const index of itemsWithFractions) {
@@ -272,6 +284,57 @@ function updateLayout(
     }
   }
 
+  const itemsWithClamps = newItems
+    .map((i, index) =>
+      isPanelData(i) &&
+      typeof i.currentValue === "string" &&
+      i.currentValue.includes("clamp")
+        ? index
+        : -1
+    )
+    .filter((i) => i !== -1);
+
+  if (itemsWithClamps.length > 0) {
+    for (const index of itemsWithClamps) {
+      const item = newItems[index];
+
+      if (
+        !item ||
+        !isPanelData(item) ||
+        typeof item.currentValue !== "string"
+      ) {
+        continue;
+      }
+      const [, unit] = item.currentValue.match(/clamp\(.*, (.*), .*\)/) || [];
+
+      if (!unit) {
+        continue;
+      }
+
+      newItems[index] = {
+        ...item,
+        currentValue: context.size * (parseUnit(unit as Unit).value / 100),
+      };
+    }
+  }
+
+  return newItems;
+}
+
+function updateLayout(
+  context: GroupMachineContext,
+  dragEvent: DragHandleEvent
+) {
+  const handleIndex = context.items.findIndex(
+    (item) => item.id === dragEvent.id
+  );
+
+  if (handleIndex === -1) {
+    return context.items;
+  }
+
+  const handle = context.items[handleIndex] as PanelHandleData;
+  const newItems = [...context.items];
   const moveUnit =
     context.orientation === "horizontal"
       ? dragEvent.value.deltaX
@@ -356,6 +419,25 @@ function updateLayout(
   return newItems;
 }
 
+/** Converts the items to percentages */
+function onDragEnd(context: GroupMachineContext) {
+  const newItems = [...context.items];
+
+  newItems.forEach((item, index) => {
+    if (item.type === "panel") {
+      if (typeof item.currentValue === "number") {
+        const fraction = item.currentValue / context.size;
+        newItems[index] = {
+          ...item,
+          currentValue: `clamp(${item.min || "0px"}, ${fraction * 100}%, ${item.max || "100%"})`,
+        };
+      }
+    }
+  });
+
+  return newItems;
+}
+
 function buildTemplate(items: Array<Item>) {
   return items
     .map((item) => {
@@ -374,6 +456,7 @@ function buildTemplate(items: Array<Item>) {
 
 const groupMachine = createMachine(
   {
+    initial: "idle",
     types: {
       context: {} as GroupMachineContext,
       events: {} as GroupMachineEvent,
@@ -383,6 +466,27 @@ const groupMachine = createMachine(
       items: [],
       template: "",
       orientation: "horizontal",
+    },
+    states: {
+      idle: {
+        on: {
+          dragHandleStart: {
+            actions: ["onDragStart", "layout"],
+            target: "dragging",
+          },
+        },
+      },
+      dragging: {
+        on: {
+          dragHandle: {
+            actions: ["onDragHandle"],
+          },
+          dragHandleEnd: {
+            actions: ["onDragEnd", "layout"],
+            target: "idle",
+          },
+        },
+      },
     },
     on: {
       registerPanel: {
@@ -397,23 +501,18 @@ const groupMachine = createMachine(
       unregisterPanelHandle: {
         actions: ["removeItem", "layout"],
       },
-      dragHandle: {
-        actions: ["onDragHandle"],
-      },
       setSize: {
         actions: ["updateSize", "layout"],
+      },
+      setOrientation: {
+        actions: ["updateOrientation", "layout"],
       },
     },
   },
   {
     actions: {
-      layout: enqueueActions(({ context, enqueue }) => {
-        const items = layoutGroup(context);
-
-        enqueue.assign({
-          items,
-          template: buildTemplate(items),
-        });
+      layout: assign({
+        template: ({ context }) => buildTemplate(context.items),
       }),
       updateSize: assign({
         size: ({ context, event }) => {
@@ -422,6 +521,12 @@ const groupMachine = createMachine(
           return context.orientation === "horizontal"
             ? event.size.width
             : event.size.height;
+        },
+      }),
+      updateOrientation: assign({
+        orientation: ({ event }) => {
+          isEvent(event, ["setOrientation"]);
+          return event.orientation;
         },
       }),
       assignPanelData: assign({
@@ -435,8 +540,9 @@ const groupMachine = createMachine(
               ...event.data,
               min: event.data.min || "0px",
               max: event.data.max || "100%",
-              currentValue:
-                event.data.min && event.data.max
+              currentValue: event.data.default
+                ? event.data.default
+                : event.data.min && event.data.max
                   ? `minmax(${event.data.min}, ${event.data.max})`
                   : event.data.max
                     ? `minmax(0, ${event.data.max})`
@@ -459,6 +565,12 @@ const groupMachine = createMachine(
           return context.items.filter((item) => item.id !== event.id);
         },
       }),
+      onDragStart: assign({
+        items: ({ context, event }) => {
+          isEvent(event, ["dragHandleStart"]);
+          return onDragStart(context);
+        },
+      }),
       onDragHandle: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["dragHandle"]);
 
@@ -469,42 +581,49 @@ const groupMachine = createMachine(
           template: buildTemplate(items),
         });
       }),
+      onDragEnd: assign({
+        items: ({ context, event }) => {
+          isEvent(event, ["dragHandleEnd"]);
+          return onDragEnd(context);
+        },
+      }),
     },
   }
 );
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-function useDebugGroupMachineContext() {
+function useDebugGroupMachineContext({ id }: { id: string }) {
   const context = GroupMachineContext.useSelector((state) => state.context);
-  console.log("GROUP CONTEXT", context);
+  console.log("GROUP CONTEXT", id, context);
 }
 
-export interface PanelGroupProps {
-  children: React.ReactNode;
+export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   orientation?: Orientation;
 }
 
-export function PanelGroup({
-  children,
-  orientation = "horizontal",
-}: PanelGroupProps) {
+export function PanelGroup(props: PanelGroupProps) {
   return (
-    <GroupMachineContext.Provider options={{ input: { orientation } }}>
-      <PanelGroupImplementation>{children}</PanelGroupImplementation>
+    <GroupMachineContext.Provider>
+      <PanelGroupImplementation {...props} />
     </GroupMachineContext.Provider>
   );
 }
 
-function PanelGroupImplementation({ children }: PanelGroupProps) {
+function PanelGroupImplementation(props: PanelGroupProps) {
   const { send } = GroupMachineContext.useActorRef();
-
-  useDebugGroupMachineContext();
-
   const groupId = `panel-group-${useId()}`;
+
+  useDebugGroupMachineContext({ id: groupId });
+
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
+
+  if (props.orientation && props.orientation !== orientation) {
+    send({ type: "setOrientation", orientation: props.orientation });
+  }
+
   const template = GroupMachineContext.useSelector(
     (state) => state.context.template
   );
@@ -538,24 +657,26 @@ function PanelGroupImplementation({ children }: PanelGroupProps) {
     <div
       ref={ref}
       data-group-id={groupId}
-      style={{
-        display: "grid",
-        opacity: size === 0 ? 0 : 1,
-        gridTemplateColumns:
-          orientation === "horizontal" ? template : undefined,
-        gridTemplateRows: orientation === "vertical" ? template : undefined,
-      }}
-    >
-      {children}
-    </div>
+      {...mergeProps(props, {
+        style: {
+          display: "grid",
+          opacity: size === 0 ? 0 : 1,
+          gridTemplateColumns:
+            orientation === "horizontal" ? template : undefined,
+          gridTemplateRows: orientation === "vertical" ? template : undefined,
+          height: "100%",
+          ...props.style,
+        },
+      })}
+    />
   );
 }
 
-export interface PanelProps extends Constraints {
-  children: React.ReactNode;
-}
+export interface PanelProps
+  extends Constraints,
+    React.HTMLAttributes<HTMLDivElement> {}
 
-export function Panel({ children, min, max }: PanelProps) {
+export function Panel({ min, max, ...props }: PanelProps) {
   const panelId = `panel-${useId()}`;
   const { send } = GroupMachineContext.useActorRef();
 
@@ -571,10 +692,11 @@ export function Panel({ children, min, max }: PanelProps) {
   }, [send, panelId]);
 
   return (
-    <div data-panel-id={panelId}>
-      {panelId}
-      {children}
-    </div>
+    <div
+      data-panel-id={panelId}
+      {...props}
+      style={{ ...props.style, minWidth: 0, minHeight: 0 }}
+    />
   );
 }
 
@@ -585,10 +707,13 @@ export interface PanelResizerProps {
 export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const handleId = `panel-resizer-${useId()}`;
   const { send } = GroupMachineContext.useActorRef();
+  const orientation = GroupMachineContext.useSelector(
+    (state) => state.context.orientation
+  );
   const { moveProps } = useMove({
-    onMove: (e) => {
-      send({ type: "dragHandle", id: handleId, value: e });
-    },
+    onMoveStart: () => send({ type: "dragHandleStart", id: handleId }),
+    onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
+    onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
   });
 
   const hasRegistered = React.useRef(false);
@@ -605,7 +730,12 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   return (
     <div
       data-handle-id={handleId}
-      style={{ background: "red", width: 10, height: "100%" }}
+      data-handle-orientation={orientation}
+      style={
+        orientation === "horizontal"
+          ? { background: "red", width: 10, height: "100%" }
+          : { background: "red", height: 10, width: "100%" }
+      }
       {...moveProps}
     />
   );
