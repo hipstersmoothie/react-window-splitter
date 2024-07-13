@@ -14,12 +14,13 @@ export default {
 function StyledPanelGroup(props: PanelGroupProps) {
   return (
     <PanelGroup
+      {...props}
       style={{
         border: "1px solid rgba(0, 0, 0, 0.3)",
         background: "rgba(0, 0, 0, 0.1)",
         borderRadius: 12,
+        ...props.style,
       }}
-      {...props}
     />
   );
 }
@@ -39,7 +40,6 @@ function StyledPanel({ children, ...props }: PanelProps) {
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
-          textWrap: "nowrap",
         }}
       >
         {children}
@@ -172,5 +172,107 @@ export function NestedGroups() {
       <PanelResizer />
       <Panel min="10%">right</Panel>
     </PanelGroup>
+  );
+}
+
+export function WithOverflow() {
+  return (
+    <StyledPanelGroup style={{ height: 400 }}>
+      <Panel min="200px">
+        <div
+          style={{
+            overflow: "auto",
+            padding: 40,
+            height: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+            euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi, eu
+            tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+        </div>
+      </Panel>
+      <PanelResizer />
+      <Panel min="200px">
+        <div
+          style={{
+            overflow: "auto",
+            padding: 40,
+            height: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+            euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi, eu
+            tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+        </div>
+      </Panel>
+    </StyledPanelGroup>
   );
 }

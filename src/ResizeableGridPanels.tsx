@@ -697,7 +697,7 @@ export function Panel({ min, max, ...props }: PanelProps) {
     <div
       data-panel-id={panelId}
       {...props}
-      style={{ ...props.style, minWidth: 0, minHeight: 0 }}
+      style={{ ...props.style, minWidth: 0, minHeight: 0, overflow: "hidden" }}
     />
   );
 }
