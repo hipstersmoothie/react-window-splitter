@@ -125,6 +125,8 @@ interface GroupMachineContext {
   template: string;
   /** The orientation of the grid */
   orientation: Orientation;
+  /** How much the drag has overshot the handle */
+  dragOvershoot: number;
 }
 
 type GroupMachineEvent =
@@ -198,7 +200,6 @@ function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
 
   const panelSize = item.currentValue;
   const min = getUnitPixelValue(context, item.min);
-  const max = getUnitPixelValue(context, item.max);
 
   return panelSize > min;
 }
@@ -324,13 +325,13 @@ function onDragStart(context: GroupMachineContext) {
 function updateLayout(
   context: GroupMachineContext,
   dragEvent: DragHandleEvent
-) {
+): Partial<GroupMachineContext> {
   const handleIndex = context.items.findIndex(
     (item) => item.id === dragEvent.id
   );
 
   if (handleIndex === -1) {
-    return context.items;
+    return {};
   }
 
   const handle = context.items[handleIndex] as PanelHandleData;
@@ -339,8 +340,22 @@ function updateLayout(
     context.orientation === "horizontal"
       ? dragEvent.value.deltaX
       : dragEvent.value.deltaY;
-  // TODO these need to take delta into accounte
   const directionModifier = moveUnit < 0 ? 1 : -1;
+  const newDragOvershoot = context.dragOvershoot + moveUnit;
+
+  if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
+    return {
+      dragOvershoot: context.dragOvershoot + moveUnit,
+    };
+  }
+
+  if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
+    return {
+      dragOvershoot: context.dragOvershoot + moveUnit,
+    };
+  }
+
+  // TODO these need to take delta into accounte
   const panelBefore = findPanelWithSpace(
     context,
     newItems,
@@ -351,7 +366,9 @@ function updateLayout(
   const panelAfter = newItems[handleIndex + directionModifier];
 
   if (!panelBefore) {
-    return context.items;
+    return {
+      dragOvershoot: context.dragOvershoot + moveUnit,
+    };
   }
 
   // Error if the handle is not in the correct position
@@ -363,15 +380,6 @@ function updateLayout(
     throw new Error(`Expected panel after: ${handle.id}`);
   }
 
-  // Do nothing at the bounds
-  if (!panelBefore && moveUnit < 0) {
-    return newItems;
-  }
-
-  if (!panelAfter && moveUnit > 0) {
-    return newItems;
-  }
-
   const panelBeforePreviousValue = panelBefore.currentValue as number;
   const panelBeforeNewValue = clampUnit(
     context,
@@ -379,23 +387,12 @@ function updateLayout(
     (panelBefore.currentValue as number) - moveUnit * -directionModifier
   );
 
-  // If the panel before didn't change, we don't need to do anything
-  if (panelBeforePreviousValue === panelBeforeNewValue) {
-    return context.items;
-  }
-
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  const panelAfterPreviousValue = panelAfter.currentValue as number;
   const panelAfterNewValue = clampUnit(
     context,
     panelAfter,
     (panelAfter.currentValue as number) + applied
   );
-
-  // If the panel after didn't change, we don't need to do anything
-  if (panelAfterPreviousValue === panelAfterNewValue) {
-    return context.items;
-  }
 
   panelBefore.currentValue = panelBeforeNewValue;
   panelAfter.currentValue = panelAfterNewValue;
@@ -413,10 +410,10 @@ function updateLayout(
       0
     );
 
-  // TODO: this is wrong
+  // TODO: this is wrong?
   panelBefore.currentValue += leftoverSpace;
 
-  return newItems;
+  return { items: newItems, dragOvershoot: 0 };
 }
 
 /** Converts the items to percentages */
@@ -466,6 +463,7 @@ const groupMachine = createMachine(
       items: [],
       template: "",
       orientation: "horizontal",
+      dragOvershoot: 0,
     },
     states: {
       idle: {
@@ -574,14 +572,18 @@ const groupMachine = createMachine(
       onDragHandle: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["dragHandle"]);
 
-        const items = updateLayout(context, event);
+        const contextUpdate = {
+          ...context,
+          ...updateLayout(context, event),
+        };
 
         enqueue.assign({
-          items,
-          template: buildTemplate(items),
+          ...contextUpdate,
+          template: buildTemplate(contextUpdate.items),
         });
       }),
       onDragEnd: assign({
+        dragOvershoot: 0,
         items: ({ context, event }) => {
           isEvent(event, ["dragHandleEnd"]);
           return onDragEnd(context);
