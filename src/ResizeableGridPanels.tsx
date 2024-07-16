@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { mergeProps, useId, useMove } from "react-aria";
+import { mergeProps, useId, useMove, useSelect } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
-import { createActorContext } from "@xstate/react";
+import { createActorContext, useSelector } from "@xstate/react";
 import invariant from "invariant";
 
 const COLLAPSE_THRESHOLD = 50;
@@ -29,6 +29,12 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
 
   if (unit.endsWith("%")) {
     return { type: "percent", value: parseFloat(unit) };
+  }
+
+  const [, percent] = unit.match(/clamp\(.*, (.*), .*\)/) || [];
+
+  if (percent) {
+    return { type: "percent", value: parseFloat(percent) };
   }
 
   throw new Error(`Invalid unit: ${unit}`);
@@ -840,16 +846,42 @@ export interface PanelResizerProps {
   size?: PixelUnit;
 }
 
+function unitsToPercents(groupsSize: number, unit: Unit | number) {
+  if (typeof unit === "number") {
+    return unit / groupsSize;
+  }
+
+  const parsed = parseUnit(unit);
+
+  if (parsed.type === "pixel") {
+    return parsed.value / groupsSize;
+  }
+
+  return parsed.value;
+}
+
 export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const handleId = `panel-resizer-${useId()}`;
   const { send } = GroupMachineContext.useActorRef();
+  const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
+    const handleIndex = context.items.findIndex((item) => item.id === handleId);
+
+    if (handleIndex === -1) {
+      return;
+    }
+
+    return context.items[handleIndex - 1];
+  });
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
+  );
+  const groupsSize = GroupMachineContext.useSelector(
+    (state) => state.context.size
   );
   const { moveProps } = useMove({
     onMoveStart: () => send({ type: "dragHandleStart", id: handleId }),
     onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
-    // onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
+    onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
   });
 
   const hasRegistered = React.useRef(false);
@@ -863,10 +895,26 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
     return () => send({ type: "unregisterPanelHandle", id: handleId });
   }, [send, handleId]);
 
+  if (!panelBeforeHandle || !isPanelData(panelBeforeHandle)) {
+    return null;
+  }
+
   return (
     <div
+      role="separator"
+      tabIndex={0}
       data-handle-id={handleId}
       data-handle-orientation={orientation}
+      aria-label="Resize Handle"
+      aria-controls={panelBeforeHandle.id}
+      aria-valuemin={unitsToPercents(groupsSize, panelBeforeHandle.min)}
+      aria-valuemax={unitsToPercents(groupsSize, panelBeforeHandle.max)}
+      aria-valuenow={
+        typeof panelBeforeHandle.currentValue === "string" &&
+        panelBeforeHandle.currentValue.includes("minmax")
+          ? undefined
+          : unitsToPercents(groupsSize, panelBeforeHandle.currentValue as Unit)
+      }
       style={
         orientation === "horizontal"
           ? { background: "red", width: 10, height: "100%" }
