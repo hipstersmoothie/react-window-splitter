@@ -1,23 +1,12 @@
 "use client";
 
 import React from "react";
-import {
-  mergeProps,
-  MoveMoveEvent,
-  useId,
-  useMove,
-  useSelect,
-} from "react-aria";
+import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
-import { createActorContext, useSelector } from "@xstate/react";
+import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 
 const COLLAPSE_THRESHOLD = 50;
-
-interface Offset {
-  deltaX: number;
-  deltaY: number;
-}
 
 type PixelUnit = `${number}px`;
 type PercentUnit = `${number}%`;
@@ -46,6 +35,25 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
   throw new Error(`Invalid unit: ${unit}`);
 }
 
+function getPanelBeforeHandleId(
+  context: GroupMachineContext,
+  handleId: string
+) {
+  const handleIndex = context.items.findIndex((item) => item.id === handleId);
+
+  if (handleIndex === -1) {
+    throw new Error(`Expected panel before: ${handleId}`);
+  }
+
+  const item = context.items[handleIndex - 1];
+
+  if (item && isPanelData(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected panel before: ${handleId}`);
+}
+
 interface Rect {
   width: number;
   height: number;
@@ -70,6 +78,7 @@ interface ActivePanelData extends PanelData {
   min: Unit;
   max: Unit;
   collapsed: boolean | undefined;
+  sizeBeforeCollapse: number | undefined;
 }
 
 function isPanelData(value: Item): value is ActivePanelData {
@@ -134,6 +143,16 @@ interface SetOrientationEvent {
   orientation: Orientation;
 }
 
+interface CollapsePanelEvent {
+  type: "collapsePanel";
+  handleId: string;
+}
+
+interface ExpandPanelEvent {
+  type: "expandPanel";
+  handleId: string;
+}
+
 interface GroupMachineContext {
   /** The items in the group */
   items: Array<Item>;
@@ -156,7 +175,9 @@ type GroupMachineEvent =
   | SetSizeEvent
   | SetOrientationEvent
   | DragHandleStartEvent
-  | DragHandleEndEvent;
+  | DragHandleEndEvent
+  | CollapsePanelEvent
+  | ExpandPanelEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> =
   T extends "registerPanel"
@@ -177,7 +198,11 @@ type EventForType<T extends GroupMachineEvent["type"]> =
                   ? DragHandleStartEvent
                   : T extends "dragHandleEnd"
                     ? DragHandleEndEvent
-                    : never;
+                    : T extends "collapsePanel"
+                      ? CollapsePanelEvent
+                      : T extends "expandPanel"
+                        ? ExpandPanelEvent
+                        : never;
 
 function isEvent<T extends GroupMachineEvent["type"]>(
   event: GroupMachineEvent,
@@ -371,7 +396,9 @@ function onDragStart(context: GroupMachineContext) {
 /** On every mouse move we distribute the space added */
 function updateLayout(
   context: GroupMachineContext,
-  dragEvent: DragHandleEvent
+  dragEvent:
+    | DragHandleEvent
+    | { type: "collapsePanel"; value: MoveMoveEvent; id: string }
 ): Partial<GroupMachineContext> {
   const handleIndex = context.items.findIndex(
     (item) => item.id === dragEvent.id
@@ -433,7 +460,7 @@ function updateLayout(
     panelBefore.collapsible &&
     panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
   ) {
-    if (Math.abs(context.dragOvershoot) < 50) {
+    if (Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD) {
       return { dragOvershoot: newDragOvershoot };
     }
   }
@@ -561,6 +588,45 @@ function onDragEnd(context: GroupMachineContext) {
   return newItems;
 }
 
+function iterativelyUpdateLayout({
+  context,
+  handleId,
+  delta,
+  direction,
+}: {
+  context: GroupMachineContext;
+  handleId: string;
+  delta: number;
+  direction: -1 | 1;
+}) {
+  let newContext: Partial<GroupMachineContext> = context;
+
+  for (let i = 0; i < Math.abs(delta); i++) {
+    newContext = updateLayout(
+      {
+        ...context,
+        ...newContext,
+      },
+      {
+        id: handleId,
+        type: "collapsePanel",
+        value: {
+          type: "move",
+          pointerType: "keyboard",
+          shiftKey: false,
+          ctrlKey: false,
+          altKey: false,
+          metaKey: false,
+          deltaX: context.orientation === "horizontal" ? direction : 0,
+          deltaY: context.orientation === "horizontal" ? 0 : direction,
+        },
+      }
+    );
+  }
+
+  return newContext;
+}
+
 function buildTemplate(items: Array<Item>) {
   return items
     .map((item) => {
@@ -631,6 +697,12 @@ const groupMachine = createMachine(
       setOrientation: {
         actions: ["updateOrientation", "layout"],
       },
+      collapsePanel: {
+        actions: ["onDragStart", "collapsePanel", "dragHandleEnd", "layout"],
+      },
+      expandPanel: {
+        actions: ["onDragStart", "expandPanel", "dragHandleEnd", "layout"],
+      },
     },
   },
   {
@@ -681,6 +753,7 @@ const groupMachine = createMachine(
                 : undefined,
               min: event.data.min || "0px",
               max: event.data.max || "100%",
+              sizeBeforeCollapse: undefined,
               currentValue,
             } as const,
           ];
@@ -700,7 +773,7 @@ const groupMachine = createMachine(
       }),
       onDragStart: assign({
         items: ({ context, event }) => {
-          isEvent(event, ["dragHandleStart"]);
+          isEvent(event, ["dragHandleStart", "collapsePanel", "expandPanel"]);
           return onDragStart(context);
         },
       }),
@@ -720,9 +793,44 @@ const groupMachine = createMachine(
       onDragEnd: assign({
         dragOvershoot: 0,
         items: ({ context, event }) => {
-          isEvent(event, ["dragHandleEnd"]);
+          isEvent(event, ["dragHandleEnd", "collapsePanel", "expandPanel"]);
           return onDragEnd(context);
         },
+      }),
+      collapsePanel: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["collapsePanel"]);
+
+        const panel = getPanelBeforeHandleId(context, event.handleId);
+
+        panel.sizeBeforeCollapse = panel.currentValue as number;
+        enqueue.assign(
+          iterativelyUpdateLayout({
+            direction: -1,
+            context,
+            handleId: event.handleId,
+            delta:
+              (panel.currentValue as number) -
+              getUnitPixelValue(context, panel.collapsedSize || "0px") +
+              COLLAPSE_THRESHOLD,
+          })
+        );
+      }),
+      expandPanel: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["expandPanel"]);
+
+        const panel = getPanelBeforeHandleId(context, event.handleId);
+
+        enqueue.assign(
+          iterativelyUpdateLayout({
+            direction: 1,
+            context,
+            handleId: event.handleId,
+            delta:
+              (panel.sizeBeforeCollapse ??
+                getUnitPixelValue(context, panel.min)) -
+              (panel.currentValue as number),
+          })
+        );
       }),
     },
   }
@@ -875,15 +983,9 @@ function unitsToPercents(groupsSize: number, unit: Unit | number) {
 export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const handleId = `panel-resizer-${useId()}`;
   const { send } = GroupMachineContext.useActorRef();
-  const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
-    const handleIndex = context.items.findIndex((item) => item.id === handleId);
-
-    if (handleIndex === -1) {
-      return;
-    }
-
-    return context.items[handleIndex - 1];
-  });
+  const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) =>
+    context.items.length ? getPanelBeforeHandleId(context, handleId) : undefined
+  );
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
@@ -895,6 +997,21 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
     onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
     onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
   });
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (
+      e.key === "Enter" &&
+      panelBeforeHandle &&
+      isPanelData(panelBeforeHandle) &&
+      panelBeforeHandle.collapsible
+    ) {
+      if (panelBeforeHandle.collapsed) {
+        send({ type: "expandPanel", handleId });
+      } else {
+        send({ type: "collapsePanel", handleId });
+      }
+    }
+  };
 
   const hasRegistered = React.useRef(false);
 
@@ -932,7 +1049,7 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
           ? { background: "red", width: 10, height: "100%" }
           : { background: "red", height: 10, width: "100%" }
       }
-      {...moveProps}
+      {...mergeProps(moveProps, { onKeyDown })}
     />
   );
 }
