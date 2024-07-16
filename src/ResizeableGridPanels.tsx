@@ -1,7 +1,13 @@
 "use client";
 
 import React from "react";
-import { mergeProps, useId, useMove, useSelect } from "react-aria";
+import {
+  mergeProps,
+  MoveMoveEvent,
+  useId,
+  useMove,
+  useSelect,
+} from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext, useSelector } from "@xstate/react";
 import invariant from "invariant";
@@ -110,7 +116,7 @@ interface DragHandleStartEvent {
 interface DragHandleEvent {
   type: "dragHandle";
   id: string;
-  value: Offset;
+  value: MoveMoveEvent;
 }
 
 interface DragHandleEndEvent {
@@ -377,10 +383,16 @@ function updateLayout(
 
   const handle = context.items[handleIndex] as PanelHandleData;
   const newItems = [...context.items];
-  const moveAmount =
+
+  let moveAmount =
     context.orientation === "horizontal"
       ? dragEvent.value.deltaX
       : dragEvent.value.deltaY;
+
+  if (dragEvent.value.shiftKey) {
+    moveAmount *= 15;
+  }
+
   const moveDirection = moveAmount / Math.abs(moveAmount);
 
   // Go forward into the shrinking panels to find a panel that still has space.
