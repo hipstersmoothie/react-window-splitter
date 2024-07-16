@@ -6,6 +6,8 @@ import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 
+const COLLAPSE_THRESHOLD = 50;
+
 interface Offset {
   deltaX: number;
   deltaY: number;
@@ -41,6 +43,9 @@ interface Constraints {
   min?: Unit;
   max?: Unit;
   default?: Unit;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+  collapsedSize?: Unit;
 }
 
 interface PanelData extends Constraints {
@@ -52,6 +57,7 @@ interface ActivePanelData extends PanelData {
   currentValue: number | string;
   min: Unit;
   max: Unit;
+  collapsed: boolean | undefined;
 }
 
 function isPanelData(value: Item): value is ActivePanelData {
@@ -198,6 +204,10 @@ function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
     throw new Error("getPanelHasSpace only works with number values");
   }
 
+  if (item.collapsible && !item.collapsed) {
+    return true;
+  }
+
   const panelSize = item.currentValue;
   const min = getUnitPixelValue(context, item.min);
 
@@ -240,9 +250,20 @@ function findPanelWithSpace(
 function getAvailableSpace(context: GroupMachineContext) {
   let availableSpace = context.size;
 
+  // Subtract resize handle sizes
   availableSpace -= context.items
     .filter(isPanelHandle)
     .map((item) => parseUnit(item.size).value)
+    .reduce((a, b) => a + b, 0);
+
+  // Some panels might have a pixel value set so we should account for that
+  availableSpace -= context.items
+    .filter((d): d is ActivePanelData =>
+      Boolean(
+        isPanelData(d) && d.collapsed && typeof d.currentValue === "number"
+      )
+    )
+    .map((item) => item.currentValue as number)
     .reduce((a, b) => a + b, 0);
 
   return availableSpace;
@@ -251,6 +272,19 @@ function getAvailableSpace(context: GroupMachineContext) {
 /** Converts the items to pixels */
 function onDragStart(context: GroupMachineContext) {
   const newItems = [...context.items];
+
+  // Force all raw pixels into numbers
+  newItems
+    .filter((d): d is ActivePanelData =>
+      Boolean(
+        isPanelData(d) &&
+          typeof d.currentValue === "string" &&
+          d.currentValue.match(/^\d+px$/)
+      )
+    )
+    .map((item) => {
+      item.currentValue = parseUnit(item.currentValue as Unit).value;
+    });
 
   const itemsWithFractions = newItems
     .map((i, index) =>
@@ -322,6 +356,7 @@ function onDragStart(context: GroupMachineContext) {
   return newItems;
 }
 
+/** On every mouse move we distribute the space added */
 function updateLayout(
   context: GroupMachineContext,
   dragEvent: DragHandleEvent
@@ -336,82 +371,148 @@ function updateLayout(
 
   const handle = context.items[handleIndex] as PanelHandleData;
   const newItems = [...context.items];
-  const moveUnit =
+  const moveAmount =
     context.orientation === "horizontal"
       ? dragEvent.value.deltaX
       : dragEvent.value.deltaY;
-  const directionModifier = moveUnit < 0 ? 1 : -1;
-  const newDragOvershoot = context.dragOvershoot + moveUnit;
+  const moveDirection = moveAmount / Math.abs(moveAmount);
 
-  if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
-    return {
-      dragOvershoot: context.dragOvershoot + moveUnit,
-    };
-  }
-
-  if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
-    return {
-      dragOvershoot: context.dragOvershoot + moveUnit,
-    };
-  }
-
-  // TODO these need to take delta into accounte
+  // Go forward into the shrinking panels to find a panel that still has space.
   const panelBefore = findPanelWithSpace(
     context,
     newItems,
-    handleIndex - directionModifier,
-    -directionModifier
+    handleIndex + moveDirection,
+    moveDirection
   );
 
-  const panelAfter = newItems[handleIndex + directionModifier];
-
+  // No panel with space, just record the drag overshoot
   if (!panelBefore) {
     return {
-      dragOvershoot: context.dragOvershoot + moveUnit,
+      dragOvershoot: context.dragOvershoot + moveAmount,
     };
   }
 
-  // Error if the handle is not in the correct position
   if (!isPanelData(panelBefore)) {
     throw new Error(`Expected panel before: ${handle.id}`);
   }
+
+  const panelAfter = newItems[handleIndex - moveDirection];
 
   if (!panelAfter || !isPanelData(panelAfter)) {
     throw new Error(`Expected panel after: ${handle.id}`);
   }
 
+  const newDragOvershoot = context.dragOvershoot + moveAmount;
+
+  // Don't let the panel expand until the threshold is reached
+  if (panelAfter.collapsible && panelAfter.collapsed) {
+    if (Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD) {
+      return { dragOvershoot: newDragOvershoot };
+    }
+  }
+  // Don't let the panel collapse until the threshold is reached
+  else if (
+    panelBefore.collapsible &&
+    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
+  ) {
+    if (Math.abs(context.dragOvershoot) < 50) {
+      return { dragOvershoot: newDragOvershoot };
+    }
+  }
+  // If we're already overshooting just keep adding to the overshoot
+  else {
+    if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
+      return { dragOvershoot: newDragOvershoot };
+    }
+
+    if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
+      return { dragOvershoot: newDragOvershoot };
+    }
+  }
+
+  // Apply the move amount to the panel before the slider
   const panelBeforePreviousValue = panelBefore.currentValue as number;
-  const panelBeforeNewValue = clampUnit(
+  let panelBeforeNewValue = clampUnit(
     context,
     panelBefore,
-    (panelBefore.currentValue as number) - moveUnit * -directionModifier
+    (panelBefore.currentValue as number) - moveAmount * moveDirection
   );
 
+  // Also apply the move amount the panel after the slider
+  const panelAfterPreviousValue = panelAfter.currentValue as number;
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  const panelAfterNewValue = clampUnit(
+  let panelAfterNewValue = clampUnit(
     context,
     panelAfter,
     (panelAfter.currentValue as number) + applied
   );
 
+  // If the panel was collapsed, expand it
+  // We need to re-apply the move amount since the the expansion of the
+  // collapsed panel disregards that.
+  if (panelAfter.collapsible && panelAfter.collapsed) {
+    const collapsedSize = getUnitPixelValue(
+      context,
+      panelAfter.collapsedSize || "0px"
+    );
+    // Calculate the amount "extra" after the minSize the panel should grow
+    const extra =
+      // Take the size it was at
+      collapsedSize +
+      // Add in the full overshoot so the cursor is near the slider
+      Math.abs(context.dragOvershoot) -
+      // Subtract the min size of the panel
+      panelAfterNewValue +
+      // Then re-add the move amount
+      Math.abs(moveAmount);
+
+    panelAfter.collapsed = false;
+    panelAfterNewValue += extra;
+    panelBeforeNewValue -=
+      // Subtract the delta of the after panel's size
+      panelAfterNewValue -
+      panelAfterPreviousValue -
+      // And then re-apply the movement value
+      Math.abs(moveAmount);
+  }
+
+  // If the panel was expanded and now is at it's min size, collapse it
+  if (
+    panelBefore.collapsible &&
+    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
+  ) {
+    const collapsedSize = getUnitPixelValue(
+      context,
+      panelBefore.collapsedSize || "0px"
+    );
+
+    // Make it collapsed
+    panelBefore.collapsed = true;
+    panelBeforeNewValue = collapsedSize;
+    // Add the extra space created to the before panel
+    panelAfterNewValue += panelBeforePreviousValue - collapsedSize;
+  }
+
   panelBefore.currentValue = panelBeforeNewValue;
   panelAfter.currentValue = panelAfterNewValue;
 
-  const leftoverSpace =
-    context.size -
-    newItems.reduce(
-      (acc, b) =>
-        acc +
-        (b.type === "panel"
-          ? typeof b.currentValue === "number"
-            ? b.currentValue
-            : parseUnit(b.currentValue as Unit).value
-          : parseUnit(b.size).value),
-      0
-    );
+  // There might be some extra space so just add it
+  // const leftoverSpace =
+  //   context.size -
+  //   newItems.reduce(
+  //     (acc, b) =>
+  //       acc +
+  //       (b.type === "panel"
+  //         ? typeof b.currentValue === "number"
+  //           ? b.currentValue
+  //           : getUnitPixelValue(context, b.currentValue as Unit)
+  //         : parseUnit(b.size).value),
+  //     0
+  //   );
 
-  // TODO: this is wrong?
-  panelBefore.currentValue += leftoverSpace;
+  // // TODO: this is wrong?
+  // console.log("!!!", { leftoverSpace });
+  // panelAfter.currentValue += leftoverSpace;
 
   return { items: newItems, dragOvershoot: 0 };
 }
@@ -421,14 +522,21 @@ function onDragEnd(context: GroupMachineContext) {
   const newItems = [...context.items];
 
   newItems.forEach((item, index) => {
-    if (item.type === "panel") {
-      if (typeof item.currentValue === "number") {
-        const fraction = item.currentValue / context.size;
-        newItems[index] = {
-          ...item,
-          currentValue: `clamp(${item.min || "0px"}, ${fraction * 100}%, ${item.max || "100%"})`,
-        };
-      }
+    if (item.type !== "panel" || typeof item.currentValue !== "number") {
+      return;
+    }
+
+    if (item.collapsed) {
+      newItems[index] = {
+        ...item,
+        currentValue: item.collapsedSize || "0px;",
+      };
+    } else {
+      const fraction = item.currentValue / context.size;
+      newItems[index] = {
+        ...item,
+        currentValue: `clamp(${item.min || "0px"}, ${fraction * 100}%, ${item.max || "100%"})`,
+      };
     }
   });
 
@@ -531,22 +639,31 @@ const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["registerPanel"]);
 
+          let currentValue = "1fr";
+
+          if (event.data.collapsible && event.data.defaultCollapsed) {
+            currentValue = event.data.collapsedSize || "0px";
+          } else if (event.data.default) {
+            currentValue = event.data.default;
+          } else if (event.data.min && event.data.max) {
+            currentValue = `minmax(${event.data.min}, ${event.data.max})`;
+          } else if (event.data.max) {
+            currentValue = `minmax(0, ${event.data.max})`;
+          } else if (event.data.min) {
+            currentValue = `minmax(${event.data.min}, 1fr)`;
+          }
+
           return [
             ...context.items,
             {
               type: "panel",
               ...event.data,
+              collapsed: event.data.collapsible
+                ? event.data.defaultCollapsed ?? false
+                : undefined,
               min: event.data.min || "0px",
               max: event.data.max || "100%",
-              currentValue: event.data.default
-                ? event.data.default
-                : event.data.min && event.data.max
-                  ? `minmax(${event.data.min}, ${event.data.max})`
-                  : event.data.max
-                    ? `minmax(0, ${event.data.max})`
-                    : event.data.min
-                      ? `minmax(${event.data.min}, 1fr)`
-                      : "1fr",
+              currentValue,
             } as const,
           ];
         },
@@ -678,7 +795,14 @@ export interface PanelProps
   extends Constraints,
     React.HTMLAttributes<HTMLDivElement> {}
 
-export function Panel({ min, max, ...props }: PanelProps) {
+export function Panel({
+  min,
+  max,
+  defaultCollapsed,
+  collapsible,
+  collapsedSize,
+  ...props
+}: PanelProps) {
   const panelId = `panel-${useId()}`;
   const { send } = GroupMachineContext.useActorRef();
 
@@ -686,7 +810,17 @@ export function Panel({ min, max, ...props }: PanelProps) {
 
   if (!hasRegistered.current) {
     hasRegistered.current = true;
-    send({ type: "registerPanel", data: { min, max, id: panelId } });
+    send({
+      type: "registerPanel",
+      data: {
+        min,
+        max,
+        id: panelId,
+        defaultCollapsed,
+        collapsible,
+        collapsedSize,
+      },
+    });
   }
 
   React.useEffect(() => {
@@ -715,7 +849,7 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const { moveProps } = useMove({
     onMoveStart: () => send({ type: "dragHandleStart", id: handleId }),
     onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
-    onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
+    // onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
   });
 
   const hasRegistered = React.useRef(false);

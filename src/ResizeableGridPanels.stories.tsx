@@ -35,7 +35,7 @@ function StyledPanel({ children, ...props }: PanelProps) {
     >
       <div
         style={{
-          padding: 40,
+          padding: 20,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -273,6 +273,35 @@ export function WithOverflow() {
           </p>
         </div>
       </Panel>
+    </StyledPanelGroup>
+  );
+}
+
+export function Collapsible() {
+  return (
+    <StyledPanelGroup>
+      <StyledPanel
+        min="100px"
+        collapsible={true}
+        collapsedSize="60px"
+        style={{ border: "10px solid green", boxSizing: "border-box" }}
+      >
+        <div>1</div>
+      </StyledPanel>
+      <PanelResizer />
+      <StyledPanel min="100px">
+        <div>2</div>
+      </StyledPanel>
+      <PanelResizer />
+      <StyledPanel
+        min="100px"
+        collapsible={true}
+        collapsedSize="60px"
+        defaultCollapsed={true}
+        style={{ border: "10px solid blue", boxSizing: "border-box" }}
+      >
+        <div>3</div>
+      </StyledPanel>
     </StyledPanelGroup>
   );
 }
