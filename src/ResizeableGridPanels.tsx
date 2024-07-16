@@ -1040,7 +1040,8 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
       aria-valuemax={unitsToPercents(groupsSize, panelBeforeHandle.max)}
       aria-valuenow={
         typeof panelBeforeHandle.currentValue === "string" &&
-        panelBeforeHandle.currentValue.includes("minmax")
+        (panelBeforeHandle.currentValue.includes("minmax") ||
+          panelBeforeHandle.currentValue.includes("fr"))
           ? undefined
           : unitsToPercents(groupsSize, panelBeforeHandle.currentValue as Unit)
       }
