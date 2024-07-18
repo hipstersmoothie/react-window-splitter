@@ -54,6 +54,72 @@ function getPanelBeforeHandleId(
   throw new Error(`Expected panel before: ${handleId}`);
 }
 
+function getCollapsiblePanelForHandleId(
+  context: GroupMachineContext,
+  handleId: string
+) {
+  if (!context.items.length) {
+    return undefined;
+  }
+
+  const handleIndex = context.items.findIndex((item) => item.id === handleId);
+
+  if (handleIndex === -1) {
+    return undefined;
+  }
+
+  const panelBefore = context.items[handleIndex - 1];
+  const panelAfter = context.items[handleIndex + 1];
+
+  if (panelBefore && isPanelData(panelBefore) && panelBefore.collapsible) {
+    return panelBefore;
+  }
+
+  if (panelAfter && isPanelData(panelAfter) && panelAfter.collapsible) {
+    return panelAfter;
+  }
+
+  return undefined;
+}
+
+function getPanelWithId(context: GroupMachineContext, panelId: string) {
+  const panelIndex = context.items.findIndex((item) => item.id === panelId);
+
+  if (panelIndex === -1 || panelIndex >= context.items.length) {
+    throw new Error(`Expected panel with id: ${panelId}`);
+  }
+
+  const item = context.items[panelIndex];
+
+  if (item && isPanelData(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected panel with id: ${panelId}`);
+}
+
+function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
+  const panelIndex = context.items.findIndex((item) => item.id === panelId);
+
+  if (panelIndex === -1) {
+    throw new Error(`Expected panel before: ${panelId}`);
+  }
+
+  let item = context.items[panelIndex + 1];
+
+  if (item && isPanelHandle(item)) {
+    return { item, direction: 1 as const };
+  }
+
+  item = context.items[panelIndex - 1];
+
+  if (item && isPanelHandle(item)) {
+    return { item, direction: -1 as const };
+  }
+
+  throw new Error(`Cant find handle for panel: ${panelId}`);
+}
+
 interface Rect {
   width: number;
   height: number;
@@ -145,12 +211,12 @@ interface SetOrientationEvent {
 
 interface CollapsePanelEvent {
   type: "collapsePanel";
-  handleId: string;
+  panelId: string;
 }
 
 interface ExpandPanelEvent {
   type: "expandPanel";
-  handleId: string;
+  panelId: string;
 }
 
 interface GroupMachineContext {
@@ -451,7 +517,15 @@ function updateLayout(
 
   // Don't let the panel expand until the threshold is reached
   if (panelAfter.collapsible && panelAfter.collapsed) {
-    if (Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD) {
+    const potentialNewValue =
+      (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
+    const min = getUnitPixelValue(context, panelAfter.min);
+
+    if (
+      Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD &&
+      // If the panel is at it's min, expand it
+      potentialNewValue < min
+    ) {
       return { dragOvershoot: newDragOvershoot };
     }
   }
@@ -772,6 +846,7 @@ const groupMachine = createMachine(
         },
       }),
       onDragStart: assign({
+        dragOvershoot: 0,
         items: ({ context, event }) => {
           isEvent(event, ["dragHandleStart", "collapsePanel", "expandPanel"]);
           return onDragStart(context);
@@ -800,17 +875,25 @@ const groupMachine = createMachine(
       collapsePanel: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["collapsePanel"]);
 
-        const panel = getPanelBeforeHandleId(context, event.handleId);
+        const panel = getPanelWithId(context, event.panelId);
+        const handle = getHandleForPanelId(context, event.panelId);
+        const collapsedSize = getUnitPixelValue(
+          context,
+          panel.collapsedSize || "0px"
+        );
 
-        panel.sizeBeforeCollapse = panel.currentValue as number;
+        if (panel.currentValue !== collapsedSize) {
+          panel.sizeBeforeCollapse = panel.currentValue as number;
+        }
+
         enqueue.assign(
           iterativelyUpdateLayout({
-            direction: -1,
+            direction: (handle.direction * -1) as -1 | 1,
             context,
-            handleId: event.handleId,
+            handleId: handle.item.id,
             delta:
               (panel.currentValue as number) -
-              getUnitPixelValue(context, panel.collapsedSize || "0px") +
+              collapsedSize +
               COLLAPSE_THRESHOLD,
           })
         );
@@ -818,13 +901,18 @@ const groupMachine = createMachine(
       expandPanel: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["expandPanel"]);
 
-        const panel = getPanelBeforeHandleId(context, event.handleId);
+        const panel = getPanelWithId(context, event.panelId);
+        const handle = getHandleForPanelId(context, event.panelId);
+
+        if (!panel) {
+          return;
+        }
 
         enqueue.assign(
           iterativelyUpdateLayout({
-            direction: 1,
+            direction: handle.direction,
             context,
-            handleId: event.handleId,
+            handleId: handle.item.id,
             delta:
               (panel.sizeBeforeCollapse ??
                 getUnitPixelValue(context, panel.min)) -
@@ -986,6 +1074,10 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) =>
     context.items.length ? getPanelBeforeHandleId(context, handleId) : undefined
   );
+  const collapsiblePanel = GroupMachineContext.useSelector(({ context }) =>
+    getCollapsiblePanelForHandleId(context, handleId)
+  );
+
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
@@ -999,16 +1091,11 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (
-      e.key === "Enter" &&
-      panelBeforeHandle &&
-      isPanelData(panelBeforeHandle) &&
-      panelBeforeHandle.collapsible
-    ) {
-      if (panelBeforeHandle.collapsed) {
-        send({ type: "expandPanel", handleId });
+    if (e.key === "Enter" && collapsiblePanel) {
+      if (collapsiblePanel.collapsed) {
+        send({ type: "expandPanel", panelId: collapsiblePanel.id });
       } else {
-        send({ type: "collapsePanel", handleId });
+        send({ type: "collapsePanel", panelId: collapsiblePanel.id });
       }
     }
   };
