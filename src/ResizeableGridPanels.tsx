@@ -137,6 +137,10 @@ interface Constraints {
 interface PanelData extends Constraints {
   type: "panel";
   id: string;
+  collapseIsControlled?: boolean;
+  onCollapseChange?: {
+    current: ((isCollapsed: boolean) => void) | null | undefined;
+  };
 }
 
 interface ActivePanelData extends PanelData {
@@ -212,11 +216,13 @@ interface SetOrientationEvent {
 interface CollapsePanelEvent {
   type: "collapsePanel";
   panelId: string;
+  controlled?: boolean;
 }
 
 interface ExpandPanelEvent {
   type: "expandPanel";
   panelId: string;
+  controlled?: boolean;
 }
 
 interface GroupMachineContext {
@@ -463,8 +469,13 @@ function onDragStart(context: GroupMachineContext) {
 function updateLayout(
   context: GroupMachineContext,
   dragEvent:
-    | DragHandleEvent
-    | { type: "collapsePanel"; value: MoveMoveEvent; id: string }
+    | (DragHandleEvent & { controlled?: boolean })
+    | {
+        type: "collapsePanel";
+        value: MoveMoveEvent;
+        id: string;
+        controlled?: boolean;
+      }
 ): Partial<GroupMachineContext> {
   const handleIndex = context.items.findIndex(
     (item) => item.id === dragEvent.id
@@ -522,7 +533,7 @@ function updateLayout(
     const min = getUnitPixelValue(context, panelAfter.min);
 
     if (
-      Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD &&
+      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
       // If the panel is at it's min, expand it
       potentialNewValue < min
     ) {
@@ -534,7 +545,17 @@ function updateLayout(
     panelBefore.collapsible &&
     panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
   ) {
-    if (Math.abs(context.dragOvershoot) < COLLAPSE_THRESHOLD) {
+    const collapsedSize = getUnitPixelValue(
+      context,
+      panelBefore.collapsedSize || "0px"
+    );
+    const potentialNewValue =
+      panelBefore.currentValue - Math.abs(newDragOvershoot);
+
+    if (
+      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
+      potentialNewValue > collapsedSize
+    ) {
       return { dragOvershoot: newDragOvershoot };
     }
   }
@@ -570,6 +591,15 @@ function updateLayout(
   // We need to re-apply the move amount since the the expansion of the
   // collapsed panel disregards that.
   if (panelAfter.collapsible && panelAfter.collapsed) {
+    if (
+      panelAfter.onCollapseChange?.current &&
+      panelAfter.collapseIsControlled &&
+      !dragEvent.controlled
+    ) {
+      panelAfter.onCollapseChange.current(false);
+      return {};
+    }
+
     const collapsedSize = getUnitPixelValue(
       context,
       panelAfter.collapsedSize || "0px"
@@ -593,6 +623,14 @@ function updateLayout(
       panelAfterPreviousValue -
       // And then re-apply the movement value
       Math.abs(moveAmount);
+
+    if (
+      panelAfter.onCollapseChange?.current &&
+      !panelAfter.collapseIsControlled &&
+      !dragEvent.controlled
+    ) {
+      panelAfter.onCollapseChange.current(false);
+    }
   }
 
   // If the panel was expanded and now is at it's min size, collapse it
@@ -600,6 +638,15 @@ function updateLayout(
     panelBefore.collapsible &&
     panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
   ) {
+    if (
+      panelBefore.onCollapseChange?.current &&
+      panelBefore.collapseIsControlled &&
+      !dragEvent.controlled
+    ) {
+      panelBefore.onCollapseChange.current(true);
+      return {};
+    }
+
     const collapsedSize = getUnitPixelValue(
       context,
       panelBefore.collapsedSize || "0px"
@@ -610,28 +657,18 @@ function updateLayout(
     panelBeforeNewValue = collapsedSize;
     // Add the extra space created to the before panel
     panelAfterNewValue += panelBeforePreviousValue - collapsedSize;
+
+    if (
+      panelBefore.onCollapseChange?.current &&
+      !panelBefore.collapseIsControlled &&
+      !dragEvent.controlled
+    ) {
+      panelBefore.onCollapseChange.current(true);
+    }
   }
 
   panelBefore.currentValue = panelBeforeNewValue;
   panelAfter.currentValue = panelAfterNewValue;
-
-  // There might be some extra space so just add it
-  // const leftoverSpace =
-  //   context.size -
-  //   newItems.reduce(
-  //     (acc, b) =>
-  //       acc +
-  //       (b.type === "panel"
-  //         ? typeof b.currentValue === "number"
-  //           ? b.currentValue
-  //           : getUnitPixelValue(context, b.currentValue as Unit)
-  //         : parseUnit(b.size).value),
-  //     0
-  //   );
-
-  // // TODO: this is wrong?
-  // console.log("!!!", { leftoverSpace });
-  // panelAfter.currentValue += leftoverSpace;
 
   return { items: newItems, dragOvershoot: 0 };
 }
@@ -667,11 +704,13 @@ function iterativelyUpdateLayout({
   handleId,
   delta,
   direction,
+  controlled,
 }: {
   context: GroupMachineContext;
   handleId: string;
   delta: number;
   direction: -1 | 1;
+  controlled?: boolean;
 }) {
   let newContext: Partial<GroupMachineContext> = context;
 
@@ -684,6 +723,7 @@ function iterativelyUpdateLayout({
       {
         id: handleId,
         type: "collapsePanel",
+        controlled,
         value: {
           type: "move",
           pointerType: "keyboard",
@@ -846,7 +886,6 @@ const groupMachine = createMachine(
         },
       }),
       onDragStart: assign({
-        dragOvershoot: 0,
         items: ({ context, event }) => {
           isEvent(event, ["dragHandleStart", "collapsePanel", "expandPanel"]);
           return onDragStart(context);
@@ -889,12 +928,10 @@ const groupMachine = createMachine(
         enqueue.assign(
           iterativelyUpdateLayout({
             direction: (handle.direction * -1) as -1 | 1,
-            context,
+            context: { ...context, dragOvershoot: 0 },
             handleId: handle.item.id,
-            delta:
-              (panel.currentValue as number) -
-              collapsedSize +
-              COLLAPSE_THRESHOLD,
+            controlled: event.controlled,
+            delta: (panel.currentValue as number) - collapsedSize,
           })
         );
       }),
@@ -911,8 +948,9 @@ const groupMachine = createMachine(
         enqueue.assign(
           iterativelyUpdateLayout({
             direction: handle.direction,
-            context,
+            context: { ...context, dragOvershoot: 0 },
             handleId: handle.item.id,
+            controlled: event.controlled,
             delta:
               (panel.sizeBeforeCollapse ??
                 getUnitPixelValue(context, panel.min)) -
@@ -1007,7 +1045,29 @@ function PanelGroupImplementation(props: PanelGroupProps) {
 
 export interface PanelProps
   extends Constraints,
-    React.HTMLAttributes<HTMLDivElement> {}
+    React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * CONTROLLED COMPONENT
+   *
+   * If this prop is used it will be used as the source of truth for the collapsed state.
+   * It should be used in conjunction with the `onCollapseChange` prop.
+   *
+   * Use this if you want full control over the collapsed state. When trying to
+   * collapse a panel it will defer to onCollapseChange to determine if it should
+   * be collapsed.
+   */
+  collapsed?: boolean;
+  /**
+   * CONTROLLED COMPONENT
+   *
+   * A callback called with the new desired collapsed state. If paired w
+   * with the `collapsed` prop this will be used to control the collapsed state.
+   *
+   * Otherwise this will just be called with the new collapsed state so you can
+   * use it to update your own state.
+   */
+  onCollapseChange?: (isCollapsed: boolean) => void;
+}
 
 export function Panel({
   min,
@@ -1015,10 +1075,13 @@ export function Panel({
   defaultCollapsed,
   collapsible,
   collapsedSize,
+  collapsed,
+  onCollapseChange,
   ...props
 }: PanelProps) {
   const panelId = `panel-${useId()}`;
-  const { send } = GroupMachineContext.useActorRef();
+  const { send, ref } = GroupMachineContext.useActorRef();
+  const onCollapseChangeRef = React.useRef(onCollapseChange);
 
   const hasRegistered = React.useRef(false);
 
@@ -1030,9 +1093,11 @@ export function Panel({
         min,
         max,
         id: panelId,
-        defaultCollapsed,
+        defaultCollapsed: collapsed ?? defaultCollapsed,
         collapsible,
         collapsedSize,
+        onCollapseChange: onCollapseChangeRef,
+        collapseIsControlled: typeof collapsed !== "undefined",
       },
     });
   }
@@ -1040,6 +1105,24 @@ export function Panel({
   React.useEffect(() => {
     return () => send({ type: "unregisterPanel", id: panelId });
   }, [send, panelId]);
+
+  React.useEffect(() => {
+    if (typeof collapsed !== "undefined") {
+      const context = ref.getSnapshot().context;
+
+      if (context.items.length === 0) {
+        return;
+      }
+
+      const panel = getPanelWithId(ref.getSnapshot().context, panelId);
+
+      if (collapsed === true && !panel.collapsed) {
+        send({ type: "collapsePanel", panelId, controlled: true });
+      } else if (collapsed === false && panel.collapsed) {
+        send({ type: "expandPanel", panelId, controlled: true });
+      }
+    }
+  }, [send, collapsed, panelId, ref]);
 
   return (
     <div

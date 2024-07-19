@@ -278,6 +278,8 @@ export function WithOverflow() {
 }
 
 export function Collapsible() {
+  const [collapsed, setCollapsed] = React.useState(true);
+
   return (
     <StyledPanelGroup>
       <StyledPanel
@@ -285,6 +287,9 @@ export function Collapsible() {
         collapsible={true}
         collapsedSize="60px"
         style={{ border: "10px solid green", boxSizing: "border-box" }}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE PASSIVE", isCollapsed);
+        }}
       >
         <div>1</div>
       </StyledPanel>
@@ -299,6 +304,11 @@ export function Collapsible() {
         collapsedSize="60px"
         defaultCollapsed={true}
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
+        collapsed={collapsed}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE CONTROLLED", isCollapsed);
+          setCollapsed(isCollapsed);
+        }}
       >
         <div>3</div>
       </StyledPanel>
