@@ -1,6 +1,7 @@
 # TODO
 
-- [ ] collapse
+- [x] collapse
+
 - [ ] persistance (+ external)
 - [ ] conditional panels
 - [ ] imperative api

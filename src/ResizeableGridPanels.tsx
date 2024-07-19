@@ -148,6 +148,7 @@ interface ActivePanelData extends PanelData {
   min: Unit;
   max: Unit;
   collapsed: boolean | undefined;
+  collapsedSize: Unit;
   sizeBeforeCollapse: number | undefined;
 }
 
@@ -545,16 +546,12 @@ function updateLayout(
     panelBefore.collapsible &&
     panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
   ) {
-    const collapsedSize = getUnitPixelValue(
-      context,
-      panelBefore.collapsedSize || "0px"
-    );
     const potentialNewValue =
       panelBefore.currentValue - Math.abs(newDragOvershoot);
 
     if (
       Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-      potentialNewValue > collapsedSize
+      potentialNewValue > getUnitPixelValue(context, panelBefore.collapsedSize)
     ) {
       return { dragOvershoot: newDragOvershoot };
     }
@@ -600,14 +597,10 @@ function updateLayout(
       return {};
     }
 
-    const collapsedSize = getUnitPixelValue(
-      context,
-      panelAfter.collapsedSize || "0px"
-    );
     // Calculate the amount "extra" after the minSize the panel should grow
     const extra =
       // Take the size it was at
-      collapsedSize +
+      getUnitPixelValue(context, panelAfter.collapsedSize) +
       // Add in the full overshoot so the cursor is near the slider
       Math.abs(context.dragOvershoot) -
       // Subtract the min size of the panel
@@ -647,16 +640,11 @@ function updateLayout(
       return {};
     }
 
-    const collapsedSize = getUnitPixelValue(
-      context,
-      panelBefore.collapsedSize || "0px"
-    );
-
     // Make it collapsed
     panelBefore.collapsed = true;
-    panelBeforeNewValue = collapsedSize;
+    panelBeforeNewValue = getUnitPixelValue(context, panelBefore.collapsedSize);
     // Add the extra space created to the before panel
-    panelAfterNewValue += panelBeforePreviousValue - collapsedSize;
+    panelAfterNewValue += panelBeforePreviousValue - panelBeforeNewValue;
 
     if (
       panelBefore.onCollapseChange?.current &&
@@ -685,13 +673,13 @@ function onDragEnd(context: GroupMachineContext) {
     if (item.collapsed) {
       newItems[index] = {
         ...item,
-        currentValue: item.collapsedSize || "0px;",
+        currentValue: item.collapsedSize,
       };
     } else {
       const fraction = item.currentValue / context.size;
       newItems[index] = {
         ...item,
-        currentValue: `clamp(${item.min || "0px"}, ${fraction * 100}%, ${item.max || "100%"})`,
+        currentValue: `clamp(${item.min}, ${fraction * 100}%, ${item.max})`,
       };
     }
   });
@@ -865,6 +853,7 @@ const groupMachine = createMachine(
               collapsed: event.data.collapsible
                 ? event.data.defaultCollapsed ?? false
                 : undefined,
+              collapsedSize: event.data.collapsedSize || "0px",
               min: event.data.min || "0px",
               max: event.data.max || "100%",
               sizeBeforeCollapse: undefined,
@@ -916,10 +905,7 @@ const groupMachine = createMachine(
 
         const panel = getPanelWithId(context, event.panelId);
         const handle = getHandleForPanelId(context, event.panelId);
-        const collapsedSize = getUnitPixelValue(
-          context,
-          panel.collapsedSize || "0px"
-        );
+        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
 
         if (panel.currentValue !== collapsedSize) {
           panel.sizeBeforeCollapse = panel.currentValue as number;
