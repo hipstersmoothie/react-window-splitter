@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext } from "@xstate/react";
@@ -1119,7 +1119,8 @@ export function Panel({
   );
 }
 
-export interface PanelResizerProps {
+export interface PanelResizerProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   size?: PixelUnit;
 }
 
@@ -1137,8 +1138,9 @@ function unitsToPercents(groupsSize: number, unit: Unit | number) {
   return parsed.value;
 }
 
-export function PanelResizer({ size = "10px" }: PanelResizerProps) {
+export function PanelResizer({ size = "10px", ...props }: PanelResizerProps) {
   const handleId = `panel-resizer-${useId()}`;
+  const [isDragging, setIsDragging] = React.useState(false);
   const { send } = GroupMachineContext.useActorRef();
   const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) =>
     context.items.length ? getPanelBeforeHandleId(context, handleId) : undefined
@@ -1146,17 +1148,25 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
   const collapsiblePanel = GroupMachineContext.useSelector(({ context }) =>
     getCollapsiblePanelForHandleId(context, handleId)
   );
-
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
   const groupsSize = GroupMachineContext.useSelector(
     (state) => state.context.size
   );
+  const overshoot = GroupMachineContext.useSelector(
+    (state) => state.context.dragOvershoot
+  );
   const { moveProps } = useMove({
-    onMoveStart: () => send({ type: "dragHandleStart", id: handleId }),
+    onMoveStart: () => {
+      setIsDragging(true);
+      send({ type: "dragHandleStart", id: handleId });
+    },
     onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
-    onMoveEnd: () => send({ type: "dragHandleEnd", id: handleId }),
+    onMoveEnd: () => {
+      setIsDragging(false);
+      send({ type: "dragHandleEnd", id: handleId });
+    },
   });
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1180,6 +1190,38 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
     return () => send({ type: "unregisterPanelHandle", id: handleId });
   }, [send, handleId]);
 
+  let cursor: React.CSSProperties["cursor"];
+
+  if (orientation === "horizontal") {
+    if (overshoot > 0) {
+      cursor = "w-resize";
+    } else if (overshoot < 0) {
+      cursor = "e-resize";
+    } else {
+      cursor = "ew-resize";
+    }
+  } else {
+    if (overshoot > 0) {
+      cursor = "n-resize";
+    } else if (overshoot < 0) {
+      cursor = "s-resize";
+    } else {
+      cursor = "ns-resize";
+    }
+  }
+
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    document.body.style.cursor = cursor || "auto";
+
+    return () => {
+      document.body.style.cursor = "auto";
+    };
+  }, [cursor, isDragging]);
+
   if (!panelBeforeHandle || !isPanelData(panelBeforeHandle)) {
     return null;
   }
@@ -1201,12 +1243,14 @@ export function PanelResizer({ size = "10px" }: PanelResizerProps) {
           ? undefined
           : unitsToPercents(groupsSize, panelBeforeHandle.currentValue as Unit)
       }
-      style={
-        orientation === "horizontal"
+      {...mergeProps(props, moveProps, { onKeyDown })}
+      style={{
+        cursor,
+        ...props.style,
+        ...(orientation === "horizontal"
           ? { background: "red", width: 10, height: "100%" }
-          : { background: "red", height: 10, width: "100%" }
-      }
-      {...mergeProps(moveProps, { onKeyDown })}
+          : { background: "red", height: 10, width: "100%" }),
+      }}
     />
   );
 }
