@@ -5,6 +5,7 @@ import {
   Panel,
   PanelProps,
   PanelResizer,
+  PanelHandle,
 } from "./ResizeableGridPanels.jsx";
 
 export default {
@@ -313,5 +314,73 @@ export function Collapsible() {
         <div>3</div>
       </StyledPanel>
     </StyledPanelGroup>
+  );
+}
+
+export function ImperativePanel() {
+  const panelRef = React.useRef<PanelHandle>(null);
+
+  return (
+    <>
+      <StyledPanelGroup>
+        <StyledPanel
+          handle={panelRef}
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
+          <div>1</div>
+        </StyledPanel>
+        <PanelResizer />
+        <StyledPanel min="100px">
+          <div>2</div>
+        </StyledPanel>
+        <PanelResizer />
+        <StyledPanel
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+          defaultCollapsed={true}
+        >
+          <div>3</div>
+        </StyledPanel>
+      </StyledPanelGroup>
+
+      <div>
+        <button onClick={() => panelRef.current?.collapse()}>Collapse</button>
+        <button
+          onClick={() => alert(`Collapsed: ${panelRef.current?.isCollapsed()}`)}
+        >
+          Is Collapsed?
+        </button>
+        <button onClick={() => panelRef.current?.expand()}>Expand</button>
+        <button
+          onClick={() => alert(`Expanded: ${panelRef.current?.isExpanded()}`)}
+        >
+          Is Expanded?
+        </button>
+        <button onClick={() => alert(`Id: ${panelRef.current?.getId()}`)}>
+          Get Id
+        </button>
+        <button
+          onClick={() => alert(`Size: ${panelRef.current?.getPixelSize()}`)}
+        >
+          Get Pixel Size
+        </button>
+        <button
+          onClick={() =>
+            alert(`Percentage: ${panelRef.current?.getPercentageSize()}`)
+          }
+        >
+          Get Percentage Size
+        </button>
+        <button onClick={() => panelRef.current?.setSize("30px")}>
+          Set size to 100px
+        </button>{" "}
+        <button onClick={() => panelRef.current?.setSize("50%")}>
+          Set size to 50%
+        </button>
+      </div>
+    </>
   );
 }

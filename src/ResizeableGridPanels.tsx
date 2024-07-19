@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useImperativeHandle } from "react";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions } from "xstate";
 import { createActorContext } from "@xstate/react";
@@ -227,6 +227,12 @@ interface ExpandPanelEvent {
   controlled?: boolean;
 }
 
+interface SetPanelPixelSizeEvent {
+  type: "setPanelPixelSize";
+  panelId: string;
+  size: Unit;
+}
+
 interface GroupMachineContext {
   /** The items in the group */
   items: Array<Item>;
@@ -251,7 +257,8 @@ type GroupMachineEvent =
   | DragHandleStartEvent
   | DragHandleEndEvent
   | CollapsePanelEvent
-  | ExpandPanelEvent;
+  | ExpandPanelEvent
+  | SetPanelPixelSizeEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> =
   T extends "registerPanel"
@@ -276,7 +283,9 @@ type EventForType<T extends GroupMachineEvent["type"]> =
                       ? CollapsePanelEvent
                       : T extends "expandPanel"
                         ? ExpandPanelEvent
-                        : never;
+                        : T extends "setPanelPixelSize"
+                          ? SetPanelPixelSizeEvent
+                          : never;
 
 function isEvent<T extends GroupMachineEvent["type"]>(
   event: GroupMachineEvent,
@@ -767,6 +776,14 @@ const groupMachine = createMachine(
             actions: ["onDragStart", "layout"],
             target: "dragging",
           },
+          setPanelPixelSize: {
+            actions: [
+              "onDragStart",
+              "onSetPanelSize",
+              "dragHandleEnd",
+              "layout",
+            ],
+          },
         },
       },
       dragging: {
@@ -877,7 +894,12 @@ const groupMachine = createMachine(
       }),
       onDragStart: assign({
         items: ({ context, event }) => {
-          isEvent(event, ["dragHandleStart", "collapsePanel", "expandPanel"]);
+          isEvent(event, [
+            "dragHandleStart",
+            "collapsePanel",
+            "expandPanel",
+            "setPanelPixelSize",
+          ]);
           return onDragStart(context);
         },
       }),
@@ -897,7 +919,12 @@ const groupMachine = createMachine(
       onDragEnd: assign({
         dragOvershoot: 0,
         items: ({ context, event }) => {
-          isEvent(event, ["dragHandleEnd", "collapsePanel", "expandPanel"]);
+          isEvent(event, [
+            "dragHandleEnd",
+            "collapsePanel",
+            "expandPanel",
+            "setPanelPixelSize",
+          ]);
           return onDragEnd(context);
         },
       }),
@@ -945,6 +972,34 @@ const groupMachine = createMachine(
           })
         );
       }),
+      onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["setPanelPixelSize"]);
+
+        const panel = getPanelWithId(context, event.panelId);
+        const handle = getHandleForPanelId(context, event.panelId);
+
+        if (!panel) {
+          return;
+        }
+
+        const current = panel.currentValue as number;
+        const newSize = clampUnit(
+          context,
+          panel,
+          getUnitPixelValue(context, event.size)
+        );
+        const isBigger = newSize > current;
+        const delta = isBigger ? newSize - current : current - newSize;
+
+        enqueue.assign(
+          iterativelyUpdateLayout({
+            context,
+            direction: (handle.direction * (isBigger ? 1 : -1)) as -1 | 1,
+            handleId: handle.item.id,
+            delta,
+          })
+        );
+      }),
     },
   }
 );
@@ -958,6 +1013,11 @@ function useDebugGroupMachineContext({ id }: { id: string }) {
 
 export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   orientation?: Orientation;
+}
+
+export interface PanelGroupHandle {
+  getSize: () => number;
+  getItems: () => Array<Item>;
 }
 
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
@@ -1033,6 +1093,31 @@ const PanelGroupImplementation = React.forwardRef<
   );
 });
 
+export interface PanelHandle {
+  /** Collapse the panel */
+  collapse: () => void;
+  /** Returns true if the panel is collapsed */
+  isCollapsed: () => boolean;
+  /** Expand the panel */
+  expand: () => void;
+  /** Returns true if the panel is expanded */
+  isExpanded: () => boolean;
+  /** The id of the panel */
+  getId: () => string;
+  /** Get the size of the panel in pixels */
+  getPixelSize: () => number;
+  /** Get percentage of the panel relative to the group */
+  getPercentageSize: () => number;
+  /**
+   * Set the size of the panel in pixels.
+   *
+   * This will be clamped to the min/max values of the panel.
+   * If you want the panel to collapse/expand you should use the
+   * expand/collapse methods.
+   */
+  setSize: (size: Unit) => void;
+}
+
 export interface PanelProps
   extends Constraints,
     React.HTMLAttributes<HTMLDivElement> {
@@ -1057,6 +1142,8 @@ export interface PanelProps
    * use it to update your own state.
    */
   onCollapseChange?: (isCollapsed: boolean) => void;
+  /** Imperative handle to control the panel */
+  handle?: React.Ref<PanelHandle>;
 }
 
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
@@ -1065,10 +1152,11 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       min,
       max,
       defaultCollapsed,
-      collapsible,
+      collapsible = false,
       collapsedSize,
       collapsed,
       onCollapseChange,
+      handle,
       ...props
     },
     ref
@@ -1077,6 +1165,9 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     const { send, ref: machineRef } = GroupMachineContext.useActorRef();
     const onCollapseChangeRef = React.useRef(onCollapseChange);
     const hasRegistered = React.useRef(false);
+    const panel = GroupMachineContext.useSelector(({ context }) =>
+      context.items.length ? getPanelWithId(context, panelId) : undefined
+    );
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
@@ -1116,6 +1207,49 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         }
       }
     }, [send, collapsed, panelId, machineRef]);
+
+    const fallbackHandleRef = React.useRef<PanelHandle>(null);
+
+    useImperativeHandle(handle || fallbackHandleRef, () => {
+      return {
+        getId: () => panelId,
+        collapse: () => {
+          if (collapsible) {
+            send({ type: "collapsePanel", panelId, controlled: true });
+          }
+        },
+        isCollapsed: () => Boolean(collapsible && panel?.collapsed),
+        expand: () => {
+          if (collapsible) {
+            send({ type: "expandPanel", panelId, controlled: true });
+          }
+        },
+        isExpanded: () => Boolean(collapsible && !panel?.collapsed),
+        getPixelSize: () => {
+          const context = machineRef.getSnapshot().context;
+          const items = onDragStart(context);
+          const panel = getPanelWithId({ ...context, items }, panelId);
+
+          if (typeof panel.currentValue === "string") {
+            return getUnitPixelValue(context, panel.currentValue as Unit);
+          }
+
+          return panel.currentValue;
+        },
+        setSize: (size) => {
+          send({ type: "setPanelPixelSize", panelId, size });
+        },
+        getPercentageSize: () => {
+          const context = machineRef.getSnapshot().context;
+          const items = onDragStart(context);
+          const panel = getPanelWithId({ ...context, items }, panelId);
+          return unitsToPercents(
+            context.size,
+            panel.currentValue as Unit | number
+          );
+        },
+      };
+    });
 
     return (
       <div
