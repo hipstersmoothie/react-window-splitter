@@ -62,6 +62,7 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@radix-ui/react-compose-refs": "^1.1.0",
     "@types/invariant": "^2.2.37",
     "@xstate/react": "^4.1.1",
     "eslint-plugin-react-hooks": "^4.6.2",

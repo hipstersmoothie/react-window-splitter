@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@radix-ui/react-compose-refs':
+    specifier: ^1.1.0
+    version: 1.1.0(@types/react@16.14.60)(react@16.14.0)
   '@types/invariant':
     specifier: ^2.2.37
     version: 2.2.37
@@ -1886,6 +1889,19 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@radix-ui/react-compose-refs@1.1.0(@types/react@16.14.60)(react@16.14.0):
+    resolution: {integrity: sha512-b4inOtiaOnYf9KWyO3jAeeCG6FeyfY6ldiEPanbUjWd+xIk5wZeHa8yVwmrJ2vderhu/BQvzCrJI0lHd+wIiqw==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+    dependencies:
+      '@types/react': 16.14.60
+      react: 16.14.0
+    dev: false
 
   /@react-aria/breadcrumbs@3.5.13(react@16.14.0):
     resolution: {integrity: sha512-G1Gqf/P6kVdfs94ovwP18fTWuIxadIQgHsXS08JEVcFVYMjb9YjqnEBaohUxD1tq2WldMbYw53ahQblT4NTG+g==}
