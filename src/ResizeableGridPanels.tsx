@@ -8,6 +8,7 @@ import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
 
 const COLLAPSE_THRESHOLD = 50;
+const CLAMP_REGEX = /min\(calc\((.*) \* .*\), .*\)\)/;
 
 type PixelUnit = `${number}px`;
 type PercentUnit = `${number}%`;
@@ -16,6 +17,14 @@ type Orientation = "horizontal" | "vertical";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function parseClamp(unit: string) {
+  const [, percent] = unit.match(CLAMP_REGEX) || [];
+
+  if (percent) {
+    return { type: "percent" as const, value: parseFloat(percent) * 100 };
+  }
 }
 
 function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
@@ -27,10 +36,10 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
     return { type: "percent", value: parseFloat(unit) };
   }
 
-  const [, percent] = unit.match(/clamp\(.*, (.*), .*\)/) || [];
+  const clampValue = parseClamp(unit);
 
-  if (percent) {
-    return { type: "percent", value: parseFloat(percent) };
+  if (clampValue) {
+    return clampValue;
   }
 
   throw new Error(`Invalid unit: ${unit}`);
@@ -367,17 +376,17 @@ function findPanelWithSpace(
   }
 }
 
-function getAvailableSpace(context: GroupMachineContext) {
-  let availableSpace = context.size;
+function getStaticWidth(context: GroupMachineContext) {
+  let width = 0;
 
-  // Subtract resize handle sizes
-  availableSpace -= context.items
+  // Add resize handle sizes
+  width += context.items
     .filter(isPanelHandle)
     .map((item) => parseUnit(item.size).value)
     .reduce((a, b) => a + b, 0);
 
-  // Some panels might have a pixel value set so we should account for that
-  availableSpace -= context.items
+  // Add any panels with static pixel size
+  width += context.items
     .filter((d): d is ActivePanelData =>
       Boolean(
         isPanelData(d) && d.collapsed && typeof d.currentValue === "number"
@@ -386,7 +395,19 @@ function getAvailableSpace(context: GroupMachineContext) {
     .map((item) => item.currentValue as number)
     .reduce((a, b) => a + b, 0);
 
-  return availableSpace;
+  width += context.items
+    .filter((d): d is ActivePanelData =>
+      Boolean(
+        isPanelData(d) &&
+          d.collapsed &&
+          typeof d.currentValue === "string" &&
+          d.currentValue.endsWith("px")
+      )
+    )
+    .map((item) => parseUnit(item.currentValue as Unit).value)
+    .reduce((a, b) => a + b, 0);
+
+  return width;
 }
 
 /** Converts the items to pixels */
@@ -410,7 +431,8 @@ function prepareItems(context: GroupMachineContext) {
     .map((i, index) =>
       isPanelData(i) &&
       typeof i.currentValue === "string" &&
-      (i.currentValue.includes("fr") || i.currentValue.includes("minmax"))
+      (i.currentValue.includes("fr") ||
+        (i.currentValue.includes("minmax") && !i.currentValue.includes("calc")))
         ? index
         : -1
     )
@@ -418,7 +440,7 @@ function prepareItems(context: GroupMachineContext) {
 
   // If there are any items with fractions, distribute them evenly
   if (itemsWithFractions.length > 0) {
-    let fractionSpace = getAvailableSpace(context);
+    let fractionSpace = context.size - getStaticWidth(context);
     let remaining = itemsWithFractions.length;
 
     for (const index of itemsWithFractions) {
@@ -443,7 +465,7 @@ function prepareItems(context: GroupMachineContext) {
     .map((i, index) =>
       isPanelData(i) &&
       typeof i.currentValue === "string" &&
-      i.currentValue.includes("clamp")
+      i.currentValue.includes("minmax")
         ? index
         : -1
     )
@@ -460,7 +482,7 @@ function prepareItems(context: GroupMachineContext) {
       ) {
         continue;
       }
-      const [, unit] = item.currentValue.match(/clamp\(.*, (.*), .*\)/) || [];
+      const unit = parseClamp(item.currentValue);
 
       if (!unit) {
         continue;
@@ -468,7 +490,8 @@ function prepareItems(context: GroupMachineContext) {
 
       newItems[index] = {
         ...item,
-        currentValue: context.size * (parseUnit(unit as Unit).value / 100),
+        currentValue:
+          (context.size - getStaticWidth(context)) * (unit.value / 100),
       };
     }
   }
@@ -690,6 +713,7 @@ function updateLayout(
 /** Converts the items to percentages */
 function commitLayout(context: GroupMachineContext) {
   const newItems = [...context.items];
+  const staticWidth = getStaticWidth(context);
 
   newItems.forEach((item, index) => {
     if (item.type !== "panel" || typeof item.currentValue !== "number") {
@@ -702,10 +726,10 @@ function commitLayout(context: GroupMachineContext) {
         currentValue: item.collapsedSize,
       };
     } else {
-      const fraction = item.currentValue / context.size;
+      const fraction = item.currentValue / (context.size - staticWidth);
       newItems[index] = {
         ...item,
-        currentValue: `clamp(${item.min}, ${fraction * 100}%, ${item.max})`,
+        currentValue: `minmax(${item.min}, min(calc(${fraction} * (100% - ${staticWidth}px)), ${item.max}))`,
       };
     }
   });
