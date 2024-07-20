@@ -7,128 +7,19 @@ import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
 
+// #region Constants
+
 const COLLAPSE_THRESHOLD = 50;
 const CLAMP_REGEX = /min\(calc\((.*) \* .*\), .*\)\)/;
+
+// #endregion Constants
+
+// #region Types
 
 type PixelUnit = `${number}px`;
 type PercentUnit = `${number}%`;
 type Unit = PixelUnit | PercentUnit;
 type Orientation = "horizontal" | "vertical";
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function parseClamp(unit: string) {
-  const [, percent] = unit.match(CLAMP_REGEX) || [];
-
-  if (percent) {
-    return { type: "percent" as const, value: parseFloat(percent) * 100 };
-  }
-}
-
-function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
-  if (unit.endsWith("px")) {
-    return { type: "pixel", value: parseFloat(unit) };
-  }
-
-  if (unit.endsWith("%")) {
-    return { type: "percent", value: parseFloat(unit) };
-  }
-
-  const clampValue = parseClamp(unit);
-
-  if (clampValue) {
-    return clampValue;
-  }
-
-  throw new Error(`Invalid unit: ${unit}`);
-}
-
-function getPanelBeforeHandleId(
-  context: GroupMachineContext,
-  handleId: string
-) {
-  const handleIndex = context.items.findIndex((item) => item.id === handleId);
-
-  if (handleIndex === -1) {
-    throw new Error(`Expected panel before: ${handleId}`);
-  }
-
-  const item = context.items[handleIndex - 1];
-
-  if (item && isPanelData(item)) {
-    return item;
-  }
-
-  throw new Error(`Expected panel before: ${handleId}`);
-}
-
-function getCollapsiblePanelForHandleId(
-  context: GroupMachineContext,
-  handleId: string
-) {
-  if (!context.items.length) {
-    return undefined;
-  }
-
-  const handleIndex = context.items.findIndex((item) => item.id === handleId);
-
-  if (handleIndex === -1) {
-    return undefined;
-  }
-
-  const panelBefore = context.items[handleIndex - 1];
-  const panelAfter = context.items[handleIndex + 1];
-
-  if (panelBefore && isPanelData(panelBefore) && panelBefore.collapsible) {
-    return panelBefore;
-  }
-
-  if (panelAfter && isPanelData(panelAfter) && panelAfter.collapsible) {
-    return panelAfter;
-  }
-
-  return undefined;
-}
-
-function getPanelWithId(context: GroupMachineContext, panelId: string) {
-  const panelIndex = context.items.findIndex((item) => item.id === panelId);
-
-  if (panelIndex === -1 || panelIndex >= context.items.length) {
-    throw new Error(`Expected panel with id: ${panelId}`);
-  }
-
-  const item = context.items[panelIndex];
-
-  if (item && isPanelData(item)) {
-    return item;
-  }
-
-  throw new Error(`Expected panel with id: ${panelId}`);
-}
-
-function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
-  const panelIndex = context.items.findIndex((item) => item.id === panelId);
-
-  if (panelIndex === -1) {
-    throw new Error(`Expected panel before: ${panelId}`);
-  }
-
-  let item = context.items[panelIndex + 1];
-
-  if (item && isPanelHandle(item)) {
-    return { item, direction: 1 as const };
-  }
-
-  item = context.items[panelIndex - 1];
-
-  if (item && isPanelHandle(item)) {
-    return { item, direction: -1 as const };
-  }
-
-  throw new Error(`Cant find handle for panel: ${panelId}`);
-}
 
 interface Rect {
   width: number;
@@ -162,10 +53,6 @@ interface ActivePanelData extends PanelData {
   sizeBeforeCollapse: number | undefined;
 }
 
-function isPanelData(value: Item): value is ActivePanelData {
-  return value.type === "panel";
-}
-
 interface PanelHandleData {
   type: "handle";
   id: string;
@@ -173,10 +60,6 @@ interface PanelHandleData {
 }
 
 type Item = ActivePanelData | PanelHandleData;
-
-function isPanelHandle(value: Item): value is PanelHandleData {
-  return value.type === "handle";
-}
 
 interface RegisterPanelEvent {
   type: "registerPanel";
@@ -296,6 +179,133 @@ type EventForType<T extends GroupMachineEvent["type"]> =
                           ? SetPanelPixelSizeEvent
                           : never;
 
+// #endregion Types
+
+// #region Helpers
+
+function isPanelData(value: Item): value is ActivePanelData {
+  return value.type === "panel";
+}
+
+function isPanelHandle(value: Item): value is PanelHandleData {
+  return value.type === "handle";
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function parseClamp(unit: string) {
+  const [, percent] = unit.match(CLAMP_REGEX) || [];
+
+  if (percent) {
+    return { type: "percent" as const, value: parseFloat(percent) * 100 };
+  }
+}
+
+function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
+  if (unit.endsWith("px")) {
+    return { type: "pixel", value: parseFloat(unit) };
+  }
+
+  if (unit.endsWith("%")) {
+    return { type: "percent", value: parseFloat(unit) };
+  }
+
+  const clampValue = parseClamp(unit);
+
+  if (clampValue) {
+    return clampValue;
+  }
+
+  throw new Error(`Invalid unit: ${unit}`);
+}
+
+function getPanelBeforeHandleId(
+  context: GroupMachineContext,
+  handleId: string
+) {
+  const handleIndex = context.items.findIndex((item) => item.id === handleId);
+
+  if (handleIndex === -1) {
+    throw new Error(`Expected panel before: ${handleId}`);
+  }
+
+  const item = context.items[handleIndex - 1];
+
+  if (item && isPanelData(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected panel before: ${handleId}`);
+}
+
+function getCollapsiblePanelForHandleId(
+  context: GroupMachineContext,
+  handleId: string
+) {
+  if (!context.items.length) {
+    return undefined;
+  }
+
+  const handleIndex = context.items.findIndex((item) => item.id === handleId);
+
+  if (handleIndex === -1) {
+    return undefined;
+  }
+
+  const panelBefore = context.items[handleIndex - 1];
+  const panelAfter = context.items[handleIndex + 1];
+
+  if (panelBefore && isPanelData(panelBefore) && panelBefore.collapsible) {
+    return panelBefore;
+  }
+
+  if (panelAfter && isPanelData(panelAfter) && panelAfter.collapsible) {
+    return panelAfter;
+  }
+
+  return undefined;
+}
+
+function getPanelWithId(context: GroupMachineContext, panelId: string) {
+  const panelIndex = context.items.findIndex((item) => item.id === panelId);
+
+  if (panelIndex === -1 || panelIndex >= context.items.length) {
+    throw new Error(`Expected panel with id: ${panelId}`);
+  }
+
+  const item = context.items[panelIndex];
+
+  if (item && isPanelData(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected panel with id: ${panelId}`);
+}
+
+function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
+  const panelIndex = context.items.findIndex((item) => item.id === panelId);
+
+  if (panelIndex === -1) {
+    throw new Error(`Expected panel before: ${panelId}`);
+  }
+
+  let item = context.items[panelIndex + 1];
+
+  if (item && isPanelHandle(item)) {
+    return { item, direction: 1 as const };
+  }
+
+  item = context.items[panelIndex - 1];
+
+  if (item && isPanelHandle(item)) {
+    return { item, direction: -1 as const };
+  }
+
+  throw new Error(`Cant find handle for panel: ${panelId}`);
+}
+
 function isEvent<T extends GroupMachineEvent["type"]>(
   event: GroupMachineEvent,
   eventType: T[]
@@ -327,6 +337,10 @@ function clampUnit(
     getUnitPixelValue(context, item.max)
   );
 }
+
+// #endregion Helpers
+
+// #region Machine
 
 function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
   if (typeof item.currentValue === "string") {
@@ -1021,6 +1035,10 @@ const groupMachine = createMachine(
   }
 );
 
+// #endregion Machine
+
+// #region Components
+
 const GroupMachineContext = createActorContext(groupMachine);
 
 function useDebugGroupMachineContext({ id }: { id: string }) {
@@ -1427,3 +1445,5 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     );
   }
 );
+
+// #endregion Components

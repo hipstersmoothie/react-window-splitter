@@ -8,3 +8,4 @@
 - [ ] conditional panels
 - [ ] imperative api
 - [ ] Docs
+- [ ] jsdoc
