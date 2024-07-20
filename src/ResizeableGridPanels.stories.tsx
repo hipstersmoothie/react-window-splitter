@@ -376,11 +376,52 @@ export function ImperativePanel() {
         </button>
         <button onClick={() => panelRef.current?.setSize("30px")}>
           Set size to 100px
-        </button>{" "}
+        </button>
         <button onClick={() => panelRef.current?.setSize("50%")}>
           Set size to 50%
         </button>
       </div>
+    </>
+  );
+}
+
+export function ConditionalPanel() {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <>
+      <StyledPanelGroup>
+        <StyledPanel min="100px" collapsible={true} collapsedSize="60px">
+          <div>1</div>
+        </StyledPanel>
+        <PanelResizer />
+        <StyledPanel min="100px">
+          <div>2</div>
+        </StyledPanel>
+        <PanelResizer />
+        <StyledPanel min="100px">
+          <div>3</div>
+        </StyledPanel>
+        {isExpanded && (
+          <>
+            <PanelResizer order={5} />
+            <StyledPanel order={6} min="100px">
+              expanded
+              <button onClick={() => setIsExpanded(false)}>Close</button>
+            </StyledPanel>
+          </>
+        )}
+        <PanelResizer />
+        <StyledPanel
+          min="200px"
+          collapsible={true}
+          collapsedSize="60px"
+          defaultCollapsed={true}
+        >
+          <div>4</div>
+        </StyledPanel>
+      </StyledPanelGroup>
+      <button onClick={() => setIsExpanded(true)}>Expand</button>
     </>
   );
 }

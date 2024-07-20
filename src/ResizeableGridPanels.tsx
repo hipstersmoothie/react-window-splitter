@@ -27,21 +27,43 @@ interface Rect {
 }
 
 interface Constraints {
+  /** The minimum size of the panel */
   min?: Unit;
+  /** The maximum size of the panel */
   max?: Unit;
+  /** The default size of the panel */
   default?: Unit;
+  /** Whether the panel is collapsible */
   collapsible?: boolean;
+  /** Whether the panel should initially render as collapsed */
   defaultCollapsed?: boolean;
+  /** The size of the panel once collapsed */
   collapsedSize?: Unit;
 }
 
-interface PanelData extends Constraints {
+interface Order {
+  /**
+   * When dynamically rendering panels/handles you need to add the order prop.
+   * This tells the component what place the items should be in once rendered.
+   */
+  order?: number;
+}
+
+interface PanelData extends Constraints, Order {
   type: "panel";
   id: string;
+  /** Whether the collapsed state is controlled by the consumer or not */
   collapseIsControlled?: boolean;
+  /** A ref to the latest "collapseChange" function provided by the user */
   onCollapseChange?: {
     current: ((isCollapsed: boolean) => void) | null | undefined;
   };
+}
+
+interface PanelHandleData extends Order {
+  type: "handle";
+  id: string;
+  size: PixelUnit;
 }
 
 interface ActivePanelData extends PanelData {
@@ -51,12 +73,6 @@ interface ActivePanelData extends PanelData {
   collapsed: boolean | undefined;
   collapsedSize: Unit;
   sizeBeforeCollapse: number | undefined;
-}
-
-interface PanelHandleData {
-  type: "handle";
-  id: string;
-  size: PixelUnit;
 }
 
 type Item = ActivePanelData | PanelHandleData;
@@ -83,18 +99,18 @@ interface UnregisterPanelHandleEvent {
 
 interface DragHandleStartEvent {
   type: "dragHandleStart";
-  id: string;
+  handleId: string;
 }
 
 interface DragHandleEvent {
   type: "dragHandle";
-  id: string;
+  handleId: string;
   value: MoveMoveEvent;
 }
 
 interface DragHandleEndEvent {
   type: "dragHandleEnd";
-  id: string;
+  handleId: string;
 }
 
 interface SetSizeEvent {
@@ -125,6 +141,12 @@ interface SetPanelPixelSizeEvent {
   size: Unit;
 }
 
+interface SetDynamicPanelPixelSizeEvent {
+  type: "setDynamicPanelInitialSize";
+  panelId: string;
+  size: number;
+}
+
 interface GroupMachineContext {
   /** The items in the group */
   items: Array<Item>;
@@ -150,7 +172,8 @@ type GroupMachineEvent =
   | DragHandleEndEvent
   | CollapsePanelEvent
   | ExpandPanelEvent
-  | SetPanelPixelSizeEvent;
+  | SetPanelPixelSizeEvent
+  | SetDynamicPanelPixelSizeEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> =
   T extends "registerPanel"
@@ -177,7 +200,9 @@ type EventForType<T extends GroupMachineEvent["type"]> =
                         ? ExpandPanelEvent
                         : T extends "setPanelPixelSize"
                           ? SetPanelPixelSizeEvent
-                          : never;
+                          : T extends "setDynamicPanelInitialSize"
+                            ? SetDynamicPanelPixelSizeEvent
+                            : never;
 
 // #endregion Types
 
@@ -219,6 +244,20 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
   }
 
   throw new Error(`Invalid unit: ${unit}`);
+}
+
+function unitsToPercents(groupsSize: number, unit: Unit | number) {
+  if (typeof unit === "number") {
+    return unit / groupsSize;
+  }
+
+  const parsed = parseUnit(unit);
+
+  if (parsed.type === "pixel") {
+    return parsed.value / groupsSize;
+  }
+
+  return parsed.value;
 }
 
 function getPanelBeforeHandleId(
@@ -336,6 +375,50 @@ function clampUnit(
     getUnitPixelValue(context, item.min),
     getUnitPixelValue(context, item.max)
   );
+}
+
+/** Given the specified order props and default order of the items, order the items */
+function sortWithOrder(items: Array<Item>) {
+  const takenPlacements: number[] = [];
+
+  // First find the items that define an order to reserve their spots
+  for (const item of items) {
+    if (item.order === undefined) {
+      continue;
+    }
+
+    if (takenPlacements.includes(item.order)) {
+      throw new Error(`Invalid order for item (already taken): ${item.order}`);
+    }
+
+    takenPlacements.push(item.order);
+  }
+
+  const defaultPlacement: Record<string, number> = {};
+  let defaultOrder = 0;
+
+  // Generate default orders for items that don't have it
+  for (const item of items) {
+    if (item.order !== undefined) {
+      continue;
+    }
+
+    while (
+      takenPlacements.includes(defaultOrder) ||
+      Object.values(defaultPlacement).includes(defaultOrder)
+    ) {
+      defaultOrder++;
+    }
+
+    defaultPlacement[item.id] = defaultOrder;
+  }
+
+  return items.sort((a, b) => {
+    const aOrder = a.order ?? defaultPlacement[a.id] ?? 0;
+    const bOrder = b.order ?? defaultPlacement[b.id] ?? 0;
+
+    return aOrder - bOrder;
+  });
 }
 
 // #endregion Helpers
@@ -521,12 +604,12 @@ function updateLayout(
     | {
         type: "collapsePanel";
         value: MoveMoveEvent;
-        id: string;
+        handleId: string;
         controlled?: boolean;
       }
 ): Partial<GroupMachineContext> {
   const handleIndex = context.items.findIndex(
-    (item) => item.id === dragEvent.id
+    (item) => item.id === dragEvent.handleId
   );
 
   if (handleIndex === -1) {
@@ -773,7 +856,7 @@ function iterativelyUpdateLayout({
         ...newContext,
       },
       {
-        id: handleId,
+        handleId,
         type: "collapsePanel",
         controlled,
         value: {
@@ -830,6 +913,9 @@ const groupMachine = createMachine(
           setPanelPixelSize: {
             actions: ["prepare", "onSetPanelSize", "commit"],
           },
+          setDynamicPanelInitialSize: {
+            actions: ["prepare", "onSetDynamicPanelSize", "commit"],
+          },
         },
       },
       dragging: {
@@ -843,9 +929,9 @@ const groupMachine = createMachine(
     },
     on: {
       registerPanel: { actions: ["assignPanelData", "layout"] },
-      unregisterPanel: { actions: ["removeItem", "layout"] },
+      unregisterPanel: { actions: ["prepare", "removeItem", "commit"] },
       registerPanelHandle: { actions: ["assignPanelHandleData", "layout"] },
-      unregisterPanelHandle: { actions: ["removeItem", "layout"] },
+      unregisterPanelHandle: { actions: ["prepare", "removeItem", "commit"] },
       setSize: { actions: ["updateSize", "layout"] },
       setOrientation: { actions: ["updateOrientation", "layout"] },
       collapsePanel: { actions: ["prepare", "collapsePanel", "commit"] },
@@ -890,7 +976,7 @@ const groupMachine = createMachine(
             currentValue = `minmax(${event.data.min}, 1fr)`;
           }
 
-          return [
+          return sortWithOrder([
             ...context.items,
             {
               type: "panel",
@@ -904,31 +990,83 @@ const groupMachine = createMachine(
               sizeBeforeCollapse: undefined,
               currentValue,
             } as const,
-          ];
+          ]);
         },
       }),
       assignPanelHandleData: assign({
         items: ({ context, event }) => {
           isEvent(event, ["registerPanelHandle"]);
-          return [...context.items, { type: "handle" as const, ...event.data }];
+
+          return sortWithOrder([
+            ...context.items,
+            { type: "handle" as const, ...event.data },
+          ]);
         },
       }),
       removeItem: assign({
         items: ({ context, event }) => {
           isEvent(event, ["unregisterPanel", "unregisterPanelHandle"]);
-          return context.items.filter((item) => item.id !== event.id);
+          const itemIndex = context.items.findIndex(
+            (item) => item.id === event.id
+          );
+
+          if (itemIndex === -1) {
+            return context.items;
+          }
+
+          const item = context.items[itemIndex];
+
+          if (!item) {
+            return context.items;
+          }
+
+          const newItems = context.items.filter((item) => item.id !== event.id);
+          let removedSize = isPanelData(item)
+            ? typeof item.currentValue === "number"
+              ? item.currentValue
+              : getUnitPixelValue(context, item.currentValue as Unit)
+            : getUnitPixelValue(context, item.size);
+
+          let hasTriedBothDirections = false;
+          let direction = 1;
+
+          // Starting from where the items was removed add space to the panels around it.
+          // This is only needed for conditional rendering.
+          while (removedSize !== 0) {
+            const targetPanel = findPanelWithSpace(
+              context,
+              newItems,
+              itemIndex,
+              direction
+            );
+
+            if (!targetPanel) {
+              if (hasTriedBothDirections) {
+                break;
+              } else {
+                direction = direction === 1 ? -1 : 1;
+                hasTriedBothDirections = true;
+                continue;
+              }
+            }
+
+            const oldValue = targetPanel.currentValue as number;
+            const newValue = clampUnit(
+              context,
+              targetPanel,
+              oldValue + removedSize
+            );
+
+            targetPanel.currentValue = newValue;
+            removedSize -= newValue - oldValue;
+            direction = direction === 1 ? -1 : 1;
+          }
+
+          return newItems;
         },
       }),
       prepare: assign({
-        items: ({ context, event }) => {
-          isEvent(event, [
-            "dragHandleStart",
-            "collapsePanel",
-            "expandPanel",
-            "setPanelPixelSize",
-          ]);
-          return prepareItems(context);
-        },
+        items: ({ context }) => prepareItems(context),
       }),
       onDragHandle: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["dragHandle"]);
@@ -943,13 +1081,7 @@ const groupMachine = createMachine(
           template: buildTemplate(contextUpdate.items),
         });
       }),
-      commit: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, [
-          "dragHandleEnd",
-          "collapsePanel",
-          "expandPanel",
-          "setPanelPixelSize",
-        ]);
+      commit: enqueueActions(({ context, enqueue }) => {
         const items = commitLayout(context);
 
         enqueue.assign({
@@ -1031,6 +1163,11 @@ const groupMachine = createMachine(
           })
         );
       }),
+      onSetDynamicPanelSize: ({ context, event }) => {
+        isEvent(event, ["setDynamicPanelInitialSize"]);
+        const panel = getPanelWithId(context, event.panelId);
+        panel.currentValue = event.size;
+      },
     },
   }
 );
@@ -1155,7 +1292,8 @@ export interface PanelHandle {
 
 export interface PanelProps
   extends Constraints,
-    React.HTMLAttributes<HTMLDivElement> {
+    React.HTMLAttributes<HTMLDivElement>,
+    Pick<PanelData, "order"> {
   /**
    * CONTROLLED COMPONENT
    *
@@ -1192,17 +1330,24 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       collapsed,
       onCollapseChange,
       handle,
+      order,
       ...props
     },
-    ref
+    outerRef
   ) {
+    const innerRef = React.useRef<HTMLDivElement>(null);
+    const ref = useComposedRefs(outerRef, innerRef);
     const panelId = `panel-${useId()}`;
     const { send, ref: machineRef } = GroupMachineContext.useActorRef();
     const onCollapseChangeRef = React.useRef(onCollapseChange);
     const hasRegistered = React.useRef(false);
-    const panel = GroupMachineContext.useSelector(({ context }) =>
-      context.items.length ? getPanelWithId(context, panelId) : undefined
-    );
+    const panel = GroupMachineContext.useSelector(({ context }) => {
+      try {
+        return getPanelWithId(context, panelId);
+      } catch (e) {
+        return undefined;
+      }
+    });
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
@@ -1217,6 +1362,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
           collapsedSize,
           onCollapseChange: onCollapseChangeRef,
           collapseIsControlled: typeof collapsed !== "undefined",
+          order,
         },
       });
     }
@@ -1286,6 +1432,46 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       };
     });
 
+    // Dynamically added panels will render with the initial minmax/1fr
+    // This isn't desirable because the `prepare` logic will turn these into
+    // large spaces to account for the `fr`.
+    //
+    // To get around this we set the initial rendered size of the panel and recalculate
+    // the template. This was all drag interactions work as expected.
+    React.useEffect(() => {
+      if (typeof order === "undefined" || !innerRef.current) {
+        return;
+      }
+
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+
+        if (!entry) {
+          return;
+        }
+
+        const context = machineRef.getSnapshot().context;
+
+        send({
+          type: "setDynamicPanelInitialSize",
+          panelId,
+          size:
+            context.orientation === "horizontal"
+              ? entry.contentRect.width
+              : entry.contentRect.height,
+        });
+
+        // We only need to do it once
+        observer.disconnect();
+      });
+
+      observer.observe(innerRef.current);
+
+      return () => {
+        observer.disconnect();
+      };
+    }, [order, send, panelId, machineRef]);
+
     return (
       <div
         ref={ref}
@@ -1303,37 +1489,28 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 );
 
 export interface PanelResizerProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  size?: PixelUnit;
-}
-
-function unitsToPercents(groupsSize: number, unit: Unit | number) {
-  if (typeof unit === "number") {
-    return unit / groupsSize;
-  }
-
-  const parsed = parseUnit(unit);
-
-  if (parsed.type === "pixel") {
-    return parsed.value / groupsSize;
-  }
-
-  return parsed.value;
-}
+  extends React.HTMLAttributes<HTMLDivElement>,
+    Partial<Pick<PanelHandleData, "size" | "order">> {}
 
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer({ size = "10px", ...props }, ref) {
+  function PanelResizer({ size = "10px", order, ...props }, ref) {
     const handleId = `panel-resizer-${useId()}`;
     const [isDragging, setIsDragging] = React.useState(false);
     const { send } = GroupMachineContext.useActorRef();
-    const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) =>
-      context.items.length
-        ? getPanelBeforeHandleId(context, handleId)
-        : undefined
-    );
-    const collapsiblePanel = GroupMachineContext.useSelector(({ context }) =>
-      getCollapsiblePanelForHandleId(context, handleId)
-    );
+    const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
+      try {
+        return getPanelBeforeHandleId(context, handleId);
+      } catch (e) {
+        return undefined;
+      }
+    });
+    const collapsiblePanel = GroupMachineContext.useSelector(({ context }) => {
+      try {
+        return getCollapsiblePanelForHandleId(context, handleId);
+      } catch (e) {
+        return undefined;
+      }
+    });
     const orientation = GroupMachineContext.useSelector(
       (state) => state.context.orientation
     );
@@ -1346,12 +1523,12 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     const { moveProps } = useMove({
       onMoveStart: () => {
         setIsDragging(true);
-        send({ type: "dragHandleStart", id: handleId });
+        send({ type: "dragHandleStart", handleId: handleId });
       },
-      onMove: (e) => send({ type: "dragHandle", id: handleId, value: e }),
+      onMove: (e) => send({ type: "dragHandle", handleId: handleId, value: e }),
       onMoveEnd: () => {
         setIsDragging(false);
-        send({ type: "dragHandleEnd", id: handleId });
+        send({ type: "dragHandleEnd", handleId: handleId });
       },
     });
 
@@ -1369,7 +1546,10 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
-      send({ type: "registerPanelHandle", data: { id: handleId, size } });
+      send({
+        type: "registerPanelHandle",
+        data: { id: handleId, size, order },
+      });
     }
 
     React.useEffect(() => {
