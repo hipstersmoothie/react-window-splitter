@@ -390,7 +390,7 @@ function getAvailableSpace(context: GroupMachineContext) {
 }
 
 /** Converts the items to pixels */
-function onDragStart(context: GroupMachineContext) {
+function prepareItems(context: GroupMachineContext) {
   const newItems = [...context.items];
 
   // Force all raw pixels into numbers
@@ -672,7 +672,7 @@ function updateLayout(
 }
 
 /** Converts the items to percentages */
-function onDragEnd(context: GroupMachineContext) {
+function commitLayout(context: GroupMachineContext) {
   const newItems = [...context.items];
 
   newItems.forEach((item, index) => {
@@ -772,57 +772,30 @@ const groupMachine = createMachine(
     states: {
       idle: {
         on: {
-          dragHandleStart: {
-            actions: ["onDragStart", "layout"],
-            target: "dragging",
-          },
+          dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
-            actions: [
-              "onDragStart",
-              "onSetPanelSize",
-              "dragHandleEnd",
-              "layout",
-            ],
+            actions: ["prepare", "onSetPanelSize", "commit"],
           },
         },
       },
       dragging: {
+        entry: ["prepare"],
         on: {
-          dragHandle: {
-            actions: ["onDragHandle"],
-          },
-          dragHandleEnd: {
-            actions: ["onDragEnd", "layout"],
-            target: "idle",
-          },
+          dragHandle: { actions: ["onDragHandle"] },
+          dragHandleEnd: { target: "idle" },
         },
+        exit: ["commit"],
       },
     },
     on: {
-      registerPanel: {
-        actions: ["assignPanelData", "layout"],
-      },
-      unregisterPanel: {
-        actions: ["removeItem", "layout"],
-      },
-      registerPanelHandle: {
-        actions: ["assignPanelHandleData", "layout"],
-      },
-      unregisterPanelHandle: {
-        actions: ["removeItem", "layout"],
-      },
-      setSize: {
-        actions: ["updateSize", "layout"],
-      },
-      setOrientation: {
-        actions: ["updateOrientation", "layout"],
-      },
-      collapsePanel: {
-        actions: ["onDragStart", "collapsePanel", "dragHandleEnd", "layout"],
-      },
-      expandPanel: {
-        actions: ["onDragStart", "expandPanel", "dragHandleEnd", "layout"],
-      },
+      registerPanel: { actions: ["assignPanelData", "layout"] },
+      unregisterPanel: { actions: ["removeItem", "layout"] },
+      registerPanelHandle: { actions: ["assignPanelHandleData", "layout"] },
+      unregisterPanelHandle: { actions: ["removeItem", "layout"] },
+      setSize: { actions: ["updateSize", "layout"] },
+      setOrientation: { actions: ["updateOrientation", "layout"] },
+      collapsePanel: { actions: ["prepare", "collapsePanel", "commit"] },
+      expandPanel: { actions: ["prepare", "expandPanel", "commit"] },
     },
   },
   {
@@ -892,7 +865,7 @@ const groupMachine = createMachine(
           return context.items.filter((item) => item.id !== event.id);
         },
       }),
-      onDragStart: assign({
+      prepare: assign({
         items: ({ context, event }) => {
           isEvent(event, [
             "dragHandleStart",
@@ -900,7 +873,7 @@ const groupMachine = createMachine(
             "expandPanel",
             "setPanelPixelSize",
           ]);
-          return onDragStart(context);
+          return prepareItems(context);
         },
       }),
       onDragHandle: enqueueActions(({ context, event, enqueue }) => {
@@ -916,17 +889,21 @@ const groupMachine = createMachine(
           template: buildTemplate(contextUpdate.items),
         });
       }),
-      onDragEnd: assign({
-        dragOvershoot: 0,
-        items: ({ context, event }) => {
-          isEvent(event, [
-            "dragHandleEnd",
-            "collapsePanel",
-            "expandPanel",
-            "setPanelPixelSize",
-          ]);
-          return onDragEnd(context);
-        },
+      commit: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, [
+          "dragHandleEnd",
+          "collapsePanel",
+          "expandPanel",
+          "setPanelPixelSize",
+        ]);
+        const items = commitLayout(context);
+
+        enqueue.assign({
+          ...context,
+          items,
+          template: buildTemplate(items),
+          dragOvershoot: 0,
+        });
       }),
       collapsePanel: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["collapsePanel"]);
@@ -1227,7 +1204,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         isExpanded: () => Boolean(collapsible && !panel?.collapsed),
         getPixelSize: () => {
           const context = machineRef.getSnapshot().context;
-          const items = onDragStart(context);
+          const items = prepareItems(context);
           const panel = getPanelWithId({ ...context, items }, panelId);
 
           if (typeof panel.currentValue === "string") {
@@ -1241,7 +1218,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         },
         getPercentageSize: () => {
           const context = machineRef.getSnapshot().context;
-          const items = onDragStart(context);
+          const items = prepareItems(context);
           const panel = getPanelWithId({ ...context, items }, panelId);
           return unitsToPercents(
             context.size,
