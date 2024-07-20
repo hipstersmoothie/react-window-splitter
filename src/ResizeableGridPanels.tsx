@@ -668,6 +668,22 @@ function updateLayout(
   panelBefore.currentValue = panelBeforeNewValue;
   panelAfter.currentValue = panelAfterNewValue;
 
+  const leftoverSpace =
+    context.size -
+    newItems.reduce(
+      (acc, b) =>
+        acc +
+        (b.type === "panel"
+          ? typeof b.currentValue === "number"
+            ? b.currentValue
+            : parseUnit(b.currentValue as Unit).value
+          : parseUnit(b.size).value),
+      0
+    );
+
+  // TODO: this is wrong?
+  panelBefore.currentValue += leftoverSpace;
+
   return { items: newItems, dragOvershoot: 0 };
 }
 
