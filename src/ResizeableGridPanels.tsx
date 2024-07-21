@@ -15,7 +15,7 @@ const COLLAPSE_THRESHOLD = 50;
 /** This parses the percentage value from the "clamp" we do after the "commit" */
 const CLAMP_REGEX = /min\(calc\((.*) \* \(100% - (.*)\)\), .*\)\)/;
 
-// #endregion Constants
+// #endregion
 
 // #region Types
 
@@ -254,7 +254,7 @@ type EventForType<T extends GroupMachineEvent["type"]> =
                             ? SetDynamicPanelPixelSizeEvent
                             : never;
 
-// #endregion Types
+// #endregion
 
 // #region Helpers
 
@@ -562,9 +562,9 @@ function getStaticWidth(context: GroupMachineContext) {
   return width;
 }
 
-// #endregion Helpers
+// #endregion
 
-// #region Machine
+// #region Update Logic
 
 /** Converts the items to pixels */
 function prepareItems(context: GroupMachineContext) {
@@ -952,6 +952,10 @@ function buildTemplate(items: Array<Item>) {
     .join(" ");
 }
 
+// #endregion
+
+// #region Machine
+
 const groupMachine = createMachine(
   {
     initial: "idle",
@@ -1221,7 +1225,7 @@ const groupMachine = createMachine(
   }
 );
 
-// #endregion Machine
+// #endregion
 
 // #region Components
 
@@ -1739,4 +1743,4 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   }
 );
 
-// #endregion Components
+// #endregion
