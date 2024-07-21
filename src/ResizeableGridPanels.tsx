@@ -1278,10 +1278,10 @@ const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-function useDebugGroupMachineContext({ id }: { id: string }) {
-  const context = GroupMachineContext.useSelector((state) => state.context);
-  console.log("GROUP CONTEXT", id, context);
-}
+// function useDebugGroupMachineContext({ id }: { id: string }) {
+//   const context = GroupMachineContext.useSelector((state) => state.context);
+//   console.log("GROUP CONTEXT", id, context);
+// }
 
 export interface PanelGroupHandle {
   /** The id of the group */
@@ -1365,7 +1365,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef]);
 
-  useDebugGroupMachineContext({ id: groupId });
+  // useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 
@@ -1423,6 +1423,7 @@ const PanelGroupImplementation = React.forwardRef<
     <div
       ref={ref}
       data-group-id={groupId}
+      data-group-orientation={orientation}
       {...mergeProps(props, {
         style: {
           display: "grid",
@@ -1669,11 +1670,14 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 
 export interface PanelResizerProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Partial<Pick<PanelHandleData, "size" | "order">> {}
+    Partial<Pick<PanelHandleData, "size" | "order">> {
+  /** If the handle is disabled */
+  disabled?: boolean;
+}
 
 /** A resize handle to place between panels */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer({ size = "0px", order, ...props }, ref) {
+  function PanelResizer({ size = "0px", order, disabled, ...props }, ref) {
     const handleId = `panel-resizer-${useId()}`;
     const unit = parseUnit(size);
     const [isDragging, setIsDragging] = React.useState(false);
@@ -1739,7 +1743,9 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
 
     let cursor: React.CSSProperties["cursor"];
 
-    if (orientation === "horizontal") {
+    if (disabled) {
+      cursor = "default";
+    } else if (orientation === "horizontal") {
       if (overshoot > 0) {
         cursor = "w-resize";
       } else if (overshoot < 0) {
@@ -1783,7 +1789,9 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
         tabIndex={0}
         data-handle-id={handleId}
         data-handle-orientation={orientation}
+        data-state={isDragging ? "dragging" : "idle"}
         aria-label="Resize Handle"
+        aria-disabled={disabled}
         aria-controls={panelBeforeHandle.id}
         aria-valuemin={getUnitPercentageValue(
           groupsSize,
@@ -1803,7 +1811,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
                 panelBeforeHandle.currentValue as Unit
               )
         }
-        {...mergeProps(props, moveProps, { onKeyDown })}
+        {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}
         style={{
           cursor,
           ...props.style,
