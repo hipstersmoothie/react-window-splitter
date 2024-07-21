@@ -24,11 +24,6 @@ type PercentUnit = `${number}%`;
 type Unit = PixelUnit | PercentUnit;
 type Orientation = "horizontal" | "vertical";
 
-interface Rect {
-  width: number;
-  height: number;
-}
-
 interface Constraints {
   /** The minimum size of the panel */
   min?: Unit;
@@ -143,7 +138,10 @@ interface DragHandleEndEvent {
 interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
-  size: Rect;
+  size: {
+    width: number;
+    height: number;
+  };
 }
 
 interface SetOrientationEvent {
@@ -565,6 +563,55 @@ function getStaticWidth(context: GroupMachineContext) {
 // #endregion
 
 // #region Update Logic
+
+/**
+ * This is the main meat of the layout logic.
+ * It's responsible for figuring out how to distribute the space
+ * amongst the panels.
+ *
+ * It's built around applying small deltas to panels relative to their
+ * the resize handles.
+ *
+ * As much as possible we try to rely on the browser to do the layout.
+ * During the initial layout we rely on CSS grid and a group might be
+ * defined like this:
+ *
+ * ```css
+ * grid-template-columns: minmax(100px, 1fr) 1px minmax(100px, 300px);
+ * ```
+ *
+ * Without any resizing this is nice and simple and the components don't do much.
+ *
+ * Once the user starts resizing the layout will be more complex.
+ *
+ * It's broken down into 3 phases:
+ *
+ * 1. `prepareItems` - The size of the group has been measure and we
+ *    can convert all the panel sizes into pixels. Converting into pixels
+ *    makes doing the math for the updates easier.
+ *
+ * ```css
+ * grid-template-columns: 500px 1px 300px;
+ * ```
+ *
+ * 2. `updateLayout` - This is where the actual updates are applied.
+ *    This is where the user's drag interactions are applied. We also
+ *    use this to collapse/expand panels by simulating a drag interaction.
+ *
+ * ```css
+ * grid-template-columns: 490px 1px 310px;
+ * ```
+ *
+ * 3. `commitLayout` - Once the updates have been applied we convert the
+ *    updated sizes back into a format that allows for easy resizing without
+ *    lots of updates.
+ *
+ * ```css
+ * grid-template-columns: minmax(100px, min(calc(0.06117 * (100% - 1px)), 100%)) 1px minmax(100px, min(calc(0.0387 * (100% - 1px)), 300px));
+ * ```
+ *
+ * When another update loop is triggered the above template will be converted back to pixels.
+ */
 
 /** Converts the items to pixels */
 function prepareItems(context: GroupMachineContext) {
@@ -1256,6 +1303,7 @@ export interface PanelGroupHandle {
 export interface PanelGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
     Partial<Pick<GroupMachineContext, "orientation">> {
+  /** Imperative handle to control the group */
   handle?: React.Ref<PanelGroupHandle>;
 }
 
