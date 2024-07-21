@@ -69,6 +69,20 @@ export function Simple() {
   );
 }
 
+export function Autosave() {
+  return (
+    <StyledPanelGroup autosaveId="autosave" autosaveStrategy="cookie">
+      <StyledPanel id="1">
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer id="resizer" />
+      <StyledPanel id="2">
+        <div>Panel 2</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
 export function SimpleMin() {
   return (
     <StyledPanelGroup>

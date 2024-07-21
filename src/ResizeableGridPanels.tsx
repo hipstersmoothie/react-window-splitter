@@ -2,7 +2,7 @@
 
 import React, { useEffect, useImperativeHandle } from "react";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
-import { createMachine, assign, enqueueActions } from "xstate";
+import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
@@ -195,7 +195,7 @@ interface SetDynamicPanelPixelSizeEvent {
   size: number;
 }
 
-interface GroupMachineContext {
+interface GroupMachineContextValue {
   /** The items in the group */
   items: Array<Item>;
   /** The available space in the group */
@@ -204,6 +204,8 @@ interface GroupMachineContext {
   orientation: Orientation;
   /** How much the drag has overshot the handle */
   dragOvershoot: number;
+  /** An id to use for autosaving the layout */
+  autosaveId?: string;
 }
 
 type GroupMachineEvent =
@@ -300,7 +302,7 @@ function getUnitPercentageValue(groupsSize: number, unit: Unit | number) {
 }
 
 /** Get the size of a panel in pixels */
-function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
+function getUnitPixelValue(context: GroupMachineContextValue, unit: Unit) {
   const parsed = parseUnit(unit);
 
   if (parsed.type === "pixel") {
@@ -312,7 +314,7 @@ function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
 
 /** Clamp a new `currentValue` given the panel's constraints. */
 function clampUnit(
-  context: GroupMachineContext,
+  context: GroupMachineContextValue,
   item: PanelData,
   value: number
 ) {
@@ -323,7 +325,7 @@ function clampUnit(
 }
 
 /** Get a panel with a particular ID. */
-function getPanelWithId(context: GroupMachineContext, panelId: string) {
+function getPanelWithId(context: GroupMachineContextValue, panelId: string) {
   const item = context.items.find((item) => item.id === panelId);
 
   if (item && isPanelData(item)) {
@@ -333,9 +335,20 @@ function getPanelWithId(context: GroupMachineContext, panelId: string) {
   throw new Error(`Expected panel with id: ${panelId}`);
 }
 
+/** Get a handle with a particular ID. */
+function getHandleWithId(context: GroupMachineContextValue, handleId: string) {
+  const item = context.items.find((item) => item.id === handleId);
+
+  if (item && isPanelHandle(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected handle with id: ${handleId}`);
+}
+
 /** Get the panel before a handle */
 function getPanelBeforeHandleId(
-  context: GroupMachineContext,
+  context: GroupMachineContextValue,
   handleId: string
 ) {
   const handleIndex = context.items.findIndex((item) => item.id === handleId);
@@ -353,7 +366,7 @@ function getPanelBeforeHandleId(
  * Will first check the left panel then the right.
  */
 function getCollapsiblePanelForHandleId(
-  context: GroupMachineContext,
+  context: GroupMachineContextValue,
   handleId: string
 ) {
   if (!context.items.length) {
@@ -384,7 +397,10 @@ function getCollapsiblePanelForHandleId(
  * Get the handle closest to the target panel.
  * This is used to simulate collapse/expand
  */
-function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
+function getHandleForPanelId(
+  context: GroupMachineContextValue,
+  panelId: string
+) {
   const panelIndex = context.items.findIndex((item) => item.id === panelId);
 
   if (panelIndex === -1) {
@@ -438,7 +454,7 @@ function sortWithOrder(items: Array<Item>) {
 }
 
 /** Check if the panel has space available to add to */
-function panelHasSpace(context: GroupMachineContext, item: PanelData) {
+function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
   if (typeof item.currentValue === "string") {
     throw new Error(
       `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
@@ -457,7 +473,7 @@ function panelHasSpace(context: GroupMachineContext, item: PanelData) {
 
 /** Search in a `direction` for a panel that still has space to expand. */
 function findPanelWithSpace(
-  context: GroupMachineContext,
+  context: GroupMachineContextValue,
   items: Array<Item>,
   start: number,
   direction: number
@@ -480,7 +496,7 @@ function findPanelWithSpace(
 }
 
 /** Add up all the static values in the layout */
-function getStaticWidth(context: GroupMachineContext) {
+function getStaticWidth(context: GroupMachineContextValue) {
   let width = 0;
 
   for (const item of context.items) {
@@ -569,7 +585,7 @@ function buildTemplate(items: Array<Item>) {
  */
 
 /** Converts the items to pixels */
-function prepareItems(context: GroupMachineContext) {
+function prepareItems(context: GroupMachineContextValue) {
   const newItems = [...context.items];
 
   for (const item of newItems) {
@@ -655,7 +671,7 @@ function prepareItems(context: GroupMachineContext) {
 
 /** On every mouse move we distribute the space added */
 function updateLayout(
-  context: GroupMachineContext,
+  context: GroupMachineContextValue,
   dragEvent:
     | (DragHandleEvent & { controlled?: boolean })
     | {
@@ -664,7 +680,7 @@ function updateLayout(
         handleId: string;
         controlled?: boolean;
       }
-): Partial<GroupMachineContext> {
+): Partial<GroupMachineContextValue> {
   const handleIndex = context.items.findIndex(
     (item) => item.id === dragEvent.handleId
   );
@@ -865,7 +881,7 @@ function updateLayout(
 }
 
 /** Converts the items to percentages */
-function commitLayout(context: GroupMachineContext) {
+function commitLayout(context: GroupMachineContextValue) {
   const newItems = [...context.items];
   const staticWidth = getStaticWidth(context);
 
@@ -899,13 +915,13 @@ function iterativelyUpdateLayout({
   direction,
   controlled,
 }: {
-  context: GroupMachineContext;
+  context: GroupMachineContextValue;
   handleId: string;
   delta: number;
   direction: -1 | 1;
   controlled?: boolean;
 }) {
-  let newContext: Partial<GroupMachineContext> = context;
+  let newContext: Partial<GroupMachineContextValue> = context;
 
   for (let i = 0; i < Math.abs(delta); i++) {
     newContext = updateLayout(
@@ -942,15 +958,17 @@ const groupMachine = createMachine(
   {
     initial: "idle",
     types: {
-      context: {} as GroupMachineContext,
+      context: {} as GroupMachineContextValue,
       events: {} as GroupMachineEvent,
+      input: {} as { autosaveId?: string; orientation?: Orientation },
     },
-    context: {
+    context: ({ input }) => ({
       size: 0,
       items: [],
-      orientation: "horizontal",
+      orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
-    },
+      autosaveId: input.autosaveId,
+    }),
     states: {
       idle: {
         on: {
@@ -969,18 +987,26 @@ const groupMachine = createMachine(
           dragHandle: { actions: ["prepare", "onDragHandle"] },
           dragHandleEnd: { target: "idle" },
         },
-        exit: ["commit"],
+        exit: ["commit", "onAutosave"],
       },
     },
     on: {
       registerPanel: { actions: ["assignPanelData"] },
-      unregisterPanel: { actions: ["prepare", "removeItem", "commit"] },
+      unregisterPanel: {
+        actions: ["prepare", "removeItem", "commit", "onAutosave"],
+      },
       registerPanelHandle: { actions: ["assignPanelHandleData"] },
-      unregisterPanelHandle: { actions: ["prepare", "removeItem", "commit"] },
+      unregisterPanelHandle: {
+        actions: ["prepare", "removeItem", "commit", "onAutosave"],
+      },
       setSize: { actions: ["updateSize"] },
       setOrientation: { actions: ["updateOrientation"] },
-      collapsePanel: { actions: ["prepare", "collapsePanel", "commit"] },
-      expandPanel: { actions: ["prepare", "expandPanel", "commit"] },
+      collapsePanel: {
+        actions: ["prepare", "collapsePanel", "commit", "onAutosave"],
+      },
+      expandPanel: {
+        actions: ["prepare", "expandPanel", "commit", "onAutosave"],
+      },
     },
   },
   {
@@ -1199,6 +1225,34 @@ const GroupMachineContext = createActorContext(groupMachine);
 //   console.log("GROUP CONTEXT", id, context);
 // }
 
+function useItemId(label: string, id?: string) {
+  const autosaveId = GroupMachineContext.useSelector(
+    (state) => state.context.autosaveId
+  );
+
+  if (autosaveId && !id) {
+    throw new Error(
+      "You must provide an id to PanelResizer/Panels when using autosave"
+    );
+  }
+
+  const defaultId = useId();
+  return `${label}-${id || defaultId}`;
+}
+
+function getCookie(name: string) {
+  const cookieString = document.cookie;
+  const cookies = cookieString.split("; ");
+
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i]?.split("=");
+    if (cookie?.[0] === name) {
+      return cookie[1];
+    }
+  }
+  return null;
+}
+
 export interface PanelGroupHandle {
   /** The id of the group */
   getId: () => string;
@@ -1218,16 +1272,79 @@ export interface PanelGroupHandle {
 
 export interface PanelGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Partial<Pick<GroupMachineContext, "orientation">> {
+    Partial<Pick<GroupMachineContextValue, "orientation" | "autosaveId">> {
   /** Imperative handle to control the group */
   handle?: React.Ref<PanelGroupHandle>;
+  /** Persisted state to initialized the machine with */
+  snapshot?: Snapshot<unknown>;
+  /**
+   * How to save the persisted state
+   *
+   * - `localStorage` - Save the state to `localStorage`
+   * - `cookie` - Save the state to a cookie
+   *
+   * @default "localStorage"
+   */
+  autosaveStrategy?: "localStorage" | "cookie";
 }
 
 /** A group of panels that has constraints and a user can resize */
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
-  function PanelGroup(props, ref) {
+  function PanelGroup(
+    {
+      autosaveId,
+      autosaveStrategy = "localStorage",
+      snapshot: snapshotProp,
+      ...props
+    },
+    ref
+  ) {
+    const [snapshot, setSnapshot] = React.useState<
+      Snapshot<unknown> | true | undefined
+    >(snapshotProp);
+
+    if (typeof window !== "undefined" && autosaveId && !snapshot) {
+      const localSnapshot =
+        autosaveStrategy === "localStorage"
+          ? localStorage.getItem(autosaveId)
+          : getCookie(autosaveId);
+
+      if (localSnapshot) {
+        setSnapshot(JSON.parse(localSnapshot));
+      } else {
+        setSnapshot(true);
+      }
+    }
+
     return (
-      <GroupMachineContext.Provider>
+      <GroupMachineContext.Provider
+        options={{
+          input: { autosaveId, orientation: props.orientation },
+          snapshot: typeof snapshot === "object" ? snapshot : undefined,
+        }}
+        logic={groupMachine.provide({
+          actions: {
+            onAutosave: (context) => {
+              if (!autosaveId) {
+                return;
+              }
+
+              // Wait for new context to be committed
+              requestAnimationFrame(() => {
+                const data = JSON.stringify(
+                  context.self.getPersistedSnapshot()
+                );
+
+                if (autosaveStrategy === "localStorage") {
+                  localStorage.setItem(autosaveId, data);
+                } else {
+                  document.cookie = `${autosaveId}=${data}; path=/`;
+                }
+              });
+            },
+          },
+        })}
+      >
         <PanelGroupImplementation ref={ref} {...props} />
       </GroupMachineContext.Provider>
     );
@@ -1428,10 +1545,9 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
   ) {
     const innerRef = React.useRef<HTMLDivElement>(null);
     const ref = useComposedRefs(outerRef, innerRef);
-    const panelId = `panel-${useId()}`;
+    const panelId = useItemId("panel", props.id);
     const { send, ref: machineRef } = GroupMachineContext.useActorRef();
     const onCollapseChangeRef = React.useRef(onCollapseChange);
-    const hasRegistered = React.useRef(false);
     const panel = GroupMachineContext.useSelector(({ context }) => {
       try {
         return getPanelWithId(context, panelId);
@@ -1439,6 +1555,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         return undefined;
       }
     });
+    const hasRegistered = React.useRef(Boolean(panel));
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
@@ -1596,7 +1713,7 @@ export interface PanelResizerProps
 /** A resize handle to place between panels */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   function PanelResizer({ size = "0px", order, disabled, ...props }, ref) {
-    const handleId = `panel-resizer-${useId()}`;
+    const handleId = useItemId("panel-resizer", props.id);
     const unit = parseUnit(size);
     const [isDragging, setIsDragging] = React.useState(false);
     const { send } = GroupMachineContext.useActorRef();
@@ -1623,6 +1740,13 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     const overshoot = GroupMachineContext.useSelector(
       (state) => state.context.dragOvershoot
     );
+    const handle = GroupMachineContext.useSelector(({ context }) => {
+      try {
+        return getHandleWithId(context, handleId);
+      } catch (e) {
+        return undefined;
+      }
+    });
     const { moveProps } = useMove({
       onMoveStart: () => {
         setIsDragging(true);
@@ -1645,7 +1769,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
       }
     };
 
-    const hasRegistered = React.useRef(false);
+    const hasRegistered = React.useRef(Boolean(handle));
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
