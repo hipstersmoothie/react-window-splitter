@@ -9,7 +9,10 @@ import { useComposedRefs } from "@radix-ui/react-compose-refs";
 
 // #region Constants
 
+/** The default amount a user can `dragOvershoot` before the panel collapses */
 const COLLAPSE_THRESHOLD = 50;
+
+/** This parses the percentage value from the "clamp" we do after the "commit" */
 const CLAMP_REGEX = /min\(calc\((.*) \* .*\), .*\)\)/;
 
 // #endregion Constants
@@ -49,7 +52,10 @@ interface Order {
   order?: number;
 }
 
-interface PanelData extends Constraints, Order {
+interface PanelData
+  extends Omit<Constraints, "min" | "max" | "collapsedSize">,
+    Required<Pick<Constraints, "min" | "max" | "collapsedSize">>,
+    Order {
   type: "panel";
   id: string;
   /** Whether the collapsed state is controlled by the consumer or not */
@@ -58,92 +64,136 @@ interface PanelData extends Constraints, Order {
   onCollapseChange?: {
     current: ((isCollapsed: boolean) => void) | null | undefined;
   };
+  /**
+   * The current value for the item in the grid
+   *
+   * 1. Before the user touches the handles the grid will be composed of grid units (e.g minmax)
+   * 2. During resizing the current value is represented as pixels
+   * 3. Once done the value is represented as a pseudo-clamp like value that works for resizing
+   */
+  currentValue: number | string;
+  /** Whether the panel is currently collapsed */
+  collapsed: boolean | undefined;
+  /**
+   * The size the panel was before being collapsed.
+   * This is used to re-open the panel at the same size.
+   * If the panel starts out collapsed it will use the `min`.
+   */
+  sizeBeforeCollapse: number | undefined;
 }
 
 interface PanelHandleData extends Order {
   type: "handle";
   id: string;
+  /**
+   * The size of the panel handle.
+   * Needed to correctly calculate the percentage of modified panels.
+   */
   size: PixelUnit;
 }
 
-interface ActivePanelData extends PanelData {
-  currentValue: number | string;
-  min: Unit;
-  max: Unit;
-  collapsed: boolean | undefined;
-  collapsedSize: Unit;
-  sizeBeforeCollapse: number | undefined;
-}
-
-type Item = ActivePanelData | PanelHandleData;
+type Item = PanelData | PanelHandleData;
 
 interface RegisterPanelEvent {
+  /** Register a new panel with the state machine */
   type: "registerPanel";
-  data: Omit<PanelData, "type">;
+  data: Omit<PanelData, "type" | "currentValue" | "defaultCollapsed">;
 }
 
 interface UnregisterPanelEvent {
+  /** Remove a panel from the state machine */
   type: "unregisterPanel";
   id: string;
 }
 
 interface RegisterPanelHandleEvent {
+  /** Register a new panel handle with the state machine */
   type: "registerPanelHandle";
   data: Omit<PanelHandleData, "type">;
 }
 
 interface UnregisterPanelHandleEvent {
+  /** Remove a panel handle from the state machine */
   type: "unregisterPanelHandle";
   id: string;
 }
 
 interface DragHandleStartEvent {
+  /** Start a drag interaction */
   type: "dragHandleStart";
+  /** Tha handle being interacted with */
   handleId: string;
 }
 
 interface DragHandleEvent {
+  /** Update the layout according to how the handle moved */
   type: "dragHandle";
+  /** Tha handle being interacted with */
   handleId: string;
   value: MoveMoveEvent;
 }
 
 interface DragHandleEndEvent {
+  /** End a drag interaction */
   type: "dragHandleEnd";
+  /** Tha handle being interacted with */
   handleId: string;
 }
 
 interface SetSizeEvent {
+  /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
 }
 
 interface SetOrientationEvent {
+  /** Set the orientation of the group */
   type: "setOrientation";
   orientation: Orientation;
 }
 
-interface CollapsePanelEvent {
-  type: "collapsePanel";
-  panelId: string;
+interface ControlledCollapseToggle {
+  /**
+   * This is used to react to the controlled panel "collapse" prop updating.
+   * This will force an update to be applied and skip calling the user's `onCollapseChanged`
+   */
   controlled?: boolean;
 }
 
-interface ExpandPanelEvent {
-  type: "expandPanel";
+interface CollapsePanelEvent extends ControlledCollapseToggle {
+  /** Collapse a panel */
+  type: "collapsePanel";
+  /** The panel to collapse */
   panelId: string;
-  controlled?: boolean;
+}
+
+interface ExpandPanelEvent extends ControlledCollapseToggle {
+  /** Expand a panel */
+  type: "expandPanel";
+  /** The panel to expand */
+  panelId: string;
 }
 
 interface SetPanelPixelSizeEvent {
+  /**
+   * This event is used by the imperative panel API.
+   * With this the user can set the panel's size to an explicit value.
+   * This is done by faking interaction with the handles so min/max will still
+   * be respected.
+   */
   type: "setPanelPixelSize";
+  /** The panel to apply the size to */
   panelId: string;
+  /** The size to apply to the panel */
   size: Unit;
 }
 
 interface SetDynamicPanelPixelSizeEvent {
+  /** This event is used to sync dynamic panels to their actual pixel size so drags work */
   type: "setDynamicPanelInitialSize";
+  /** The panel to apply the size to */
   panelId: string;
+  /** The initial measured size of the panel */
   size: number;
 }
 
@@ -208,18 +258,28 @@ type EventForType<T extends GroupMachineEvent["type"]> =
 
 // #region Helpers
 
-function isPanelData(value: Item): value is ActivePanelData {
+/** Assert that the provided event is one of the accepted types */
+function isEvent<T extends GroupMachineEvent["type"]>(
+  event: GroupMachineEvent,
+  eventType: T[]
+): asserts event is EventForType<T> {
+  invariant(
+    eventType.includes(event.type as T),
+    `Invalid event type: ${eventType}. Expected: ${eventType.join(" | ")}`
+  );
+}
+
+/** Determine if an item is a panel */
+function isPanelData(value: Item): value is PanelData {
   return value.type === "panel";
 }
 
+/** Determine if an item is a panel handle */
 function isPanelHandle(value: Item): value is PanelHandleData {
   return value.type === "handle";
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
+/** Parse the percentage value applied during the "commit" phase */
 function parseClamp(unit: string) {
   const [, percent] = unit.match(CLAMP_REGEX) || [];
 
@@ -228,6 +288,7 @@ function parseClamp(unit: string) {
   }
 }
 
+/** Parse a `Unit` string or `clamp` value */
 function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
   if (unit.endsWith("px")) {
     return { type: "pixel", value: parseFloat(unit) };
@@ -246,7 +307,8 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
   throw new Error(`Invalid unit: ${unit}`);
 }
 
-function unitsToPercents(groupsSize: number, unit: Unit | number) {
+/** Convert a `Unit` to a percentage of the group size */
+function getUnitPercentageValue(groupsSize: number, unit: Unit | number) {
   if (typeof unit === "number") {
     return unit / groupsSize;
   }
@@ -260,16 +322,46 @@ function unitsToPercents(groupsSize: number, unit: Unit | number) {
   return parsed.value;
 }
 
+/** Get the size of a panel in pixels */
+function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
+  const parsed = parseUnit(unit);
+
+  if (parsed.type === "pixel") {
+    return parsed.value;
+  }
+
+  return (parsed.value / 100) * context.size;
+}
+
+/** Clamp a new `currentValue` given the panel's constraints. */
+function clampUnit(
+  context: GroupMachineContext,
+  item: PanelData,
+  value: number
+) {
+  return Math.min(
+    Math.max(value, getUnitPixelValue(context, item.min)),
+    getUnitPixelValue(context, item.max)
+  );
+}
+
+/** Get a panel with a particular ID. */
+function getPanelWithId(context: GroupMachineContext, panelId: string) {
+  const item = context.items.find((item) => item.id === panelId);
+
+  if (item && isPanelData(item)) {
+    return item;
+  }
+
+  throw new Error(`Expected panel with id: ${panelId}`);
+}
+
+/** Get the panel before a handle */
 function getPanelBeforeHandleId(
   context: GroupMachineContext,
   handleId: string
 ) {
   const handleIndex = context.items.findIndex((item) => item.id === handleId);
-
-  if (handleIndex === -1) {
-    throw new Error(`Expected panel before: ${handleId}`);
-  }
-
   const item = context.items[handleIndex - 1];
 
   if (item && isPanelData(item)) {
@@ -279,6 +371,10 @@ function getPanelBeforeHandleId(
   throw new Error(`Expected panel before: ${handleId}`);
 }
 
+/**
+ * Get the panel that's collapsible next to a resize handle.
+ * Will first check the left panel then the right.
+ */
 function getCollapsiblePanelForHandleId(
   context: GroupMachineContext,
   handleId: string
@@ -307,22 +403,10 @@ function getCollapsiblePanelForHandleId(
   return undefined;
 }
 
-function getPanelWithId(context: GroupMachineContext, panelId: string) {
-  const panelIndex = context.items.findIndex((item) => item.id === panelId);
-
-  if (panelIndex === -1 || panelIndex >= context.items.length) {
-    throw new Error(`Expected panel with id: ${panelId}`);
-  }
-
-  const item = context.items[panelIndex];
-
-  if (item && isPanelData(item)) {
-    return item;
-  }
-
-  throw new Error(`Expected panel with id: ${panelId}`);
-}
-
+/**
+ * Get the handle closest to the target panel.
+ * This is used to simulate collapse/expand
+ */
 function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
   const panelIndex = context.items.findIndex((item) => item.id === panelId);
 
@@ -345,72 +429,37 @@ function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
   throw new Error(`Cant find handle for panel: ${panelId}`);
 }
 
-function isEvent<T extends GroupMachineEvent["type"]>(
-  event: GroupMachineEvent,
-  eventType: T[]
-): asserts event is EventForType<T> {
-  invariant(
-    eventType.includes(event.type as T),
-    `Invalid event type: ${eventType}. Expected: ${eventType.join(" | ")}`
-  );
-}
-
-function getUnitPixelValue(context: GroupMachineContext, unit: Unit) {
-  const parsed = parseUnit(unit);
-
-  if (parsed.type === "pixel") {
-    return parsed.value;
-  }
-
-  return (parsed.value / 100) * context.size;
-}
-
-function clampUnit(
-  context: GroupMachineContext,
-  item: ActivePanelData,
-  value: number
-) {
-  return clamp(
-    value,
-    getUnitPixelValue(context, item.min),
-    getUnitPixelValue(context, item.max)
-  );
-}
-
 /** Given the specified order props and default order of the items, order the items */
 function sortWithOrder(items: Array<Item>) {
   const takenPlacements: number[] = [];
-
-  // First find the items that define an order to reserve their spots
-  for (const item of items) {
-    if (item.order === undefined) {
-      continue;
-    }
-
-    if (takenPlacements.includes(item.order)) {
-      throw new Error(`Invalid order for item (already taken): ${item.order}`);
-    }
-
-    takenPlacements.push(item.order);
-  }
-
   const defaultPlacement: Record<string, number> = {};
   let defaultOrder = 0;
 
-  // Generate default orders for items that don't have it
+  // First find the items that define an order to reserve their spots
   for (const item of items) {
     if (item.order !== undefined) {
-      continue;
-    }
+      if (takenPlacements.includes(item.order)) {
+        throw new Error(
+          `Invalid order for item (already taken): ${item.order}`
+        );
+      }
 
-    while (
-      takenPlacements.includes(defaultOrder) ||
-      Object.values(defaultPlacement).includes(defaultOrder)
-    ) {
-      defaultOrder++;
+      takenPlacements.push(item.order);
     }
+  }
 
-    defaultPlacement[item.id] = defaultOrder;
+  // Generate default orders for items that don't have it
+  for (const item of items) {
+    if (item.order === undefined) {
+      while (
+        takenPlacements.includes(defaultOrder) ||
+        Object.values(defaultPlacement).includes(defaultOrder)
+      ) {
+        defaultOrder++;
+      }
+
+      defaultPlacement[item.id] = defaultOrder;
+    }
   }
 
   return items.sort((a, b) => {
@@ -421,13 +470,10 @@ function sortWithOrder(items: Array<Item>) {
   });
 }
 
-// #endregion Helpers
-
-// #region Machine
-
-function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
+/** Check if the panel has space available to add to */
+function panelHasSpace(context: GroupMachineContext, item: PanelData) {
   if (typeof item.currentValue === "string") {
-    throw new Error("getPanelHasSpace only works with number values");
+    throw new Error("panelHasSpace only works with number values");
   }
 
   if (item.collapsible && !item.collapsed) {
@@ -440,6 +486,7 @@ function getPanelHasSpace(context: GroupMachineContext, item: ActivePanelData) {
   return panelSize > min;
 }
 
+/** Search in a `direction` for a panel that still has space to expand. */
 function findPanelWithSpace(
   context: GroupMachineContext,
   items: Array<Item>,
@@ -454,7 +501,7 @@ function findPanelWithSpace(
         return;
       }
 
-      if (isPanelData(panel) && getPanelHasSpace(context, panel)) {
+      if (isPanelData(panel) && panelHasSpace(context, panel)) {
         return panel;
       }
     }
@@ -466,13 +513,14 @@ function findPanelWithSpace(
         return;
       }
 
-      if (isPanelData(panel) && getPanelHasSpace(context, panel)) {
+      if (isPanelData(panel) && panelHasSpace(context, panel)) {
         return panel;
       }
     }
   }
 }
 
+/** Add up all the static values in the layout */
 function getStaticWidth(context: GroupMachineContext) {
   let width = 0;
 
@@ -484,7 +532,7 @@ function getStaticWidth(context: GroupMachineContext) {
 
   // Add any panels with static pixel size
   width += context.items
-    .filter((d): d is ActivePanelData =>
+    .filter((d): d is PanelData =>
       Boolean(
         isPanelData(d) && d.collapsed && typeof d.currentValue === "number"
       )
@@ -493,7 +541,7 @@ function getStaticWidth(context: GroupMachineContext) {
     .reduce((a, b) => a + b, 0);
 
   width += context.items
-    .filter((d): d is ActivePanelData =>
+    .filter((d): d is PanelData =>
       Boolean(
         isPanelData(d) &&
           d.collapsed &&
@@ -507,13 +555,17 @@ function getStaticWidth(context: GroupMachineContext) {
   return width;
 }
 
+// #endregion Helpers
+
+// #region Machine
+
 /** Converts the items to pixels */
 function prepareItems(context: GroupMachineContext) {
   const newItems = [...context.items];
 
   // Force all raw pixels into numbers
   newItems
-    .filter((d): d is ActivePanelData =>
+    .filter((d): d is PanelData =>
       Boolean(
         isPanelData(d) &&
           typeof d.currentValue === "string" &&
@@ -834,6 +886,7 @@ function commitLayout(context: GroupMachineContext) {
   return newItems;
 }
 
+/** Iteratively applies a large delta value simulating a user's drag */
 function iterativelyUpdateLayout({
   context,
   handleId,
@@ -876,6 +929,7 @@ function iterativelyUpdateLayout({
   return newContext;
 }
 
+/** Build the grid template from the item values. */
 function buildTemplate(items: Array<Item>) {
   return items
     .map((item) => {
@@ -964,7 +1018,7 @@ const groupMachine = createMachine(
 
           let currentValue = "1fr";
 
-          if (event.data.collapsible && event.data.defaultCollapsed) {
+          if (event.data.collapsible && event.data.collapsed) {
             currentValue = event.data.collapsedSize || "0px";
           } else if (event.data.default) {
             currentValue = event.data.default;
@@ -978,18 +1032,7 @@ const groupMachine = createMachine(
 
           return sortWithOrder([
             ...context.items,
-            {
-              type: "panel",
-              ...event.data,
-              collapsed: event.data.collapsible
-                ? event.data.defaultCollapsed ?? false
-                : undefined,
-              collapsedSize: event.data.collapsedSize || "0px",
-              min: event.data.min || "0px",
-              max: event.data.max || "100%",
-              sizeBeforeCollapse: undefined,
-              currentValue,
-            } as const,
+            { type: "panel", ...event.data, currentValue },
           ]);
         },
       }),
@@ -999,7 +1042,7 @@ const groupMachine = createMachine(
 
           return sortWithOrder([
             ...context.items,
-            { type: "handle" as const, ...event.data },
+            { type: "handle", ...event.data },
           ]);
         },
       }),
@@ -1183,15 +1226,11 @@ function useDebugGroupMachineContext({ id }: { id: string }) {
   console.log("GROUP CONTEXT", id, context);
 }
 
-export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
-  orientation?: Orientation;
-}
+export interface PanelGroupProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    Pick<GroupMachineContext, "orientation"> {}
 
-export interface PanelGroupHandle {
-  getSize: () => number;
-  getItems: () => Array<Item>;
-}
-
+/** A group of panels that has constraints and a user can resize */
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
   function PanelGroup(props, ref) {
     return (
@@ -1218,10 +1257,12 @@ const PanelGroupImplementation = React.forwardRef<
   );
   const size = GroupMachineContext.useSelector((state) => state.context.size);
 
+  // When the prop for `orientation` updates also update the state machine
   if (props.orientation && props.orientation !== orientation) {
     send({ type: "setOrientation", orientation: props.orientation });
   }
 
+  // Track the size of the group
   React.useLayoutEffect(() => {
     if (!innerRef.current) {
       return;
@@ -1319,6 +1360,7 @@ export interface PanelProps
   handle?: React.Ref<PanelHandle>;
 }
 
+/** A panel within a `PanelGroup` */
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
   function Panel(
     {
@@ -1354,14 +1396,17 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       send({
         type: "registerPanel",
         data: {
-          min,
-          max,
+          min: min || "0px",
+          max: max || "100%",
           id: panelId,
-          defaultCollapsed: collapsed ?? defaultCollapsed,
+          collapsed: collapsible
+            ? collapsed ?? defaultCollapsed ?? false
+            : undefined,
           collapsible,
-          collapsedSize,
+          collapsedSize: collapsedSize ?? "0px",
           onCollapseChange: onCollapseChangeRef,
           collapseIsControlled: typeof collapsed !== "undefined",
+          sizeBeforeCollapse: undefined,
           order,
         },
       });
@@ -1371,6 +1416,8 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       return () => send({ type: "unregisterPanel", id: panelId });
     }, [send, panelId]);
 
+    // For controlled collapse we track if the `collapse` prop changes
+    // and update the state machine if it does.
     React.useEffect(() => {
       if (typeof collapsed !== "undefined") {
         const context = machineRef.getSnapshot().context;
@@ -1424,7 +1471,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
           const context = machineRef.getSnapshot().context;
           const items = prepareItems(context);
           const panel = getPanelWithId({ ...context, items }, panelId);
-          return unitsToPercents(
+          return getUnitPercentageValue(
             context.size,
             panel.currentValue as Unit | number
           );
@@ -1492,6 +1539,7 @@ export interface PanelResizerProps
   extends React.HTMLAttributes<HTMLDivElement>,
     Partial<Pick<PanelHandleData, "size" | "order">> {}
 
+/** A resize handle to place between panels */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   function PanelResizer({ size = "10px", order, ...props }, ref) {
     const handleId = `panel-resizer-${useId()}`;
@@ -1576,6 +1624,9 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
       }
     }
 
+    // Update the cursor while the user is dragging.
+    // This makes it so that the user can overshoot the drag handle and
+    // still see the right cursor.
     useEffect(() => {
       if (!isDragging) {
         return;
@@ -1601,14 +1652,20 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
         data-handle-orientation={orientation}
         aria-label="Resize Handle"
         aria-controls={panelBeforeHandle.id}
-        aria-valuemin={unitsToPercents(groupsSize, panelBeforeHandle.min)}
-        aria-valuemax={unitsToPercents(groupsSize, panelBeforeHandle.max)}
+        aria-valuemin={getUnitPercentageValue(
+          groupsSize,
+          panelBeforeHandle.min
+        )}
+        aria-valuemax={getUnitPercentageValue(
+          groupsSize,
+          panelBeforeHandle.max
+        )}
         aria-valuenow={
           typeof panelBeforeHandle.currentValue === "string" &&
           (panelBeforeHandle.currentValue.includes("minmax") ||
             panelBeforeHandle.currentValue.includes("fr"))
             ? undefined
-            : unitsToPercents(
+            : getUnitPercentageValue(
                 groupsSize,
                 panelBeforeHandle.currentValue as Unit
               )
