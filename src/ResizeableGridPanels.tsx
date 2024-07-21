@@ -116,14 +116,14 @@ interface UnregisterPanelHandleEvent {
 interface DragHandleStartEvent {
   /** Start a drag interaction */
   type: "dragHandleStart";
-  /** Tha handle being interacted with */
+  /** The handle being interacted with */
   handleId: string;
 }
 
 interface DragHandleEvent {
   /** Update the layout according to how the handle moved */
   type: "dragHandle";
-  /** Tha handle being interacted with */
+  /** The handle being interacted with */
   handleId: string;
   value: MoveMoveEvent;
 }
@@ -131,7 +131,7 @@ interface DragHandleEvent {
 interface DragHandleEndEvent {
   /** End a drag interaction */
   type: "dragHandleEnd";
-  /** Tha handle being interacted with */
+  /** The handle being interacted with */
   handleId: string;
 }
 
@@ -221,34 +221,10 @@ type GroupMachineEvent =
   | SetPanelPixelSizeEvent
   | SetDynamicPanelPixelSizeEvent;
 
-type EventForType<T extends GroupMachineEvent["type"]> =
-  T extends "registerPanel"
-    ? RegisterPanelEvent
-    : T extends "unregisterPanel"
-      ? UnregisterPanelEvent
-      : T extends "registerPanelHandle"
-        ? RegisterPanelHandleEvent
-        : T extends "unregisterPanelHandle"
-          ? UnregisterPanelHandleEvent
-          : T extends "dragHandle"
-            ? DragHandleEvent
-            : T extends "setSize"
-              ? SetSizeEvent
-              : T extends "setOrientation"
-                ? SetOrientationEvent
-                : T extends "dragHandleStart"
-                  ? DragHandleStartEvent
-                  : T extends "dragHandleEnd"
-                    ? DragHandleEndEvent
-                    : T extends "collapsePanel"
-                      ? CollapsePanelEvent
-                      : T extends "expandPanel"
-                        ? ExpandPanelEvent
-                        : T extends "setPanelPixelSize"
-                          ? SetPanelPixelSizeEvent
-                          : T extends "setDynamicPanelInitialSize"
-                            ? SetDynamicPanelPixelSizeEvent
-                            : never;
+type EventForType<T extends GroupMachineEvent["type"]> = Extract<
+  GroupMachineEvent,
+  { type: T }
+>;
 
 // #endregion
 
