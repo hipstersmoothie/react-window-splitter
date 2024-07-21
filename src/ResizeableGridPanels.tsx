@@ -432,22 +432,12 @@ function getHandleForPanelId(context: GroupMachineContext, panelId: string) {
 
 /** Given the specified order props and default order of the items, order the items */
 function sortWithOrder(items: Array<Item>) {
-  const takenPlacements: number[] = [];
   const defaultPlacement: Record<string, number> = {};
+  const takenPlacements = items
+    .map((i) => i.order)
+    .filter((i): i is number => i !== undefined);
+
   let defaultOrder = 0;
-
-  // First find the items that define an order to reserve their spots
-  for (const item of items) {
-    if (item.order !== undefined) {
-      if (takenPlacements.includes(item.order)) {
-        throw new Error(
-          `Invalid order for item (already taken): ${item.order}`
-        );
-      }
-
-      takenPlacements.push(item.order);
-    }
-  }
 
   // Generate default orders for items that don't have it
   for (const item of items) {
@@ -496,29 +486,19 @@ function findPanelWithSpace(
   start: number,
   direction: number
 ) {
-  if (direction === -1) {
-    for (let i = start; i >= 0; i--) {
-      const panel = items[i];
+  for (
+    let i = start;
+    direction === -1 ? i >= 0 : i < items.length;
+    i += direction
+  ) {
+    const panel = items[i];
 
-      if (!panel) {
-        return;
-      }
-
-      if (isPanelData(panel) && panelHasSpace(context, panel)) {
-        return panel;
-      }
+    if (!panel) {
+      return;
     }
-  } else {
-    for (let i = start; i < items.length; i++) {
-      const panel = items[i];
 
-      if (!panel) {
-        return;
-      }
-
-      if (isPanelData(panel) && panelHasSpace(context, panel)) {
-        return panel;
-      }
+    if (isPanelData(panel) && panelHasSpace(context, panel)) {
+      return panel;
     }
   }
 }
@@ -527,35 +507,36 @@ function findPanelWithSpace(
 function getStaticWidth(context: GroupMachineContext) {
   let width = 0;
 
-  // Add resize handle sizes
-  width += context.items
-    .filter(isPanelHandle)
-    .map((item) => parseUnit(item.size).value)
-    .reduce((a, b) => a + b, 0);
-
-  // Add any panels with static pixel size
-  width += context.items
-    .filter((d): d is PanelData =>
-      Boolean(
-        isPanelData(d) && d.collapsed && typeof d.currentValue === "number"
-      )
-    )
-    .map((item) => item.currentValue as number)
-    .reduce((a, b) => a + b, 0);
-
-  width += context.items
-    .filter((d): d is PanelData =>
-      Boolean(
-        isPanelData(d) &&
-          d.collapsed &&
-          typeof d.currentValue === "string" &&
-          d.currentValue.endsWith("px")
-      )
-    )
-    .map((item) => parseUnit(item.currentValue as Unit).value)
-    .reduce((a, b) => a + b, 0);
+  for (const item of context.items) {
+    if (isPanelHandle(item)) {
+      width += parseUnit(item.size).value;
+    } else if (isPanelData(item) && item.collapsed) {
+      if (typeof item.currentValue === "number") {
+        width += item.currentValue;
+      } else if (item.currentValue.endsWith("px")) {
+        width += parseUnit(item.currentValue as Unit).value;
+      }
+    }
+  }
 
   return width;
+}
+
+/** Build the grid template from the item values. */
+function buildTemplate(items: Array<Item>) {
+  return items
+    .map((item) => {
+      if (item.type === "panel") {
+        if (typeof item.currentValue === "number") {
+          return `${item.currentValue}px`;
+        } else {
+          return item.currentValue;
+        }
+      }
+
+      return item.size;
+    })
+    .join(" ");
 }
 
 // #endregion
@@ -615,18 +596,15 @@ function getStaticWidth(context: GroupMachineContext) {
 function prepareItems(context: GroupMachineContext) {
   const newItems = [...context.items];
 
-  // Force all raw pixels into numbers
-  newItems
-    .filter((d): d is PanelData =>
-      Boolean(
-        isPanelData(d) &&
-          typeof d.currentValue === "string" &&
-          d.currentValue.match(/^\d+px$/)
-      )
-    )
-    .map((item) => {
+  for (const item of newItems) {
+    if (
+      isPanelData(item) &&
+      typeof item.currentValue === "string" &&
+      item.currentValue.match(/^\d+px$/)
+    ) {
       item.currentValue = parseUnit(item.currentValue as Unit).value;
-    });
+    }
+  }
 
   const itemsWithFractions = newItems
     .map((i, index) =>
@@ -978,23 +956,6 @@ function iterativelyUpdateLayout({
   }
 
   return newContext;
-}
-
-/** Build the grid template from the item values. */
-function buildTemplate(items: Array<Item>) {
-  return items
-    .map((item) => {
-      if (item.type === "panel") {
-        if (typeof item.currentValue === "number") {
-          return `${item.currentValue}px`;
-        } else {
-          return item.currentValue;
-        }
-      }
-
-      return item.size;
-    })
-    .join(" ");
 }
 
 // #endregion
@@ -1353,8 +1314,8 @@ const PanelGroupImplementation = React.forwardRef<
       getId: () => groupId,
       getPixelSizes: () => {
         const context = machineRef.getSnapshot().context;
-        const pixelItems = prepareItems(context);
-        return pixelItems.map((i) =>
+
+        return prepareItems(context).map((i) =>
           isPanelData(i)
             ? (i.currentValue as number)
             : getUnitPixelValue(context, i.size)
@@ -1567,8 +1528,10 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         isExpanded: () => Boolean(collapsible && !panel?.collapsed),
         getPixelSize: () => {
           const context = machineRef.getSnapshot().context;
-          const items = prepareItems(context);
-          const panel = getPanelWithId({ ...context, items }, panelId);
+          const panel = getPanelWithId(
+            { ...context, items: prepareItems(context) },
+            panelId
+          );
 
           if (typeof panel.currentValue === "string") {
             return getUnitPixelValue(context, panel.currentValue as Unit);
