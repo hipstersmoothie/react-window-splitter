@@ -7,7 +7,8 @@
 - [x] jsdoc
 - [x] panel imperative api
 - [x] group imperative api
+- [x] finish up resizer API
 
-- [ ] finish up resizer API
 - [ ] persistance (+ external)
 - [ ] Docs
+- [ ] Tests

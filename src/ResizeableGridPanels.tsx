@@ -1673,8 +1673,9 @@ export interface PanelResizerProps
 
 /** A resize handle to place between panels */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer({ size = "10px", order, ...props }, ref) {
+  function PanelResizer({ size = "0px", order, ...props }, ref) {
     const handleId = `panel-resizer-${useId()}`;
+    const unit = parseUnit(size);
     const [isDragging, setIsDragging] = React.useState(false);
     const { send } = GroupMachineContext.useActorRef();
     const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
@@ -1807,8 +1808,8 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
           cursor,
           ...props.style,
           ...(orientation === "horizontal"
-            ? { background: "red", width: 10, height: "100%" }
-            : { background: "red", height: 10, width: "100%" }),
+            ? { width: unit.value, height: "100%" }
+            : { height: unit.value, width: "100%" }),
         }}
       />
     );

@@ -7,6 +7,7 @@ import {
   PanelResizer,
   PanelHandle,
   PanelGroupHandle,
+  PanelResizerProps,
 } from "./ResizeableGridPanels.jsx";
 
 export default {
@@ -50,13 +51,17 @@ function StyledPanel({ children, ...props }: PanelProps) {
   );
 }
 
+function StyledResizer(props: PanelResizerProps) {
+  return <PanelResizer size="10px" style={{ background: "red" }} {...props} />;
+}
+
 export function Simple() {
   return (
     <StyledPanelGroup>
       <StyledPanel>
         <div>Panel 1</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel>
         <div>Panel 2</div>
       </StyledPanel>
@@ -70,11 +75,11 @@ export function SimpleMin() {
       <StyledPanel min="100px">
         <div>Panel 1</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="100px">
         <div>Panel 2</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="100px">
         <div>Panel 3</div>
       </StyledPanel>
@@ -88,11 +93,11 @@ export function SimpleMinMax() {
       <StyledPanel min="100px" max="200px">
         <div>Panel 1</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="100px">
         <div>Panel 2</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer size="20px" />
       <StyledPanel min="100px">
         <div>Panel 3</div>
       </StyledPanel>
@@ -106,7 +111,7 @@ export function SimpleConstraints() {
       <StyledPanel min="100px" max="50%">
         <div>Panel 1</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel>
         <div>Panel 2</div>
       </StyledPanel>
@@ -120,9 +125,9 @@ export function HorizontalLayout() {
       <StyledPanel default="30%" min="20%">
         left
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="20%">middle</StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel default="30%" min="20%">
         right
       </StyledPanel>
@@ -136,9 +141,9 @@ export function VerticalLayout() {
       <StyledPanel default="30%" min="20%">
         left
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="20%">middle</StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel default="30%" min="20%">
         right
       </StyledPanel>
@@ -157,21 +162,21 @@ export function NestedGroups() {
       }}
     >
       <Panel min="10%">left</Panel>
-      <PanelResizer />
+      <StyledResizer />
       <Panel min="10%">
         <PanelGroup orientation="vertical">
           <Panel min="10%">top</Panel>
-          <PanelResizer />
+          <StyledResizer />
           <Panel min="10%">
             <PanelGroup orientation="horizontal">
               <Panel min="20%">left</Panel>
-              <PanelResizer />
+              <StyledResizer />
               <Panel min="20%">right</Panel>
             </PanelGroup>
           </Panel>
         </PanelGroup>
       </Panel>
-      <PanelResizer />
+      <StyledResizer />
       <Panel min="10%">right</Panel>
     </PanelGroup>
   );
@@ -227,7 +232,7 @@ export function WithOverflow() {
           </p>
         </div>
       </Panel>
-      <PanelResizer />
+      <StyledResizer />
       <Panel min="200px">
         <div
           style={{
@@ -295,11 +300,11 @@ export function Collapsible() {
       >
         <div>1</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel min="100px">
         <div>2</div>
       </StyledPanel>
-      <PanelResizer />
+      <StyledResizer />
       <StyledPanel
         min="100px"
         collapsible={true}
@@ -333,11 +338,11 @@ export function ImperativePanel() {
         >
           <div>1</div>
         </StyledPanel>
-        <PanelResizer />
+        <StyledResizer />
         <StyledPanel min="100px">
           <div>2</div>
         </StyledPanel>
-        <PanelResizer />
+        <StyledResizer />
         <StyledPanel
           min="100px"
           collapsible={true}
@@ -424,24 +429,24 @@ export function ConditionalPanel() {
         <StyledPanel min="100px" collapsible={true} collapsedSize="60px">
           <div>1</div>
         </StyledPanel>
-        <PanelResizer />
+        <StyledResizer />
         <StyledPanel min="100px">
           <div>2</div>
         </StyledPanel>
-        <PanelResizer />
+        <StyledResizer />
         <StyledPanel min="100px">
           <div>3</div>
         </StyledPanel>
         {isExpanded && (
           <>
-            <PanelResizer order={5} />
+            <StyledResizer order={5} />
             <StyledPanel order={6} min="100px">
               expanded
               <button onClick={() => setIsExpanded(false)}>Close</button>
             </StyledPanel>
           </>
         )}
-        <PanelResizer />
+        <StyledResizer />
         <StyledPanel
           min="200px"
           collapsible={true}
