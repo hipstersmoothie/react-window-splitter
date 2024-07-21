@@ -13,7 +13,7 @@ import { useComposedRefs } from "@radix-ui/react-compose-refs";
 const COLLAPSE_THRESHOLD = 50;
 
 /** This parses the percentage value from the "clamp" we do after the "commit" */
-const CLAMP_REGEX = /min\(calc\((.*) \* .*\), .*\)\)/;
+const CLAMP_REGEX = /min\(calc\((.*) \* \(100% - (.*)\)\), .*\)\)/;
 
 // #endregion Constants
 
@@ -280,11 +280,14 @@ function isPanelHandle(value: Item): value is PanelHandleData {
 }
 
 /** Parse the percentage value applied during the "commit" phase */
-function parseClamp(unit: string) {
-  const [, percent] = unit.match(CLAMP_REGEX) || [];
+function parseClamp(groupsSize: number, unit: string) {
+  const [, percent, staticSize = "0"] = unit.match(CLAMP_REGEX) || [];
 
   if (percent) {
-    return { type: "percent" as const, value: parseFloat(percent) * 100 };
+    return {
+      type: "pixel" as const,
+      value: (groupsSize - parseFloat(staticSize)) * parseFloat(percent),
+    };
   }
 }
 
@@ -298,17 +301,19 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
     return { type: "percent", value: parseFloat(unit) };
   }
 
-  const clampValue = parseClamp(unit);
-
-  if (clampValue) {
-    return clampValue;
-  }
-
   throw new Error(`Invalid unit: ${unit}`);
 }
 
 /** Convert a `Unit` to a percentage of the group size */
 function getUnitPercentageValue(groupsSize: number, unit: Unit | number) {
+  if (typeof unit === "string") {
+    const clampValue = parseClamp(groupsSize, unit);
+
+    if (clampValue) {
+      return clampValue.value / groupsSize;
+    }
+  }
+
   if (typeof unit === "number") {
     return unit / groupsSize;
   }
@@ -473,7 +478,9 @@ function sortWithOrder(items: Array<Item>) {
 /** Check if the panel has space available to add to */
 function panelHasSpace(context: GroupMachineContext, item: PanelData) {
   if (typeof item.currentValue === "string") {
-    throw new Error("panelHasSpace only works with number values");
+    throw new Error(
+      `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
+    );
   }
 
   if (item.collapsible && !item.collapsed) {
@@ -631,7 +638,7 @@ function prepareItems(context: GroupMachineContext) {
       ) {
         continue;
       }
-      const unit = parseClamp(item.currentValue);
+      const unit = parseClamp(context.size, item.currentValue);
 
       if (!unit) {
         continue;
@@ -639,8 +646,7 @@ function prepareItems(context: GroupMachineContext) {
 
       newItems[index] = {
         ...item,
-        currentValue:
-          (context.size - getStaticWidth(context)) * (unit.value / 100),
+        currentValue: unit.value,
       };
     }
   }
@@ -1226,9 +1232,20 @@ function useDebugGroupMachineContext({ id }: { id: string }) {
   console.log("GROUP CONTEXT", id, context);
 }
 
+export interface PanelGroupHandle {
+  /** The id of the group */
+  getId: () => string;
+  /** Get the sizes of all the items in the layout as pixels */
+  getPixelSizes: () => Array<number>;
+  /** Get the sizes of all the items in the layout as percentages of the group size */
+  getPercentageSizes: () => Array<number>;
+}
+
 export interface PanelGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Pick<GroupMachineContext, "orientation"> {}
+    Partial<Pick<GroupMachineContext, "orientation">> {
+  handle?: React.Ref<PanelGroupHandle>;
+}
 
 /** A group of panels that has constraints and a user can resize */
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
@@ -1244,8 +1261,11 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
 const PanelGroupImplementation = React.forwardRef<
   HTMLDivElement,
   PanelGroupProps
->(function PanelGroupImplementation(props, outerRef) {
-  const { send } = GroupMachineContext.useActorRef();
+>(function PanelGroupImplementation(
+  { handle, orientation: orientationProp, ...props },
+  outerRef
+) {
+  const { send, ref: machineRef } = GroupMachineContext.useActorRef();
   const groupId = `panel-group-${useId()}`;
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
@@ -1258,8 +1278,8 @@ const PanelGroupImplementation = React.forwardRef<
   const size = GroupMachineContext.useSelector((state) => state.context.size);
 
   // When the prop for `orientation` updates also update the state machine
-  if (props.orientation && props.orientation !== orientation) {
-    send({ type: "setOrientation", orientation: props.orientation });
+  if (orientationProp && orientationProp !== orientation) {
+    send({ type: "setOrientation", orientation: orientationProp });
   }
 
   // Track the size of the group
@@ -1286,6 +1306,42 @@ const PanelGroupImplementation = React.forwardRef<
   }, [send, innerRef]);
 
   useDebugGroupMachineContext({ id: groupId });
+
+  const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
+
+  useImperativeHandle(handle || fallbackHandleRef, () => {
+    return {
+      getId: () => groupId,
+      getPixelSizes: () => {
+        const context = machineRef.getSnapshot().context;
+        const pixelItems = prepareItems(context);
+        return pixelItems.map((i) =>
+          isPanelData(i)
+            ? (i.currentValue as number)
+            : getUnitPixelValue(context, i.size)
+        );
+      },
+      getPercentageSizes() {
+        const context = machineRef.getSnapshot().context;
+        const clamped = commitLayout({
+          ...context,
+          items: prepareItems(context),
+        });
+
+        return clamped.map((i) => {
+          if (isPanelHandle(i)) {
+            return getUnitPercentageValue(context.size, i.size);
+          }
+
+          if (typeof i.currentValue === "number") {
+            return i.currentValue / context.size;
+          }
+
+          return getUnitPercentageValue(context.size, i.currentValue as Unit);
+        });
+      },
+    };
+  });
 
   return (
     <div

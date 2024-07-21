@@ -6,6 +6,7 @@ import {
   PanelProps,
   PanelResizer,
   PanelHandle,
+  PanelGroupHandle,
 } from "./ResizeableGridPanels.jsx";
 
 export default {
@@ -318,11 +319,12 @@ export function Collapsible() {
 }
 
 export function ImperativePanel() {
+  const groupRef = React.useRef<PanelGroupHandle>(null);
   const panelRef = React.useRef<PanelHandle>(null);
 
   return (
     <>
-      <StyledPanelGroup>
+      <StyledPanelGroup handle={groupRef}>
         <StyledPanel
           handle={panelRef}
           min="100px"
@@ -345,6 +347,21 @@ export function ImperativePanel() {
           <div>3</div>
         </StyledPanel>
       </StyledPanelGroup>
+
+      <div>
+        <button
+          onClick={() => alert(`Sizes: ${groupRef.current?.getPixelSizes()}`)}
+        >
+          Get pixel sizes
+        </button>
+        <button
+          onClick={() =>
+            alert(`Sizes: ${groupRef.current?.getPercentageSizes()}`)
+          }
+        >
+          Get percent sizes
+        </button>
+      </div>
 
       <div>
         <button onClick={() => panelRef.current?.collapse()}>Collapse</button>
