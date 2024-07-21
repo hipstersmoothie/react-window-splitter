@@ -200,8 +200,6 @@ interface GroupMachineContext {
   items: Array<Item>;
   /** The available space in the group */
   size: number;
-  /** The template for the grid */
-  template: string;
   /** The orientation of the grid */
   orientation: Orientation;
   /** How much the drag has overshot the handle */
@@ -1013,7 +1011,6 @@ const groupMachine = createMachine(
     context: {
       size: 0,
       items: [],
-      template: "",
       orientation: "horizontal",
       dragOvershoot: 0,
     },
@@ -1039,21 +1036,18 @@ const groupMachine = createMachine(
       },
     },
     on: {
-      registerPanel: { actions: ["assignPanelData", "layout"] },
+      registerPanel: { actions: ["assignPanelData"] },
       unregisterPanel: { actions: ["prepare", "removeItem", "commit"] },
-      registerPanelHandle: { actions: ["assignPanelHandleData", "layout"] },
+      registerPanelHandle: { actions: ["assignPanelHandleData"] },
       unregisterPanelHandle: { actions: ["prepare", "removeItem", "commit"] },
-      setSize: { actions: ["updateSize", "layout"] },
-      setOrientation: { actions: ["updateOrientation", "layout"] },
+      setSize: { actions: ["updateSize"] },
+      setOrientation: { actions: ["updateOrientation"] },
       collapsePanel: { actions: ["prepare", "collapsePanel", "commit"] },
       expandPanel: { actions: ["prepare", "expandPanel", "commit"] },
     },
   },
   {
     actions: {
-      layout: assign({
-        template: ({ context }) => buildTemplate(context.items),
-      }),
       updateSize: assign({
         size: ({ context, event }) => {
           isEvent(event, ["setSize"]);
@@ -1170,26 +1164,11 @@ const groupMachine = createMachine(
       }),
       onDragHandle: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["dragHandle"]);
-
-        const contextUpdate = {
-          ...context,
-          ...updateLayout(context, event),
-        };
-
-        enqueue.assign({
-          ...contextUpdate,
-          template: buildTemplate(contextUpdate.items),
-        });
+        enqueue.assign(updateLayout(context, event));
       }),
-      commit: enqueueActions(({ context, enqueue }) => {
-        const items = commitLayout(context);
-
-        enqueue.assign({
-          ...context,
-          items,
-          template: buildTemplate(items),
-          dragOvershoot: 0,
-        });
+      commit: assign({
+        dragOvershoot: 0,
+        items: ({ context }) => commitLayout(context),
       }),
       collapsePanel: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["collapsePanel"]);
@@ -1332,8 +1311,8 @@ const PanelGroupImplementation = React.forwardRef<
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
-  const template = GroupMachineContext.useSelector(
-    (state) => state.context.template
+  const template = GroupMachineContext.useSelector((state) =>
+    buildTemplate(state.context.items)
   );
   const size = GroupMachineContext.useSelector((state) => state.context.size);
 
