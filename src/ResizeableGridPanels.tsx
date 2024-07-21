@@ -975,7 +975,7 @@ const groupMachine = createMachine(
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["onDragHandle"] },
+          dragHandle: { actions: ["prepare", "onDragHandle"] },
           dragHandleEnd: { target: "idle" },
         },
         exit: ["commit"],
