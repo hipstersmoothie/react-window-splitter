@@ -1243,6 +1243,14 @@ export interface PanelGroupHandle {
   getPixelSizes: () => Array<number>;
   /** Get the sizes of all the items in the layout as percentages of the group size */
   getPercentageSizes: () => Array<number>;
+  /**
+   * Set the size of all the items in the layout.
+   * This just calls `setSize` on each item. It is up to
+   * you to make sure the sizes make sense.
+   *
+   * NOTE: Setting handle sizes will do nothing.
+   */
+  setSizes: (items: Array<Unit>) => void;
 }
 
 export interface PanelGroupProps
@@ -1343,6 +1351,22 @@ const PanelGroupImplementation = React.forwardRef<
 
           return getUnitPercentageValue(context.size, i.currentValue as Unit);
         });
+      },
+      setSizes: (updates) => {
+        const context = machineRef.getSnapshot().context;
+
+        for (let index = 0; index < updates.length; index++) {
+          const item = context.items[index];
+          const update = updates[index];
+
+          if (item && isPanelData(item) && update) {
+            send({
+              type: "setPanelPixelSize",
+              panelId: item.id,
+              size: update,
+            });
+          }
+        }
       },
     };
   });

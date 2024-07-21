@@ -6,7 +6,8 @@
 - [x] conditional panels
 - [x] jsdoc
 - [x] panel imperative api
+- [x] group imperative api
 
-- [ ] group imperative api
+- [ ] finish up resizer API
 - [ ] persistance (+ external)
 - [ ] Docs

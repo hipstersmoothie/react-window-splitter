@@ -361,6 +361,19 @@ export function ImperativePanel() {
         >
           Get percent sizes
         </button>
+        <button
+          onClick={() =>
+            groupRef.current?.setSizes([
+              "200px",
+              "10px",
+              "50%",
+              "10px",
+              "150px",
+            ])
+          }
+        >
+          Override sizes
+        </button>
       </div>
 
       <div>
