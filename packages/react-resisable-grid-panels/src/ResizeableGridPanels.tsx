@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useEffect, useImperativeHandle } from "react";
+import React, { useEffect, useLayoutEffect, useImperativeHandle } from "react";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
+
+const useIsomorphicLayoutEffect =
+  typeof document !== "undefined" ? useLayoutEffect : useEffect;
 
 // #region Constants
 
@@ -1402,7 +1405,7 @@ const PanelGroupImplementation = React.forwardRef<
   }
 
   // Track the size of the group
-  React.useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!innerRef.current) {
       return;
     }

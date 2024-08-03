@@ -1,12 +1,5 @@
-"use client";
-
 import { Inter } from "next/font/google";
-
-import dynamic from "next/dynamic";
-
-const HeaderExample = dynamic(() => import("@/Components/HeaderExample"), {
-  ssr: false,
-});
+import HeaderExample from "@/Components/HeaderExample";
 
 const inter = Inter({ subsets: ["latin"] });
 
