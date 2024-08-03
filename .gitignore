@@ -132,3 +132,5 @@ dist
 .pnp.*
 
 *storybook.log
+.tshy
+.tshy-build

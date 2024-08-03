@@ -206,6 +206,7 @@ interface GroupMachineContextValue {
   dragOvershoot: number;
   /** An id to use for autosaving the layout */
   autosaveId?: string;
+  groupId: string;
 }
 
 type GroupMachineEvent =
@@ -529,6 +530,22 @@ function buildTemplate(items: Array<Item>) {
       return item.size;
     })
     .join(" ");
+}
+
+function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
+  const currentItemIndex = items.findIndex(
+    (item) =>
+      item.id === newItem.id ||
+      (typeof item.order === "number" && item.order === newItem.order)
+  );
+
+  let restItems = items;
+
+  if (currentItemIndex !== -1) {
+    restItems = items.filter((_, index) => index !== currentItemIndex);
+  }
+
+  return sortWithOrder([...restItems, newItem]);
 }
 
 // #endregion
@@ -960,7 +977,11 @@ const groupMachine = createMachine(
     types: {
       context: {} as GroupMachineContextValue,
       events: {} as GroupMachineEvent,
-      input: {} as { autosaveId?: string; orientation?: Orientation },
+      input: {} as {
+        autosaveId?: string;
+        orientation?: Orientation;
+        groupId: string;
+      },
     },
     context: ({ input }) => ({
       size: 0,
@@ -968,6 +989,7 @@ const groupMachine = createMachine(
       orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
       autosaveId: input.autosaveId,
+      groupId: input.groupId,
     }),
     states: {
       idle: {
@@ -1044,20 +1066,21 @@ const groupMachine = createMachine(
             currentValue = `minmax(${event.data.min}, 1fr)`;
           }
 
-          return sortWithOrder([
-            ...context.items,
-            { type: "panel", ...event.data, currentValue },
-          ]);
+          return addDeDuplicatedItems(context.items, {
+            type: "panel",
+            ...event.data,
+            currentValue,
+          });
         },
       }),
       assignPanelHandleData: assign({
         items: ({ context, event }) => {
           isEvent(event, ["registerPanelHandle"]);
 
-          return sortWithOrder([
-            ...context.items,
-            { type: "handle", ...event.data },
-          ]);
+          return addDeDuplicatedItems(context.items, {
+            type: "handle",
+            ...event.data,
+          });
         },
       }),
       removeItem: assign({
@@ -1220,10 +1243,10 @@ const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-// function useDebugGroupMachineContext({ id }: { id: string }) {
-//   const context = GroupMachineContext.useSelector((state) => state.context);
-//   console.log("GROUP CONTEXT", id, context);
-// }
+function useDebugGroupMachineContext({ id }: { id: string }) {
+  const context = GroupMachineContext.useSelector((state) => state.context);
+  console.log("GROUP CONTEXT", id, context);
+}
 
 function useItemId(label: string, id?: string) {
   const autosaveId = GroupMachineContext.useSelector(
@@ -1299,6 +1322,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     },
     ref
   ) {
+    const groupId = `panel-group-${useId()}`;
     const [snapshot, setSnapshot] = React.useState<
       Snapshot<unknown> | true | undefined
     >(snapshotProp);
@@ -1319,7 +1343,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     return (
       <GroupMachineContext.Provider
         options={{
-          input: { autosaveId, orientation: props.orientation },
+          input: { autosaveId, orientation: props.orientation, groupId },
           snapshot: typeof snapshot === "object" ? snapshot : undefined,
         }}
         logic={groupMachine.provide({
@@ -1359,11 +1383,13 @@ const PanelGroupImplementation = React.forwardRef<
   outerRef
 ) {
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
-  const groupId = `panel-group-${useId()}`;
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
+  );
+  const groupId = GroupMachineContext.useSelector(
+    (state) => state.context.groupId
   );
   const template = GroupMachineContext.useSelector((state) =>
     buildTemplate(state.context.items)
@@ -1398,7 +1424,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef]);
 
-  // useDebugGroupMachineContext({ id: groupId });
+  useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 
@@ -1579,7 +1605,17 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     }
 
     React.useEffect(() => {
-      return () => send({ type: "unregisterPanel", id: panelId });
+      return () => {
+        const context = machineRef.getSnapshot().context;
+
+        // React strict mode hack to get around the component getting unmounted
+        if (context.size === 0) {
+          return;
+        }
+
+        send({ type: "unregisterPanel", id: panelId });
+        hasRegistered.current = false;
+      };
     }, [send, panelId]);
 
     // For controlled collapse we track if the `collapse` prop changes
@@ -1716,7 +1752,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     const handleId = useItemId("panel-resizer", props.id);
     const unit = parseUnit(size);
     const [isDragging, setIsDragging] = React.useState(false);
-    const { send } = GroupMachineContext.useActorRef();
+    const { send, ref: machineRef } = GroupMachineContext.useActorRef();
     const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
       try {
         return getPanelBeforeHandleId(context, handleId);
@@ -1780,7 +1816,17 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     }
 
     React.useEffect(() => {
-      return () => send({ type: "unregisterPanelHandle", id: handleId });
+      return () => {
+        const context = machineRef.getSnapshot().context;
+
+        // React strict mode hack to get around the component getting unmounted
+        if (context.size === 0) {
+          return;
+        }
+
+        send({ type: "unregisterPanelHandle", id: handleId });
+        hasRegistered.current = false;
+      };
     }, [send, handleId]);
 
     let cursor: React.CSSProperties["cursor"];
