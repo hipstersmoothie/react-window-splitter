@@ -1531,7 +1531,7 @@ export interface PanelProps
     React.HTMLAttributes<HTMLDivElement>,
     Pick<PanelData, "order"> {
   /**
-   * CONTROLLED COMPONENT
+   * __CONTROLLED COMPONENT__
    *
    * If this prop is used it will be used as the source of truth for the collapsed state.
    * It should be used in conjunction with the `onCollapseChange` prop.
@@ -1542,7 +1542,7 @@ export interface PanelProps
    */
   collapsed?: boolean;
   /**
-   * CONTROLLED COMPONENT
+   * __CONTROLLED COMPONENT__
    *
    * A callback called with the new desired collapsed state. If paired w
    * with the `collapsed` prop this will be used to control the collapsed state.
@@ -1749,7 +1749,7 @@ export interface PanelResizerProps
   disabled?: boolean;
 }
 
-/** A resize handle to place between panels */
+/** A resize handle to place between panels. */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   function PanelResizer({ size = "0px", order, disabled, ...props }, ref) {
     const handleId = useItemId("panel-resizer", props.id);
