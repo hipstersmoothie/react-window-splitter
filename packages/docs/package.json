@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "react-resizable-grid-panels": "workspace:*",
+    "react-window-splitter": "workspace:*",
     "react": "^18",
     "react-dom": "^18",
     "next": "14.2.5"

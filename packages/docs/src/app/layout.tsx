@@ -6,7 +6,7 @@ import { Metadata } from "next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "react-resizable-grid-panels",
+  title: "react-window-splitter",
   description: "A full featured resizable grid layout for React",
 };
 

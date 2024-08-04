@@ -7,7 +7,7 @@ import {
   Panel as PanelPrimitive,
   PanelProps,
   PanelResizer as PanelResizerPrimitive,
-} from "react-resizable-grid-panels";
+} from "react-window-splitter";
 
 function PanelGroup(props: PanelGroupProps) {
   return <PanelGroupPrimitive {...props} className={`${props.className}`} />;
@@ -67,11 +67,11 @@ function Panel({ color, ...props }: PanelProps & { color: "green" | "red" }) {
     >
       {dimensions && (
         <span className="flex items-center font-mono w-full">
-          <span className={`${solidBackgrounds[color]} h-1 mx-2 flex-1`} />
+          <span className={`${solidBackgrounds[color]} h-0.5 mx-2 flex-1`} />
           <span className={`${solidBackgrounds[color]} p-2`}>
             {dimensions.width.toFixed(2)}px
           </span>
-          <span className={`${solidBackgrounds[color]} h-1 mx-2 flex-1`} />
+          <span className={`${solidBackgrounds[color]} h-0.5 mx-2 flex-1`} />
         </span>
       )}
     </PanelPrimitive>
@@ -97,8 +97,8 @@ function PanelResizer(props: any) {
 
 export default function HeaderExample() {
   return (
-    <PanelGroup id="group" className="max-w-xl w-full" style={{ height: 200 }}>
-      <Panel color="green" min="130px" id="1" />
+    <PanelGroup id="group" className="max-w-2xl w-full" style={{ height: 200 }}>
+      <Panel color="green" min="130px" max="400px" id="1" />
       <PanelResizer id="2" />
       <Panel color="red" min="130px" id="3" />
     </PanelGroup>
