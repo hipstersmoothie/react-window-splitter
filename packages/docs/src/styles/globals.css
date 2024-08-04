@@ -20,6 +20,10 @@ body {
   color: rgb(var(--foreground-rgb));
 }
 
+pre {
+  max-width: 100%;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
