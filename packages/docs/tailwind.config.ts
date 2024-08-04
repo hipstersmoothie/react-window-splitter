@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssRadixColors from "tailwindcss-radix-colors";
 
 const config: Config = {
   content: [
@@ -15,6 +16,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssRadixColors],
 };
 export default config;

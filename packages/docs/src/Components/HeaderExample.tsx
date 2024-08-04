@@ -13,21 +13,6 @@ function PanelGroup(props: PanelGroupProps) {
   return <PanelGroupPrimitive {...props} className={`${props.className}`} />;
 }
 
-const borders = {
-  green: "border-green-500",
-  red: "border-red-500",
-};
-
-const backgrounds = {
-  green: "bg-green-200 bg-opacity-60 text-green-800",
-  red: "bg-red-200 bg-opacity-60 text-red-800",
-};
-
-const solidBackgrounds = {
-  green: "bg-green-500 text-white",
-  red: "bg-red-500 text-white",
-};
-
 function Panel({ color, ...props }: PanelProps & { color: "green" | "red" }) {
   const ref = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<
@@ -59,19 +44,30 @@ function Panel({ color, ...props }: PanelProps & { color: "green" | "red" }) {
     };
   }, [props.id]);
 
+  let wrapperClassName = "";
+  let lineClassName = "";
+
+  if (color === "green") {
+    wrapperClassName =
+      "bg-green-3 dark:bg-greendark-3 border-green-9 dark:border-greendark-9 text-green-normal";
+    lineClassName = "bg-greena-7 dark:bg-greenadark-7";
+  } else if (color === "red") {
+    wrapperClassName =
+      "bg-red-3 dark:bg-reddark-3 border-red-9 dark:border-reddark-9 text-red-normal";
+    lineClassName = "bg-reda-7 dark:bg-redadark-7";
+  }
+
   return (
     <PanelPrimitive
       ref={ref}
       {...props}
-      className={` bg-gray-200 border-4 overflow-hidden ${borders[color]} ${backgrounds[color]} flex items-center justify-center text-gray-800`}
+      className={`border-4 overflow-hidden flex items-center justify-center ${wrapperClassName}`}
     >
       {dimensions && (
         <span className="flex items-center font-mono w-full">
-          <span className={`${solidBackgrounds[color]} h-0.5 mx-2 flex-1`} />
-          <span className={`${solidBackgrounds[color]} p-2`}>
-            {dimensions.width.toFixed(2)}px
-          </span>
-          <span className={`${solidBackgrounds[color]} h-0.5 mx-2 flex-1`} />
+          <span className={`${lineClassName} h-0.5 mx-2 flex-1`} />
+          <span className={`p-2`}>{dimensions.width.toFixed(2)}px</span>
+          <span className={`${lineClassName} h-0.5 mx-2 flex-1`} />
         </span>
       )}
     </PanelPrimitive>
@@ -88,7 +84,11 @@ function PanelResizer(props: any) {
       <div
         className="
           absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-8 rounded-full
-          bg-gray-300 group-hover:bg-gray-400 group-data-[state='dragging']:bg-blue-500
+          bg-gray-action border border-gray-normal 
+          group-data-[state='dragging']:bg-blue-6 group-data-[state='dragging']:border-blue-10
+          dark:group-data-[state='dragging']:bg-bluedark-6 dark:group-data-[state='dragging']:border-bluedark-10
+          group-focus:bg-blue-9 group-focus:border-blue-10
+          dark:group-focus:bg-bluedark-9 dark:group-focus:border-bluedark-10
         "
       />
     </PanelResizerPrimitive>
