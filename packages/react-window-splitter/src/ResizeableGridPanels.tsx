@@ -456,12 +456,17 @@ function sortWithOrder(items: Array<Item>) {
     }
   }
 
-  return items.sort((a, b) => {
-    const aOrder = a.order ?? defaultPlacement[a.id] ?? 0;
-    const bOrder = b.order ?? defaultPlacement[b.id] ?? 0;
+  const withoutOrder = items.filter((i) => i.order === undefined);
+  const sortedWithOrder = items
+    .filter((i) => i.order !== undefined)
+    .sort((a, b) => a.order! - b.order!);
 
-    return aOrder - bOrder;
-  });
+  for (const item of sortedWithOrder) {
+    // insert item at order index
+    withoutOrder.splice(item.order!, 0, item);
+  }
+
+  return withoutOrder;
 }
 
 /** Check if the panel has space available to add to */
@@ -1088,36 +1093,69 @@ const groupMachine = createMachine(
           });
         },
       }),
-      onRegisterDynamicPanel: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["registerDynamicPanel"]);
+      onRegisterDynamicPanel: assign({
+        items: ({ context, event }) => {
+          isEvent(event, ["registerDynamicPanel"]);
 
-        let currentUnit = "0px";
+          let currentUnit = "0px";
 
-        if (event.data.collapsible && event.data.collapsed) {
-          currentUnit = event.data.collapsedSize || "0px";
-        } else if (event.data.default) {
-          currentUnit = event.data.default;
-        } else if (event.data.min) {
-          currentUnit = event.data.min;
-        }
+          if (event.data.collapsible && event.data.collapsed) {
+            currentUnit = event.data.collapsedSize || "0px";
+          } else if (event.data.default) {
+            currentUnit = event.data.default;
+          } else if (event.data.min) {
+            currentUnit = event.data.min;
+          }
 
-        const currentValue = getUnitPixelValue(context, currentUnit as Unit);
-        const newItems = addDeDuplicatedItems(context.items, {
-          type: "panel",
-          ...event.data,
-          currentValue,
-        });
-        const newContext = { ...context, items: newItems };
-        const handle = getHandleForPanelId(newContext, event.data.id);
+          const currentValue = getUnitPixelValue(context, currentUnit as Unit);
+          const newItems = addDeDuplicatedItems(context.items, {
+            type: "panel",
+            ...event.data,
+            currentValue,
+          });
+          const itemIndex = newItems.findIndex(
+            (item) => item.id === event.data.id
+          );
+          const newContext = { ...context, items: newItems };
+          let leftToApply = currentValue;
 
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: handle.direction,
-            context: newContext,
-            handleId: handle.item.id,
-            delta: currentValue,
-          })
-        );
+          // TODO: could look in both directions
+          while (leftToApply > 0) {
+            debugger;
+            const panel = findPanelWithSpace(
+              newContext,
+              newItems,
+              itemIndex,
+              -1
+            );
+
+            if (!panel) {
+              break;
+            }
+
+            const panelIndex = newItems.findIndex(
+              (item) => item.id === panel.id
+            );
+
+            if (panelIndex === -1) {
+              break;
+            }
+
+            const newValue = clampUnit(
+              newContext,
+              panel,
+              (panel.currentValue as number) - leftToApply
+            );
+
+            leftToApply -= newValue;
+            newItems[panelIndex] = {
+              ...panel,
+              currentValue: newValue,
+            };
+          }
+
+          return newItems;
+        },
       }),
       assignPanelHandleData: assign({
         items: ({ context, event }) => {
@@ -1667,7 +1705,6 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     if (!hasRegistered.current && !hasMeasured) {
       hasRegistered.current = true;
 
-      console.log("PANEL", panelId, order);
       send({
         type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
         data: panelDataRef.current,
@@ -1676,7 +1713,6 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 
     React.useEffect(() => {
       if (hasMeasured && !hasRegistered.current) {
-        console.log("DYNAMIC PANEL", panelId, order);
         send({
           type: "registerDynamicPanel",
           data: panelDataRef.current,
@@ -1852,7 +1888,6 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     const hasRegistered = React.useRef(Boolean(handle));
 
     if (!hasRegistered.current && !hasMeasured) {
-      console.log("HANDLE", handleId, order);
       hasRegistered.current = true;
       send({
         type: "registerPanelHandle",
@@ -1863,7 +1898,6 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     // If we don't add the dynamic parts in an effect we get react errors
     useIsomorphicLayoutEffect(() => {
       if (hasMeasured && !hasRegistered.current) {
-        console.log("DYNAMIC HANDLE", handleId, order);
         send({
           type: "registerPanelHandle",
           data: { id: handleId, size, order },
@@ -1880,7 +1914,6 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
           return;
         }
 
-        console.log("REMOVE HANDLE", handleId, order);
         send({ type: "unregisterPanelHandle", id: handleId });
         hasRegistered.current = false;
       };

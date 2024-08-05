@@ -19,13 +19,13 @@ export default function Conditional() {
       <div className="my-6">
         <ConditionalExample />
       </div>
-      {/* <div className="my-6">
+      <div className="my-6">
         <CodeBlock
           source="../../../../examples/ConditionalExample.tsx"
           allowErrors={true}
           showToolbar={false}
         />
-      </div> */}
+      </div>
     </Wrapper>
   );
 }
