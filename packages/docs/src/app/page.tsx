@@ -2,6 +2,7 @@ import HeaderExample from "../Components/HeaderExample";
 import Link from "next/link";
 import { CodeBlock } from "mdxts/components";
 import { CopyPackageNameButton } from "../Components/CopyPackageNameButton";
+import { ButtonLink } from "../Components/Button";
 
 export default async function Home() {
   return (
@@ -30,12 +31,7 @@ export default async function Home() {
           showToolbar={false}
         />
 
-        <Link
-          href="docs/install"
-          className="bg-blue-solid border-blue-normal text-blue-1 dark:text-bluedark-1 rounded-lg px-3 py-1 text-lg"
-        >
-          Read the docs
-        </Link>
+        <ButtonLink href="docs/install">Read the docs</ButtonLink>
       </div>
     </main>
   );

@@ -98,6 +98,11 @@ interface RegisterPanelEvent {
   data: Omit<PanelData, "type" | "currentValue" | "defaultCollapsed">;
 }
 
+interface RegisterDynamicPanelEvent extends Omit<RegisterPanelEvent, "type"> {
+  /** Register a new panel with the state machine */
+  type: "registerDynamicPanel";
+}
+
 interface UnregisterPanelEvent {
   /** Remove a panel from the state machine */
   type: "unregisterPanel";
@@ -203,6 +208,7 @@ interface GroupMachineContextValue {
   items: Array<Item>;
   /** The available space in the group */
   size: number;
+  hasMeasured: boolean;
   /** The orientation of the grid */
   orientation: Orientation;
   /** How much the drag has overshot the handle */
@@ -214,6 +220,7 @@ interface GroupMachineContextValue {
 
 type GroupMachineEvent =
   | RegisterPanelEvent
+  | RegisterDynamicPanelEvent
   | UnregisterPanelEvent
   | RegisterPanelHandleEvent
   | UnregisterPanelHandleEvent
@@ -988,6 +995,7 @@ const groupMachine = createMachine(
     },
     context: ({ input }) => ({
       size: 0,
+      hasMeasured: false,
       items: [],
       orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
@@ -1017,6 +1025,9 @@ const groupMachine = createMachine(
     },
     on: {
       registerPanel: { actions: ["assignPanelData"] },
+      registerDynamicPanel: {
+        actions: ["prepare", "onRegisterDynamicPanel", "commit", "onAutosave"],
+      },
       unregisterPanel: {
         actions: ["prepare", "removeItem", "commit", "onAutosave"],
       },
@@ -1037,6 +1048,7 @@ const groupMachine = createMachine(
   {
     actions: {
       updateSize: assign({
+        hasMeasured: true,
         size: ({ context, event }) => {
           isEvent(event, ["setSize"]);
 
@@ -1075,6 +1087,37 @@ const groupMachine = createMachine(
             currentValue,
           });
         },
+      }),
+      onRegisterDynamicPanel: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["registerDynamicPanel"]);
+
+        let currentUnit = "0px";
+
+        if (event.data.collapsible && event.data.collapsed) {
+          currentUnit = event.data.collapsedSize || "0px";
+        } else if (event.data.default) {
+          currentUnit = event.data.default;
+        } else if (event.data.min) {
+          currentUnit = event.data.min;
+        }
+
+        const currentValue = getUnitPixelValue(context, currentUnit as Unit);
+        const newItems = addDeDuplicatedItems(context.items, {
+          type: "panel",
+          ...event.data,
+          currentValue,
+        });
+        const newContext = { ...context, items: newItems };
+        const handle = getHandleForPanelId(newContext, event.data.id);
+
+        enqueue.assign(
+          iterativelyUpdateLayout({
+            direction: handle.direction,
+            context: newContext,
+            handleId: handle.item.id,
+            delta: currentValue,
+          })
+        );
       }),
       assignPanelHandleData: assign({
         items: ({ context, event }) => {
@@ -1119,7 +1162,7 @@ const groupMachine = createMachine(
             const targetPanel = findPanelWithSpace(
               context,
               newItems,
-              itemIndex,
+              itemIndex + direction,
               direction
             );
 
@@ -1584,12 +1627,16 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         return undefined;
       }
     });
+    const hasMeasured = GroupMachineContext.useSelector(
+      ({ context }) => context.hasMeasured
+    );
     const hasRegistered = React.useRef(Boolean(panel));
 
     if (!hasRegistered.current) {
       hasRegistered.current = true;
+
       send({
-        type: "registerPanel",
+        type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
         data: {
           min: min || "0px",
           max: max || "100%",
@@ -1686,50 +1733,11 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       };
     });
 
-    // Dynamically added panels will render with the initial minmax/1fr
-    // This isn't desirable because the `prepare` logic will turn these into
-    // large spaces to account for the `fr`.
-    //
-    // To get around this we set the initial rendered size of the panel and recalculate
-    // the template. This was all drag interactions work as expected.
-    React.useEffect(() => {
-      if (typeof order === "undefined" || !innerRef.current) {
-        return;
-      }
-
-      const observer = new ResizeObserver((entries) => {
-        const entry = entries[0];
-
-        if (!entry) {
-          return;
-        }
-
-        const context = machineRef.getSnapshot().context;
-
-        send({
-          type: "setDynamicPanelInitialSize",
-          panelId,
-          size:
-            context.orientation === "horizontal"
-              ? entry.contentRect.width
-              : entry.contentRect.height,
-        });
-
-        // We only need to do it once
-        observer.disconnect();
-      });
-
-      observer.observe(innerRef.current);
-
-      return () => {
-        observer.disconnect();
-      };
-    }, [order, send, panelId, machineRef]);
-
     return (
       <div
         ref={ref}
         data-panel-id={panelId}
+        data-collapsed={collapsible && panel?.collapsed}
         {...props}
         style={{
           ...props.style,

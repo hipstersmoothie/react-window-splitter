@@ -2,7 +2,7 @@ import Link from "next/link";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { IconLink } from "../../Components/IconButton";
 import { Tooltip, TooltipTrigger } from "../../Components/Tooltip";
-import { allDocs } from "../data";
+import { SidebarGroup, SidebarItem } from "../../Components/Sidebar";
 
 function Header() {
   return (
@@ -33,45 +33,7 @@ function Header() {
   );
 }
 
-async function SidebarItem({
-  path,
-  children,
-}: {
-  path: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <li>
-      <Link
-        href={path}
-        className="h-10 flex items-center px-4 rounded-lg bg-gray-ghost"
-      >
-        {children}
-      </Link>
-    </li>
-  );
-}
-
-function SidebarGroup({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title?: React.ReactNode;
-}) {
-  return (
-    <div>
-      {title && (
-        <div className="text-gray-normal text-sm font-bold px-4 h-6 flex items-center">
-          {title}
-        </div>
-      )}
-      <ul className="flex flex-col gap-1">{children}</ul>
-    </div>
-  );
-}
-
-async function Sidebar() {
+async function Sidebar({}) {
   return (
     <div className="w-64 flex flex-col gap-4 py-2 px-2 flex-shrink-0">
       <SidebarGroup>
@@ -79,6 +41,7 @@ async function Sidebar() {
       </SidebarGroup>
       <SidebarGroup title="Examples">
         <SidebarItem path="/docs/examples/simple">Simple</SidebarItem>
+        <SidebarItem path="/docs/examples/collapsible">Collapsible</SidebarItem>
         <SidebarItem path="/docs/examples/nested">Nested</SidebarItem>
         <SidebarItem path="/docs/examples/conditional">
           Conditional Panels

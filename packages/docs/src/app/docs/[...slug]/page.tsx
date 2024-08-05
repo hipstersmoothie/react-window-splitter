@@ -1,27 +1,21 @@
 import { notFound } from "next/navigation";
 import { allDocs } from "../../data";
-import { promises as fs } from "fs";
-import { StyledMarkdown } from "../../../Components/Content";
+import { Wrapper } from "../../../Components/Content";
 
-export default async function DocsPage({
-  params,
-}: {
-  params: { slug: string[] };
-}) {
+type Props = { params: { slug: string[] } };
+
+export default async function Page({ params }: Props) {
   const doc = await allDocs.get(params.slug);
 
-  if (!doc) {
-    return notFound();
-  }
+  if (!doc) return notFound();
 
-  const page = await fs.readFile(
-    doc.sourcePath.replace("vscode://file/", "").replace(":0:0", ""),
-    "utf8"
-  );
+  const { Content } = doc;
+
+  if (!Content) return notFound();
 
   return (
-    <div>
-      <StyledMarkdown value={page} />
-    </div>
+    <Wrapper>
+      <Content />
+    </Wrapper>
   );
 }

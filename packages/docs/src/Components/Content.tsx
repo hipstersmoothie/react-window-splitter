@@ -1,4 +1,5 @@
 import { MDXContent, CodeBlock } from "mdxts/components";
+import Link, { LinkProps } from "next/link";
 
 export function TableHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -72,7 +73,7 @@ export function H1({ children }: { children: React.ReactNode }) {
 }
 
 export function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-2xl my-6">{children}</h2>;
+  return <h2 className="text-2xl mt-8 mb-6">{children}</h2>;
 }
 
 export function H3({ children }: { children: React.ReactNode }) {
@@ -91,10 +92,35 @@ export function ListItem({ children }: { children: React.ReactNode }) {
   return <li className="my-2">{children}</li>;
 }
 
-export function StyledMarkdown({ value }: { value: string }) {
+export function Wrapper({ children }: { children: React.ReactNode }) {
+  return <div className="max-w-3xl mx-auto px-8 pb-20">{children}</div>;
+}
+
+export function StyledLink({
+  children,
+  ...props
+}: LinkProps & React.HTMLProps<HTMLAnchorElement>) {
+  return (
+    <Link
+      {...props}
+      className="text-blue-9 dark:text-bluedark-9 cursor-pointer underline underline-offset-4 hover:underline-offset-1 hover:decoration-wavy"
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function StyledMarkdown({
+  value,
+  baseUrl,
+}: {
+  value: string;
+  baseUrl?: string;
+}) {
   return (
     <MDXContent
       value={value}
+      baseUrl={baseUrl}
       components={{
         h1: H1,
         h2: H2,

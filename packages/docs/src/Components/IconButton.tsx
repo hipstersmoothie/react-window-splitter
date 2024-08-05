@@ -1,10 +1,18 @@
 "use client";
 
-import { Link, LinkProps } from "react-aria-components";
+import { Button, ButtonProps, Link, LinkProps } from "react-aria-components";
 
-export function IconLink({ children, ...props }: LinkProps) {
+const DEFAULT_BUTTON_CLASSES = "bg-gray-ghost p-2 rounded";
+
+export function IconButton({ className, ...props }: ButtonProps) {
   return (
-    <Link className="bg-gray-ghost p-2 rounded" {...props}>
+    <Button className={`${DEFAULT_BUTTON_CLASSES} ${className}`} {...props} />
+  );
+}
+
+export function IconLink({ children, className, ...props }: LinkProps) {
+  return (
+    <Link className={`${DEFAULT_BUTTON_CLASSES} ${className}`} {...props}>
       {children}
     </Link>
   );

@@ -3,12 +3,18 @@ import {
   ColorfulPanelGroup,
   ColorfulPanelResizer,
 } from "../../../../Components/ColorfulPanels";
-import { H1, InlineCode, Paragraph } from "../../../../Components/Content";
+import {
+  H1,
+  H2,
+  InlineCode,
+  Paragraph,
+  Wrapper,
+} from "../../../../Components/Content";
 import { CodeBlock } from "mdxts/components";
 
 export default function Simple() {
   return (
-    <div>
+    <Wrapper>
       <H1>Simple</H1>
       <Paragraph>
         The most basic example of the window splitter presents just two panels.
@@ -18,13 +24,14 @@ export default function Simple() {
         <ColorfulPanelResizer id="2" />
         <ColorfulPanel color="red" min="130px" id="3" />
       </ColorfulPanelGroup>
-      <Paragraph>
+      <div className="my-6">
         <CodeBlock
           source="../../../../examples/HeaderExample.tsx"
           allowErrors={true}
           showToolbar={false}
         />
-      </Paragraph>
+      </div>
+      <H2>Vertical</H2>
       <Paragraph>
         You can also split the area vertically by using the{" "}
         <InlineCode>orientation</InlineCode> prop.
@@ -45,14 +52,14 @@ export default function Simple() {
           id="3"
         />
       </ColorfulPanelGroup>
-      <Paragraph>
+      <div className="my-6">
         <CodeBlock
           source="../../../../examples/VerticalExample.tsx"
           allowErrors={true}
           showToolbar={false}
           focusedLines="5"
         />
-      </Paragraph>
-    </div>
+      </div>
+    </Wrapper>
   );
 }

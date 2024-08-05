@@ -447,6 +447,33 @@ export function ConditionalPanel() {
         <StyledPanel min="100px">
           <div>2</div>
         </StyledPanel>
+        {isExpanded && (
+          <>
+            <StyledResizer order={4} />
+            <StyledPanel order={5} min="100px">
+              3<button onClick={() => setIsExpanded(false)}>Close</button>
+            </StyledPanel>
+          </>
+        )}
+      </StyledPanelGroup>
+      <button onClick={() => setIsExpanded(true)}>Expand</button>
+    </>
+  );
+}
+
+export function ConditionalPanelComplex() {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <>
+      <StyledPanelGroup>
+        <StyledPanel min="100px" collapsible={true} collapsedSize="60px">
+          <div>1</div>
+        </StyledPanel>
+        <StyledResizer />
+        <StyledPanel min="100px">
+          <div>2</div>
+        </StyledPanel>
         <StyledResizer />
         <StyledPanel min="100px">
           <div>3</div>

@@ -16,6 +16,8 @@ export function ColorfulPanelGroup(props: PanelGroupProps) {
 export function ColorfulPanel({
   color,
   displayDimensions = "width",
+  className,
+  children,
   ...props
 }: PanelProps & {
   color: "green" | "red";
@@ -68,23 +70,25 @@ export function ColorfulPanel({
     <PanelPrimitive
       ref={ref}
       {...props}
-      className={`border-4 overflow-hidden flex items-center justify-center ${wrapperClassName}`}
+      className={`border-4 overflow-hidden flex items-center justify-center ${wrapperClassName} ${className}`}
     >
-      {dimensions && (
-        <span className="flex items-center font-mono w-full">
-          <span className={`${lineClassName} h-0.5 mx-2 flex-1`} />
-          <span className={`p-2`}>
-            {(displayDimensions === "width"
-              ? dimensions.width
-              : displayDimensions === "height"
-                ? dimensions.height
-                : 0
-            ).toFixed(2)}
-            px
-          </span>
-          <span className={`${lineClassName} h-0.5 mx-2 flex-1`} />
-        </span>
-      )}
+      {children
+        ? children
+        : dimensions && (
+            <span className="flex items-center font-mono w-full mx-2">
+              <span className={`${lineClassName} h-0.5 flex-1`} />
+              <span className={`p-2`}>
+                {(displayDimensions === "width"
+                  ? dimensions.width
+                  : displayDimensions === "height"
+                    ? dimensions.height
+                    : 0
+                ).toFixed(2)}
+                px
+              </span>
+              <span className={`${lineClassName} h-0.5 flex-1`} />
+            </span>
+          )}
     </PanelPrimitive>
   );
 }
