@@ -1632,27 +1632,57 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     );
     const hasRegistered = React.useRef(Boolean(panel));
 
-    if (!hasRegistered.current) {
+    const panelDataRef = React.useRef({
+      min: min || "0px",
+      max: max || "100%",
+      id: panelId,
+      collapsed: collapsible
+        ? collapsed ?? defaultCollapsed ?? false
+        : undefined,
+      collapsible,
+      collapsedSize: collapsedSize ?? "0px",
+      onCollapseChange: onCollapseChangeRef,
+      collapseIsControlled: typeof collapsed !== "undefined",
+      sizeBeforeCollapse: undefined,
+      order,
+    });
+
+    React.useEffect(() => {
+      panelDataRef.current = {
+        min: min || "0px",
+        max: max || "100%",
+        id: panelId,
+        collapsed: collapsible
+          ? collapsed ?? defaultCollapsed ?? false
+          : undefined,
+        collapsible,
+        collapsedSize: collapsedSize ?? "0px",
+        onCollapseChange: onCollapseChangeRef,
+        collapseIsControlled: typeof collapsed !== "undefined",
+        sizeBeforeCollapse: undefined,
+        order,
+      };
+    });
+
+    if (!hasRegistered.current && !hasMeasured) {
       hasRegistered.current = true;
 
+      console.log("PANEL", panelId, order);
       send({
         type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
-        data: {
-          min: min || "0px",
-          max: max || "100%",
-          id: panelId,
-          collapsed: collapsible
-            ? collapsed ?? defaultCollapsed ?? false
-            : undefined,
-          collapsible,
-          collapsedSize: collapsedSize ?? "0px",
-          onCollapseChange: onCollapseChangeRef,
-          collapseIsControlled: typeof collapsed !== "undefined",
-          sizeBeforeCollapse: undefined,
-          order,
-        },
+        data: panelDataRef.current,
       });
     }
+
+    React.useEffect(() => {
+      if (hasMeasured && !hasRegistered.current) {
+        console.log("DYNAMIC PANEL", panelId, order);
+        send({
+          type: "registerDynamicPanel",
+          data: panelDataRef.current,
+        });
+      }
+    }, [hasMeasured]);
 
     React.useEffect(() => {
       return () => {
@@ -1787,6 +1817,9 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     const overshoot = GroupMachineContext.useSelector(
       (state) => state.context.dragOvershoot
     );
+    const hasMeasured = GroupMachineContext.useSelector(
+      ({ context }) => context.hasMeasured
+    );
     const handle = GroupMachineContext.useSelector(({ context }) => {
       try {
         return getHandleWithId(context, handleId);
@@ -1818,13 +1851,25 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
 
     const hasRegistered = React.useRef(Boolean(handle));
 
-    if (!hasRegistered.current) {
+    if (!hasRegistered.current && !hasMeasured) {
+      console.log("HANDLE", handleId, order);
       hasRegistered.current = true;
       send({
         type: "registerPanelHandle",
         data: { id: handleId, size, order },
       });
     }
+
+    // If we don't add the dynamic parts in an effect we get react errors
+    useIsomorphicLayoutEffect(() => {
+      if (hasMeasured && !hasRegistered.current) {
+        console.log("DYNAMIC HANDLE", handleId, order);
+        send({
+          type: "registerPanelHandle",
+          data: { id: handleId, size, order },
+        });
+      }
+    }, [handleId, size, order, send, hasMeasured]);
 
     React.useEffect(() => {
       return () => {
@@ -1835,6 +1880,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
           return;
         }
 
+        console.log("REMOVE HANDLE", handleId, order);
         send({ type: "unregisterPanelHandle", id: handleId });
         hasRegistered.current = false;
       };
