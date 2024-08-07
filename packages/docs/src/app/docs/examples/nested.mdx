@@ -1,0 +1,19 @@
+import { CodeBlock } from "mdxts/components";
+import { NestedExample } from "../../../examples/NestedExampleVisual.tsx";
+
+# Nested
+
+You can nest panels inside of each other to create complex layouts.
+
+<div className="my-6">  
+  <NestedExample />
+</div>
+
+
+<div className="my-6">
+  <CodeBlock
+    source="../../../examples/NestedExample.tsx"
+    allowErrors={true}
+    showToolbar={false}
+  />
+</div>

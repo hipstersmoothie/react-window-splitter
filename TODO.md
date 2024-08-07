@@ -1,5 +1,12 @@
 # TODO
 
 - [ ] Docs
+  - [ ] Imperative Panels
+  - [ ] Persistance
+  - [ ] Server Side Rendering
+  - [ ] Prior Art
 - [ ] [Tests](https://github.com/kolodny/safetest)
-- [ ] Conditional Panels Example jumping bug
+- [ ] Bugs
+  - [ ] Conditional Panels Example jumping
+  - [ ] Nested Panels Example jumping
+  - [ ] Conditional Panels Example empty space

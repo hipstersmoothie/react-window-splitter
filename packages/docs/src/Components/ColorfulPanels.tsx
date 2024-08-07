@@ -21,7 +21,7 @@ export function ColorfulPanel({
   children,
   ...props
 }: PanelProps & {
-  color: "green" | "red";
+  color?: "green" | "red" | "pink" | "blue" | "orange";
   displayDimensions?: "width" | "height" | "both";
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -59,19 +59,31 @@ export function ColorfulPanel({
 
   if (color === "green") {
     wrapperClassName =
-      "bg-green-3 dark:bg-greendark-3 border-green-9 dark:border-greendark-9 text-green-normal";
+      "border-4 bg-green-3 dark:bg-greendark-3 border-green-9 dark:border-greendark-9 text-green-normal";
     lineClassName = "bg-greena-7 dark:bg-greenadark-7";
   } else if (color === "red") {
     wrapperClassName =
-      "bg-red-3 dark:bg-reddark-3 border-red-9 dark:border-reddark-9 text-red-normal";
+      "border-4 bg-red-3 dark:bg-reddark-3 border-red-9 dark:border-reddark-9 text-red-normal";
     lineClassName = "bg-reda-7 dark:bg-redadark-7";
+  } else if (color === "pink") {
+    wrapperClassName =
+      "border-4 bg-pink-3 dark:bg-pinkdark-3 border-pink-9 dark:border-pinkdark-9 text-pink-normal";
+    lineClassName = "bg-pinka-7 dark:bg-pinkadark-7";
+  } else if (color === "blue") {
+    wrapperClassName =
+      "border-4 bg-blue-3 dark:bg-bluedark-3 border-blue-9 dark:border-bluedark-9 text-blue-normal";
+    lineClassName = "bg-bluea-7 dark:bg-blueadark-7";
+  } else if (color === "orange") {
+    wrapperClassName =
+      "border-4 bg-orange-3 dark:bg-orangedark-3 border-orange-9 dark:border-orangedark-9 text-orange-normal";
+    lineClassName = "bg-orangea-7 dark:bg-orangeadark-7";
   }
 
   return (
     <PanelPrimitive
       ref={ref}
       {...props}
-      className={`border-4 overflow-hidden flex items-center justify-center ${wrapperClassName} ${className}`}
+      className={`overflow-hidden flex items-center justify-center ${wrapperClassName} ${className}`}
     >
       {children
         ? children
