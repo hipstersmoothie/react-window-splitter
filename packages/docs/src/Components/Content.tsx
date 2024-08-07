@@ -110,6 +110,18 @@ export function StyledLink({
   );
 }
 
+export const components: React.ComponentProps<typeof MDXContent>["components"] =
+  {
+    h1: H1,
+    h2: H2,
+    h3: H3,
+    p: Paragraph,
+    ul: UnorderedList,
+    li: ListItem,
+    code: InlineCode,
+    a: StyledLink,
+  };
+
 export function StyledMarkdown({
   value,
   baseUrl,
@@ -117,19 +129,5 @@ export function StyledMarkdown({
   value: string;
   baseUrl?: string;
 }) {
-  return (
-    <MDXContent
-      value={value}
-      baseUrl={baseUrl}
-      components={{
-        h1: H1,
-        h2: H2,
-        h3: H3,
-        p: Paragraph,
-        ul: UnorderedList,
-        li: ListItem,
-        code: InlineCode,
-      }}
-    />
-  );
+  return <MDXContent value={value} baseUrl={baseUrl} components={components} />;
 }

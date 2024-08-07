@@ -12,7 +12,6 @@ export function SidebarItem({
 }) {
   const pathname = usePathname();
 
-  console.log({ pathname, path });
   return (
     <li>
       <Link

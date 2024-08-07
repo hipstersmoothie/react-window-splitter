@@ -5,10 +5,10 @@ import {
   ColorfulPanel,
   ColorfulPanelGroup,
   ColorfulPanelResizer,
-} from "../../../../Components/ColorfulPanels";
-import { IconButton } from "../../../../Components/IconButton";
+} from "../Components/ColorfulPanels";
+import { IconButton } from "../Components/IconButton";
 import { Cross1Icon } from "@radix-ui/react-icons";
-import { Button } from "../../../../Components/Button";
+import { Button } from "../Components/Button";
 
 export function ConditionalExample() {
   const [isThirdPanelRendered, setIsThirdPanelRendered] = useState(false);

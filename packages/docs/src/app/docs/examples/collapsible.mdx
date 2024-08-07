@@ -1,0 +1,70 @@
+import { CodeBlock } from "mdxts/components";
+
+import {
+  ColorfulPanel,
+  ColorfulPanelGroup,
+  ColorfulPanelResizer,
+} from "../../../Components/ColorfulPanels";
+
+# Collapsible
+
+You can mark a panel as collapsible by using the `collapsible` prop.
+By default the panel will collapse to `0px` when collapsed.
+You can control this by using the `collapsedSize` prop.
+
+<ColorfulPanelGroup style={{ height: 200 }}>
+  <ColorfulPanel
+    id="1"
+    color="green"
+    collapsible={true}
+    collapsedSize="100px"
+    min="150px"
+    max="400px"
+    className="[&[data-collapsed='true']]:bg-purple-ui [&[data-collapsed='true']]:border-purple-9 dark:[&[data-collapsed='true']]:border-purpledark-9"
+  />
+  <ColorfulPanelResizer id="2" />
+  <ColorfulPanel color="red" min="130px" id="3" />
+</ColorfulPanelGroup>
+
+<div className="my-6">
+  <CodeBlock
+    source="../../../examples/CollapsibleExample.tsx"
+    allowErrors={true}
+    showToolbar={false}
+  />
+</div>
+
+## Default Collapsed
+
+If you want the panel to start collapsed by default you can use the `defaultCollapsed` prop.
+
+<ColorfulPanelGroup style={{ height: 200 }}>
+  <ColorfulPanel
+    id="1"
+    color="green"
+    collapsible={true}
+    defaultCollapsed={true}
+    collapsedSize="100px"
+    min="130px"
+    max="400px"
+    className="[&[data-collapsed='true']]:bg-purple-ui [&[data-collapsed='true']]:border-purple-9 dark:[&[data-collapsed='true']]:border-purpledark-9"
+  />
+  <ColorfulPanelResizer id="2" />
+  <ColorfulPanel color="red" min="130px" id="3" />
+</ColorfulPanelGroup>
+
+## Controlled
+
+If you want to control the collapsed state of the panel you can 
+use the [imperative API](/docs/examples/imperative) or you can 
+have full control over the collapsed state by using the `collapsed` 
+and `onCollapseChange` props.
+
+
+<div className="my-6">
+  <CodeBlock
+    source="../../../examples/CollapsibleControlledExample.tsx"
+    allowErrors={true}
+    showToolbar={false}
+  />
+</div>

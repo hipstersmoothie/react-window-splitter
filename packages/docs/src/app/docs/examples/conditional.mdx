@@ -1,0 +1,18 @@
+import { CodeBlock } from "mdxts/components";
+import { ConditionalExample } from "../../../examples/ConditionalExampleVisual.tsx";
+
+# Conditional Panels
+
+To conditionally render a panel you must provide the `id` prop to all of the panels in the group.
+
+<div className="my-6">
+  <ConditionalExample />
+</div>
+
+<div className="my-6">
+  <CodeBlock
+    source="../../../examples/ConditionalExample.tsx"
+    allowErrors={true}
+    showToolbar={false}
+  />
+</div>
