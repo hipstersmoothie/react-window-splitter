@@ -39,23 +39,23 @@
       "**/*stories.*"
     ],
     "exports": {
-      ".": "./src/ResizeableGridPanels.tsx"
+      ".": "./src/ReactWindowSplitter.tsx"
     }
   },
   "type": "module",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/ResizeableGridPanels.d.ts",
-        "default": "./dist/esm/ResizeableGridPanels.js"
+        "types": "./dist/esm/ReactWindowSplitter.d.ts",
+        "default": "./dist/esm/ReactWindowSplitter.js"
       },
       "require": {
-        "types": "./dist/commonjs/ResizeableGridPanels.d.ts",
-        "default": "./dist/commonjs/ResizeableGridPanels.js"
+        "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
+        "default": "./dist/commonjs/ReactWindowSplitter.js"
       }
     }
   },
-  "main": "./dist/commonjs/ResizeableGridPanels.js",
-  "types": "./dist/commonjs/ResizeableGridPanels.d.ts",
-  "module": "./dist/esm/ResizeableGridPanels.js"
+  "main": "./dist/commonjs/ReactWindowSplitter.js",
+  "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
+  "module": "./dist/esm/ReactWindowSplitter.js"
 }
