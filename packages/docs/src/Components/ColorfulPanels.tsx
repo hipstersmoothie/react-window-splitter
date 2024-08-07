@@ -7,6 +7,7 @@ import {
   Panel as PanelPrimitive,
   PanelProps,
   PanelResizer as PanelResizerPrimitive,
+  PanelResizerProps,
 } from "react-window-splitter";
 
 export function ColorfulPanelGroup(props: PanelGroupProps) {
@@ -93,7 +94,7 @@ export function ColorfulPanel({
   );
 }
 
-export function ColorfulPanelResizer(props: any) {
+export function ColorfulPanelResizer(props: PanelResizerProps) {
   return (
     <PanelResizerPrimitive
       {...props}

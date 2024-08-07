@@ -12,9 +12,8 @@ export default function Conditional() {
     <Wrapper>
       <H1>Conditional Panels</H1>
       <Paragraph>
-        To conditionally render a panel you will need to provide a little more
-        information to the panel. You can use the <InlineCode>order</InlineCode>{" "}
-        prop to control the order of the panel once it's rendered.
+        To conditionally render a panel you must provide the{" "}
+        <InlineCode>id</InlineCode> prop to all of the panels in the group.
       </Paragraph>
       <div className="my-6">
         <ConditionalExample />

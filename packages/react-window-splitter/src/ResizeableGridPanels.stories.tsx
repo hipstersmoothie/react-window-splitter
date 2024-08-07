@@ -454,8 +454,8 @@ export function ConditionalPanel() {
         </StyledPanel>
         {isExpanded && (
           <>
-            <StyledResizer id="handle-2" order={4} />
-            <StyledPanel id="panel-3" order={5} min="100px">
+            <StyledResizer id="handle-2" />
+            <StyledPanel id="panel-3" min="100px">
               3<button onClick={() => setIsExpanded(false)}>Close</button>
             </StyledPanel>
           </>
@@ -490,8 +490,8 @@ export function ConditionalPanelComplex() {
         </StyledPanel>
         {isExpanded && (
           <>
-            <StyledResizer id="handle-3" order={5} />
-            <StyledPanel id="panel-4" order={6} min="100px">
+            <StyledResizer id="handle-3" />
+            <StyledPanel id="panel-4" min="100px">
               expanded
               <button onClick={() => setIsExpanded(false)}>Close</button>
             </StyledPanel>

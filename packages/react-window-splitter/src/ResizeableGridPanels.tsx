@@ -1428,6 +1428,7 @@ function useGroupItem<T extends Item>(
   const initialMap = React.useContext(InitialMapContext);
   const generatedId = useId();
   const id = itemArg.id || generatedId;
+  const { index } = useIndex()!;
   const item = { ...itemArg, id } as T;
 
   if (isPrerender) {
@@ -1451,9 +1452,15 @@ function useGroupItem<T extends Item>(
         );
 
         if (isPanelData(itemArg)) {
-          send({ type: "registerDynamicPanel", data: itemArg });
+          send({
+            type: "registerDynamicPanel",
+            data: { ...itemArg, order: index },
+          });
         } else if (isPanelHandle(itemArg)) {
-          send({ type: "registerPanelHandle", data: itemArg });
+          send({
+            type: "registerPanelHandle",
+            data: { ...itemArg, order: index },
+          });
         }
       } else {
         // TODO
@@ -1482,6 +1489,14 @@ function useGroupItem<T extends Item>(
   }
 }
 
+function flattenChildren(children: React.ReactNode[]): React.ReactNode[] {
+  return children.flatMap((child) =>
+    React.isValidElement(child) && child.type === React.Fragment
+      ? flattenChildren(child.props.children)
+      : child
+  );
+}
+
 /** A group of panels that has constraints and a user can resize */
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
   function PanelGroup(
@@ -1496,7 +1511,9 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
   ) {
     const [hasPreRendered, setHasPreRendered] = useState(false);
     const initialMap = useRef<Record<string, Item>>({});
-    const indexedChildren = useIndexedChildren(children);
+    const indexedChildren = useIndexedChildren(
+      flattenChildren(React.Children.toArray(children))
+    );
 
     return (
       <InitialMapContext.Provider value={initialMap.current}>
@@ -1732,8 +1749,7 @@ export interface PanelHandle {
 
 export interface PanelProps
   extends Constraints,
-    React.HTMLAttributes<HTMLDivElement>,
-    Pick<PanelData, "order"> {
+    React.HTMLAttributes<HTMLDivElement> {
   /**
    * __CONTROLLED COMPONENT__
    *
@@ -1770,7 +1786,6 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       collapsedSize,
       collapsed,
       onCollapseChange,
-      order,
     } = props;
     const isPrerender = React.useContext(PreRenderContext);
     const onCollapseChangeRef = React.useRef(onCollapseChange);
@@ -1787,7 +1802,6 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         onCollapseChange: onCollapseChangeRef,
         collapseIsControlled: typeof collapsed !== "undefined",
         sizeBeforeCollapse: undefined,
-        order,
         id: props.id,
       };
 
@@ -1817,7 +1831,6 @@ const PanelVisible = React.forwardRef<
     collapsed,
     onCollapseChange,
     handle,
-    order,
     panelId,
     ...props
   },
@@ -1923,7 +1936,7 @@ const PanelVisible = React.forwardRef<
 
 export interface PanelResizerProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Partial<Pick<PanelHandleData, "size" | "order">> {
+    Partial<Pick<PanelHandleData, "size">> {
   /** If the handle is disabled */
   disabled?: boolean;
 }
@@ -1931,16 +1944,15 @@ export interface PanelResizerProps
 /** A resize handle to place between panels. */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   function PanelResizer(props, ref) {
-    const { size = "0px", order } = props;
+    const { size = "0px" } = props;
     const isPrerender = React.useContext(PreRenderContext);
     const data = React.useMemo(
       () => ({
         type: "handle" as const,
         size,
-        order,
         id: props.id,
       }),
-      [size, order, props.id]
+      [size, props.id]
     );
 
     const { id: handleId } = useGroupItem(data);
@@ -1957,7 +1969,7 @@ const PanelResizerVisible = React.forwardRef<
   HTMLDivElement,
   PanelResizerProps & { handleId: string }
 >(function PanelResizerVisible(
-  { size = "0px", order, disabled, handleId, ...props },
+  { size = "0px", disabled, handleId, ...props },
   ref
 ) {
   const unit = parseUnit(size);

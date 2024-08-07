@@ -14,17 +14,17 @@ export function ConditionalExample() {
       </button>
 
       <PanelGroup>
-        <Panel min="100px" order={1}>
+        <Panel id="panel-1" min="100px">
           1
         </Panel>
-        <PanelResizer order={2} />
-        <Panel min="100px" order={3}>
+        <PanelResizer id="resizer-1" />
+        <Panel id="panel-2" min="100px">
           2
         </Panel>
         {isThirdPanelRendered && (
           <>
-            <PanelResizer order={4} />
-            <Panel order={5} min="100px">
+            <PanelResizer id="resizer-2" />
+            <Panel id="panel-3" min="100px">
               <button onClick={closePanel}>close</button>
             </Panel>
           </>

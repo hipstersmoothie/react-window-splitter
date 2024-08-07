@@ -22,17 +22,17 @@ export function ConditionalExample() {
         {isThirdPanelRendered ? "Hide" : "Show"} extra panel
       </Button>
       <ColorfulPanelGroup style={{ height: 200 }}>
-        <ColorfulPanel color="green" min="100px" order={1}>
+        <ColorfulPanel id="panel-1" color="green" min="100px">
           1
         </ColorfulPanel>
-        <ColorfulPanelResizer order={2} />
-        <ColorfulPanel color="green" min="100px" order={3}>
+        <ColorfulPanelResizer id="resizer-1" />
+        <ColorfulPanel id="panel-2" color="green" min="100px">
           2
         </ColorfulPanel>
         {isThirdPanelRendered && (
           <>
-            <ColorfulPanelResizer order={4} />
-            <ColorfulPanel color="red" order={5} min="100px">
+            <ColorfulPanelResizer id="resizer-2" />
+            <ColorfulPanel id="panel-3" color="red" min="100px">
               <IconButton onPress={() => setIsThirdPanelRendered(false)}>
                 <Cross1Icon />
               </IconButton>
