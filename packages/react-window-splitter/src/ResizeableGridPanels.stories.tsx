@@ -58,11 +58,11 @@ function StyledResizer(props: PanelResizerProps) {
 export function Simple() {
   return (
     <StyledPanelGroup>
-      <StyledPanel id="1">
+      <StyledPanel>
         <div>Panel 1</div>
       </StyledPanel>
-      <StyledResizer id="2" />
-      <StyledPanel id="3">
+      <StyledResizer />
+      <StyledPanel>
         <div>Panel 2</div>
       </StyledPanel>
     </StyledPanelGroup>
@@ -438,26 +438,31 @@ export function ConditionalPanel() {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
-    <>
+    <React.StrictMode>
       <StyledPanelGroup>
-        <StyledPanel min="100px" collapsible={true} collapsedSize="60px">
+        <StyledPanel
+          id="panel-1"
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
           <div>1</div>
         </StyledPanel>
-        <StyledResizer />
-        <StyledPanel min="100px">
+        <StyledResizer id="handle-1" />
+        <StyledPanel id="panel-2" min="100px">
           <div>2</div>
         </StyledPanel>
         {isExpanded && (
           <>
-            <StyledResizer order={4} />
-            <StyledPanel order={5} min="100px">
+            <StyledResizer id="handle-2" order={4} />
+            <StyledPanel id="panel-3" order={5} min="100px">
               3<button onClick={() => setIsExpanded(false)}>Close</button>
             </StyledPanel>
           </>
         )}
       </StyledPanelGroup>
       <button onClick={() => setIsExpanded(true)}>Expand</button>
-    </>
+    </React.StrictMode>
   );
 }
 
@@ -465,39 +470,45 @@ export function ConditionalPanelComplex() {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
-    <>
+    <React.StrictMode>
       <StyledPanelGroup>
-        <StyledPanel min="100px" collapsible={true} collapsedSize="60px">
+        <StyledPanel
+          id="panel-1"
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
           <div>1</div>
         </StyledPanel>
-        <StyledResizer />
-        <StyledPanel min="100px">
+        <StyledResizer id="handle-1" />
+        <StyledPanel id="panel-2" min="100px">
           <div>2</div>
         </StyledPanel>
-        <StyledResizer />
-        <StyledPanel min="100px">
+        <StyledResizer id="handle-2" />
+        <StyledPanel id="panel-3" min="100px">
           <div>3</div>
         </StyledPanel>
         {isExpanded && (
           <>
-            <StyledResizer order={5} />
-            <StyledPanel order={6} min="100px">
+            <StyledResizer id="handle-3" order={5} />
+            <StyledPanel id="panel-4" order={6} min="100px">
               expanded
               <button onClick={() => setIsExpanded(false)}>Close</button>
             </StyledPanel>
           </>
         )}
-        <StyledResizer />
+        <StyledResizer id="handle-4" />
         <StyledPanel
           min="200px"
           collapsible={true}
           collapsedSize="60px"
           defaultCollapsed={true}
+          id="panel-5"
         >
           <div>4</div>
         </StyledPanel>
       </StyledPanelGroup>
       <button onClick={() => setIsExpanded(true)}>Expand</button>
-    </>
+    </React.StrictMode>
   );
 }

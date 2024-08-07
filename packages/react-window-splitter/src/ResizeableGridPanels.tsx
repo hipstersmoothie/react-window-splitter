@@ -216,7 +216,6 @@ interface GroupMachineContextValue {
   items: Array<Item>;
   /** The available space in the group */
   size: number;
-  hasMeasured: boolean;
   /** The orientation of the grid */
   orientation: Orientation;
   /** How much the drag has overshot the handle */
@@ -263,13 +262,23 @@ function isEvent<T extends GroupMachineEvent["type"]>(
 }
 
 /** Determine if an item is a panel */
-function isPanelData(value: Item): value is PanelData {
-  return value.type === "panel";
+function isPanelData(value: unknown): value is PanelData {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "type" in value &&
+      value.type === "panel"
+  );
 }
 
 /** Determine if an item is a panel handle */
-function isPanelHandle(value: Item): value is PanelHandleData {
-  return value.type === "handle";
+function isPanelHandle(value: unknown): value is PanelHandleData {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "type" in value &&
+      value.type === "handle"
+  );
 }
 
 /** Parse the percentage value applied during the "commit" phase */
@@ -422,9 +431,7 @@ function getHandleForPanelId(
 ) {
   const panelIndex = context.items.findIndex((item) => item.id === panelId);
 
-  if (panelIndex === -1) {
-    throw new Error(`Expected panel before: ${panelId}`);
-  }
+  invariant(panelIndex !== -1, `Expected panel before: ${panelId}`);
 
   let item = context.items[panelIndex + 1];
 
@@ -479,11 +486,10 @@ function sortWithOrder(items: Array<Item>) {
 
 /** Check if the panel has space available to add to */
 function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
-  if (typeof item.currentValue === "string") {
-    throw new Error(
-      `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
-    );
-  }
+  invariant(
+    typeof item.currentValue === "number",
+    `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
+  );
 
   if (item.collapsible && !item.collapsed) {
     return true;
@@ -571,7 +577,7 @@ function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
   return sortWithOrder([...restItems, newItem]);
 }
 
-function getInitialSize(data: RegisterPanelEvent["data"]) {
+function getInitialSize(data: Omit<RegisterPanelEvent["data"], "id">) {
   let currentValue = "1fr";
 
   if (data.collapsible && data.collapsed) {
@@ -776,15 +782,14 @@ function updateLayout(
     };
   }
 
-  if (!isPanelData(panelBefore)) {
-    throw new Error(`Expected panel before: ${handle.id}`);
-  }
+  invariant(isPanelData(panelBefore), `Expected panel before: ${handle.id}`);
 
   const panelAfter = newItems[handleIndex - moveDirection];
 
-  if (!panelAfter || !isPanelData(panelAfter)) {
-    throw new Error(`Expected panel after: ${handle.id}`);
-  }
+  invariant(
+    panelAfter && isPanelData(panelAfter),
+    `Expected panel after: ${handle.id}`
+  );
 
   const newDragOvershoot = context.dragOvershoot + moveAmount;
 
@@ -1027,7 +1032,6 @@ const groupMachine = createMachine(
     },
     context: ({ input }) => ({
       size: 0,
-      hasMeasured: false,
       items: input.initialItems || [],
       orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
@@ -1080,7 +1084,6 @@ const groupMachine = createMachine(
   {
     actions: {
       updateSize: assign({
-        hasMeasured: true,
         size: ({ context, event }) => {
           isEvent(event, ["setSize"]);
 
@@ -1134,7 +1137,6 @@ const groupMachine = createMachine(
 
           // TODO: could look in both directions
           while (leftToApply > 0) {
-            debugger;
             const panel = findPanelWithSpace(
               newContext,
               newItems,
@@ -1419,15 +1421,64 @@ function PrerenderTree({
   ) : null;
 }
 
-function useGroupItem(item: Item) {
+function useGroupItem<T extends Item>(
+  itemArg: Omit<T, "id"> & { id?: string }
+): T {
   const isPrerender = React.useContext(PreRenderContext);
-  // const { index } = useIndex()!;
   const initialMap = React.useContext(InitialMapContext);
+  const generatedId = useId();
+  const id = itemArg.id || generatedId;
+  const item = { ...itemArg, id } as T;
 
   if (isPrerender) {
-    console.log("REGISTERING", item);
-    initialMap[item.id] = item;
-    console.log("REGISTERED", initialMap);
+    initialMap[id] = item;
+    return item;
+  } else {
+    const currentItem = GroupMachineContext.useSelector(({ context }) =>
+      context.items.find((i) => i.id === id)
+    ) as T;
+    const { send, ref: machineRef } = GroupMachineContext.useActorRef();
+
+    React.useEffect(() => {
+      const item = machineRef
+        .getSnapshot()
+        .context.items.find((i) => i.id === itemArg.id);
+
+      if (!item) {
+        invariant(
+          itemArg.id,
+          "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well."
+        );
+
+        if (isPanelData(itemArg)) {
+          send({ type: "registerDynamicPanel", data: itemArg });
+        } else if (isPanelHandle(itemArg)) {
+          send({ type: "registerPanelHandle", data: itemArg });
+        }
+      } else {
+        // TODO
+      }
+
+      const id = item?.id || itemArg.id;
+
+      return () => {
+        const el = document.querySelector(
+          `[data-splitter-id="${id}"]`
+        ) as HTMLElement;
+
+        if (el || !id) {
+          return;
+        }
+
+        if (isPanelData(itemArg)) {
+          send({ type: "unregisterPanel", id });
+        } else if (isPanelHandle(itemArg)) {
+          send({ type: "unregisterPanelHandle", id });
+        }
+      };
+    }, [itemArg]);
+
+    return currentItem || item;
   }
 }
 
@@ -1722,205 +1773,153 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       order,
     } = props;
     const isPrerender = React.useContext(PreRenderContext);
-    const { indexPathString: panelId } = useIndex()!;
     const onCollapseChangeRef = React.useRef(onCollapseChange);
-    const data = {
-      min: min || "0px",
-      max: max || "100%",
-      id: panelId,
-      collapsed: collapsible
-        ? collapsed ?? defaultCollapsed ?? false
-        : undefined,
-      collapsible,
-      collapsedSize: collapsedSize ?? "0px",
-      onCollapseChange: onCollapseChangeRef,
-      collapseIsControlled: typeof collapsed !== "undefined",
-      sizeBeforeCollapse: undefined,
-      order,
-    };
-    const panelDataRef = React.useRef({
-      type: "panel" as const,
-      ...data,
-      currentValue: getInitialSize(data),
-    });
+    const panelDataRef = React.useMemo(() => {
+      const data = {
+        type: "panel" as const,
+        min: min || "0px",
+        max: max || "100%",
+        collapsed: collapsible
+          ? collapsed ?? defaultCollapsed ?? false
+          : undefined,
+        collapsible,
+        collapsedSize: collapsedSize ?? "0px",
+        onCollapseChange: onCollapseChangeRef,
+        collapseIsControlled: typeof collapsed !== "undefined",
+        sizeBeforeCollapse: undefined,
+        order,
+        id: props.id,
+      };
 
-    React.useEffect(() => {
-      // const newData = {
-      //   min: min || "0px",
-      //   max: max || "100%",
-      //   id: panelId,
-      //   collapsed: collapsible
-      //     ? collapsed ?? defaultCollapsed ?? false
-      //     : undefined,
-      //   collapsible,
-      //   collapsedSize: collapsedSize ?? "0px",
-      //   onCollapseChange: onCollapseChangeRef,
-      //   collapseIsControlled: typeof collapsed !== "undefined",
-      //   sizeBeforeCollapse: undefined,
-      //   order,
-      // };
-      // panelDataRef.current = {
-      //   ...newData,
-      //   currentValue: getInitialSize(newData),
-      // };
-    });
+      return { ...data, currentValue: getInitialSize(data) };
+    }, []);
 
-    useGroupItem(panelDataRef.current);
+    const { id: panelId } = useGroupItem(panelDataRef);
 
     if (isPrerender) {
       return null;
     }
 
-    return <PanelVisible ref={outerRef} {...props} />;
+    return <PanelVisible ref={outerRef} {...props} panelId={panelId} />;
   }
 );
 
-const PanelVisible = React.forwardRef<HTMLDivElement, PanelProps>(
-  function PanelVisible(
-    {
-      min,
-      max,
-      defaultCollapsed,
-      collapsible = false,
-      collapsedSize,
-      collapsed,
-      onCollapseChange,
-      handle,
-      order,
-      ...props
-    },
-    outerRef
-  ) {
-    const { indexPathString: panelId } = useIndex()!;
-    const isPrerender = React.useContext(PreRenderContext);
-    const innerRef = React.useRef<HTMLDivElement>(null);
-    const ref = useComposedRefs(outerRef, innerRef);
-    const { send, ref: machineRef } = GroupMachineContext.useActorRef();
-    const panel = GroupMachineContext.useSelector(({ context }) => {
-      try {
-        return getPanelWithId(context, panelId);
-      } catch (e) {
-        return undefined;
-      }
-    });
-
-    if (isPrerender) {
-      return null;
+const PanelVisible = React.forwardRef<
+  HTMLDivElement,
+  PanelProps & { panelId: string }
+>(function PanelVisible(
+  {
+    min,
+    max,
+    defaultCollapsed,
+    collapsible = false,
+    collapsedSize,
+    collapsed,
+    onCollapseChange,
+    handle,
+    order,
+    panelId,
+    ...props
+  },
+  outerRef
+) {
+  const isPrerender = React.useContext(PreRenderContext);
+  const innerRef = React.useRef<HTMLDivElement>(null);
+  const ref = useComposedRefs(outerRef, innerRef);
+  const { send, ref: machineRef } = GroupMachineContext.useActorRef();
+  const panel = GroupMachineContext.useSelector(({ context }) => {
+    try {
+      return getPanelWithId(context, panelId);
+    } catch (e) {
+      return undefined;
     }
+  });
 
-    // if (!hasRegistered.current && !hasMeasured) {
-    //   hasRegistered.current = true;
+  if (isPrerender) {
+    return null;
+  }
 
-    //   send({
-    //     type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
-    //     data: panelDataRef.current,
-    //   });
-    // }
+  // For controlled collapse we track if the `collapse` prop changes
+  // and update the state machine if it does.
+  React.useEffect(() => {
+    if (typeof collapsed !== "undefined") {
+      const context = machineRef.getSnapshot().context;
 
-    // React.useEffect(() => {
-    //   if (hasMeasured && !hasRegistered.current) {
-    //     send({
-    //       type: "registerDynamicPanel",
-    //       data: panelDataRef.current,
-    //     });
-    //   }
-    // }, [hasMeasured]);
+      if (context.items.length === 0) {
+        return;
+      }
 
-    // React.useEffect(() => {
-    //   return () => {
-    //     const context = machineRef.getSnapshot().context;
+      const panel = getPanelWithId(context, panelId);
 
-    //     // React strict mode hack to get around the component getting unmounted
-    //     if (context.size === 0) {
-    //       return;
-    //     }
+      if (collapsed === true && !panel.collapsed) {
+        send({ type: "collapsePanel", panelId, controlled: true });
+      } else if (collapsed === false && panel.collapsed) {
+        send({ type: "expandPanel", panelId, controlled: true });
+      }
+    }
+  }, [send, collapsed, panelId, machineRef]);
 
-    //     send({ type: "unregisterPanel", id: panelId });
-    //     hasRegistered.current = false;
-    //   };
-    // }, [send, panelId]);
+  const fallbackHandleRef = React.useRef<PanelHandle>(null);
 
-    // For controlled collapse we track if the `collapse` prop changes
-    // and update the state machine if it does.
-    React.useEffect(() => {
-      if (typeof collapsed !== "undefined") {
-        const context = machineRef.getSnapshot().context;
-
-        if (context.items.length === 0) {
-          return;
-        }
-
-        const panel = getPanelWithId(context, panelId);
-
-        if (collapsed === true && !panel.collapsed) {
+  useImperativeHandle(handle || fallbackHandleRef, () => {
+    return {
+      getId: () => panelId,
+      collapse: () => {
+        if (collapsible) {
           send({ type: "collapsePanel", panelId, controlled: true });
-        } else if (collapsed === false && panel.collapsed) {
+        }
+      },
+      isCollapsed: () => Boolean(collapsible && panel?.collapsed),
+      expand: () => {
+        if (collapsible) {
           send({ type: "expandPanel", panelId, controlled: true });
         }
-      }
-    }, [send, collapsed, panelId, machineRef]);
+      },
+      isExpanded: () => Boolean(collapsible && !panel?.collapsed),
+      getPixelSize: () => {
+        const context = machineRef.getSnapshot().context;
+        const panel = getPanelWithId(
+          { ...context, items: prepareItems(context) },
+          panelId
+        );
 
-    const fallbackHandleRef = React.useRef<PanelHandle>(null);
+        if (typeof panel.currentValue === "string") {
+          return getUnitPixelValue(context, panel.currentValue as Unit);
+        }
 
-    useImperativeHandle(handle || fallbackHandleRef, () => {
-      return {
-        getId: () => panelId,
-        collapse: () => {
-          if (collapsible) {
-            send({ type: "collapsePanel", panelId, controlled: true });
-          }
-        },
-        isCollapsed: () => Boolean(collapsible && panel?.collapsed),
-        expand: () => {
-          if (collapsible) {
-            send({ type: "expandPanel", panelId, controlled: true });
-          }
-        },
-        isExpanded: () => Boolean(collapsible && !panel?.collapsed),
-        getPixelSize: () => {
-          const context = machineRef.getSnapshot().context;
-          const panel = getPanelWithId(
-            { ...context, items: prepareItems(context) },
-            panelId
-          );
+        return panel.currentValue;
+      },
+      setSize: (size) => {
+        send({ type: "setPanelPixelSize", panelId, size });
+      },
+      getPercentageSize: () => {
+        const context = machineRef.getSnapshot().context;
+        const items = prepareItems(context);
+        const panel = getPanelWithId({ ...context, items }, panelId);
+        return getUnitPercentageValue(
+          context.size,
+          panel.currentValue as Unit | number
+        );
+      },
+    };
+  });
 
-          if (typeof panel.currentValue === "string") {
-            return getUnitPixelValue(context, panel.currentValue as Unit);
-          }
-
-          return panel.currentValue;
-        },
-        setSize: (size) => {
-          send({ type: "setPanelPixelSize", panelId, size });
-        },
-        getPercentageSize: () => {
-          const context = machineRef.getSnapshot().context;
-          const items = prepareItems(context);
-          const panel = getPanelWithId({ ...context, items }, panelId);
-          return getUnitPercentageValue(
-            context.size,
-            panel.currentValue as Unit | number
-          );
-        },
-      };
-    });
-
-    return (
-      <div
-        ref={ref}
-        data-panel-id={panelId}
-        data-collapsed={collapsible && panel?.collapsed}
-        {...props}
-        style={{
-          ...props.style,
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      />
-    );
-  }
-);
+  return (
+    <div
+      ref={ref}
+      data-splitter-type="panel"
+      data-splitter-id={panelId}
+      data-collapsed={collapsible && panel?.collapsed}
+      {...props}
+      style={{
+        ...props.style,
+        minWidth: 0,
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    />
+  );
+});
 
 export interface PanelResizerProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -1933,214 +1932,180 @@ export interface PanelResizerProps
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
   function PanelResizer(props, ref) {
     const { size = "0px", order } = props;
-    const { indexPathString: handleId } = useIndex()!;
     const isPrerender = React.useContext(PreRenderContext);
-    const data = React.useRef({
-      type: "handle" as const,
-      id: handleId,
-      size,
-      order,
-    });
-
-    React.useEffect(() => {
-      if (isPrerender) {
-        return;
-      }
-
-      data.current = {
-        type: "handle",
-        id: handleId,
+    const data = React.useMemo(
+      () => ({
+        type: "handle" as const,
         size,
         order,
-      };
-    }, [handleId, size, order]);
+        id: props.id,
+      }),
+      [size, order, props.id]
+    );
 
-    useGroupItem(data.current);
+    const { id: handleId } = useGroupItem(data);
 
     if (isPrerender) {
       return null;
     }
 
-    return <PanelResizerVisible ref={ref} {...props} />;
+    return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
   }
 );
 
-const PanelResizerVisible = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizerVisible(
-    { size = "0px", order, disabled, ...props },
-    ref
-  ) {
-    const { indexPathString: handleId } = useIndex()!;
-    const unit = parseUnit(size);
-    const [isDragging, setIsDragging] = React.useState(false);
-    const { send, ref: machineRef } = GroupMachineContext.useActorRef();
-    const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
-      try {
-        return getPanelBeforeHandleId(context, handleId);
-      } catch (e) {
-        return undefined;
-      }
-    });
-    const collapsiblePanel = GroupMachineContext.useSelector(({ context }) => {
-      try {
-        return getCollapsiblePanelForHandleId(context, handleId);
-      } catch (e) {
-        return undefined;
-      }
-    });
-    const orientation = GroupMachineContext.useSelector(
-      (state) => state.context.orientation
-    );
-    const groupsSize = GroupMachineContext.useSelector(
-      (state) => state.context.size
-    );
-    const overshoot = GroupMachineContext.useSelector(
-      (state) => state.context.dragOvershoot
-    );
-    const handle = GroupMachineContext.useSelector(({ context }) => {
-      try {
-        return getHandleWithId(context, handleId);
-      } catch (e) {
-        return undefined;
-      }
-    });
-    const { moveProps } = useMove({
-      onMoveStart: () => {
-        setIsDragging(true);
-        send({ type: "dragHandleStart", handleId: handleId });
-      },
-      onMove: (e) => send({ type: "dragHandle", handleId: handleId, value: e }),
-      onMoveEnd: () => {
-        setIsDragging(false);
-        send({ type: "dragHandleEnd", handleId: handleId });
-      },
-    });
+const PanelResizerVisible = React.forwardRef<
+  HTMLDivElement,
+  PanelResizerProps & { handleId: string }
+>(function PanelResizerVisible(
+  { size = "0px", order, disabled, handleId, ...props },
+  ref
+) {
+  const unit = parseUnit(size);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const { send, ref: machineRef } = GroupMachineContext.useActorRef();
+  const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
+    try {
+      return getPanelBeforeHandleId(context, handleId);
+    } catch (e) {
+      return undefined;
+    }
+  });
+  const collapsiblePanel = GroupMachineContext.useSelector(({ context }) => {
+    try {
+      return getCollapsiblePanelForHandleId(context, handleId);
+    } catch (e) {
+      return undefined;
+    }
+  });
+  const orientation = GroupMachineContext.useSelector(
+    (state) => state.context.orientation
+  );
+  const groupsSize = GroupMachineContext.useSelector(
+    (state) => state.context.size
+  );
+  const overshoot = GroupMachineContext.useSelector(
+    (state) => state.context.dragOvershoot
+  );
+  const handle = GroupMachineContext.useSelector(({ context }) => {
+    try {
+      return getHandleWithId(context, handleId);
+    } catch (e) {
+      return undefined;
+    }
+  });
+  const { moveProps } = useMove({
+    onMoveStart: () => {
+      setIsDragging(true);
+      send({ type: "dragHandleStart", handleId: handleId });
+    },
+    onMove: (e) => send({ type: "dragHandle", handleId: handleId, value: e }),
+    onMoveEnd: () => {
+      setIsDragging(false);
+      send({ type: "dragHandleEnd", handleId: handleId });
+    },
+  });
 
-    const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Enter" && collapsiblePanel) {
-        if (collapsiblePanel.collapsed) {
-          send({ type: "expandPanel", panelId: collapsiblePanel.id });
-        } else {
-          send({ type: "collapsePanel", panelId: collapsiblePanel.id });
-        }
-      }
-    };
-
-    const hasRegistered = React.useRef(Boolean(handle));
-
-    // if (!hasRegistered.current && !hasMeasured) {
-    //   hasRegistered.current = true;
-    //   send({
-    //     type: "registerPanelHandle",
-    //     data: { id: handleId, size, order },
-    //   });
-    // }
-
-    // // If we don't add the dynamic parts in an effect we get react errors
-    // useIsomorphicLayoutEffect(() => {
-    //   if (hasMeasured && !hasRegistered.current) {
-    //     send({
-    //       type: "registerPanelHandle",
-    //       data: { id: handleId, size, order },
-    //     });
-    //   }
-    // }, [handleId, size, order, send, hasMeasured]);
-
-    React.useEffect(() => {
-      return () => {
-        const context = machineRef.getSnapshot().context;
-
-        // React strict mode hack to get around the component getting unmounted
-        if (context.size === 0) {
-          return;
-        }
-
-        send({ type: "unregisterPanelHandle", id: handleId });
-        hasRegistered.current = false;
-      };
-    }, [send, handleId]);
-
-    let cursor: React.CSSProperties["cursor"];
-
-    if (disabled) {
-      cursor = "default";
-    } else if (orientation === "horizontal") {
-      if (overshoot > 0) {
-        cursor = "w-resize";
-      } else if (overshoot < 0) {
-        cursor = "e-resize";
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && collapsiblePanel) {
+      if (collapsiblePanel.collapsed) {
+        send({ type: "expandPanel", panelId: collapsiblePanel.id });
       } else {
-        cursor = "ew-resize";
-      }
-    } else {
-      if (overshoot > 0) {
-        cursor = "n-resize";
-      } else if (overshoot < 0) {
-        cursor = "s-resize";
-      } else {
-        cursor = "ns-resize";
+        send({ type: "collapsePanel", panelId: collapsiblePanel.id });
       }
     }
+  };
 
-    // Update the cursor while the user is dragging.
-    // This makes it so that the user can overshoot the drag handle and
-    // still see the right cursor.
-    useEffect(() => {
-      if (!isDragging) {
+  const hasRegistered = React.useRef(Boolean(handle));
+
+  React.useEffect(() => {
+    return () => {
+      const context = machineRef.getSnapshot().context;
+
+      // React strict mode hack to get around the component getting unmounted
+      if (context.size === 0) {
         return;
       }
 
-      document.body.style.cursor = cursor || "auto";
+      send({ type: "unregisterPanelHandle", id: handleId });
+      hasRegistered.current = false;
+    };
+  }, [send, handleId]);
 
-      return () => {
-        document.body.style.cursor = "auto";
-      };
-    }, [cursor, isDragging]);
+  let cursor: React.CSSProperties["cursor"];
 
-    if (!panelBeforeHandle || !isPanelData(panelBeforeHandle)) {
-      return null;
+  if (disabled) {
+    cursor = "default";
+  } else if (orientation === "horizontal") {
+    if (overshoot > 0) {
+      cursor = "w-resize";
+    } else if (overshoot < 0) {
+      cursor = "e-resize";
+    } else {
+      cursor = "ew-resize";
+    }
+  } else {
+    if (overshoot > 0) {
+      cursor = "n-resize";
+    } else if (overshoot < 0) {
+      cursor = "s-resize";
+    } else {
+      cursor = "ns-resize";
+    }
+  }
+
+  // Update the cursor while the user is dragging.
+  // This makes it so that the user can overshoot the drag handle and
+  // still see the right cursor.
+  useEffect(() => {
+    if (!isDragging) {
+      return;
     }
 
-    return (
-      <div
-        ref={ref}
-        role="separator"
-        tabIndex={0}
-        data-handle-id={handleId}
-        data-handle-orientation={orientation}
-        data-state={isDragging ? "dragging" : "idle"}
-        aria-label="Resize Handle"
-        aria-disabled={disabled}
-        aria-controls={panelBeforeHandle.id}
-        aria-valuemin={getUnitPercentageValue(
-          groupsSize,
-          panelBeforeHandle.min
-        )}
-        aria-valuemax={getUnitPercentageValue(
-          groupsSize,
-          panelBeforeHandle.max
-        )}
-        aria-valuenow={
-          typeof panelBeforeHandle.currentValue === "string" &&
-          (panelBeforeHandle.currentValue.includes("minmax") ||
-            panelBeforeHandle.currentValue.includes("fr"))
-            ? undefined
-            : getUnitPercentageValue(
-                groupsSize,
-                panelBeforeHandle.currentValue as Unit
-              )
-        }
-        {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}
-        style={{
-          cursor,
-          ...props.style,
-          ...(orientation === "horizontal"
-            ? { width: unit.value, height: "100%" }
-            : { height: unit.value, width: "100%" }),
-        }}
-      />
-    );
+    document.body.style.cursor = cursor || "auto";
+
+    return () => {
+      document.body.style.cursor = "auto";
+    };
+  }, [cursor, isDragging]);
+
+  if (!panelBeforeHandle || !isPanelData(panelBeforeHandle)) {
+    return null;
   }
-);
+
+  return (
+    <div
+      ref={ref}
+      role="separator"
+      tabIndex={0}
+      data-splitter-type="handle"
+      data-splitter-id={handleId}
+      data-handle-orientation={orientation}
+      data-state={isDragging ? "dragging" : "idle"}
+      aria-label="Resize Handle"
+      aria-disabled={disabled}
+      aria-controls={panelBeforeHandle.id}
+      aria-valuemin={getUnitPercentageValue(groupsSize, panelBeforeHandle.min)}
+      aria-valuemax={getUnitPercentageValue(groupsSize, panelBeforeHandle.max)}
+      aria-valuenow={
+        typeof panelBeforeHandle.currentValue === "string" &&
+        (panelBeforeHandle.currentValue.includes("minmax") ||
+          panelBeforeHandle.currentValue.includes("fr"))
+          ? undefined
+          : getUnitPercentageValue(
+              groupsSize,
+              panelBeforeHandle.currentValue as Unit
+            )
+      }
+      {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}
+      style={{
+        cursor,
+        ...props.style,
+        ...(orientation === "horizontal"
+          ? { width: unit.value, height: "100%" }
+          : { height: unit.value, width: "100%" }),
+      }}
+    />
+  );
+});
 
 // #endregion

@@ -17,18 +17,21 @@
     "react-dom": ">=16"
   },
   "devDependencies": {
-    "@eslint/compat": "^1.1.1",
-    "@eslint/js": "^9.6.0",
     "@types/node": "^20.14.10",
     "@types/react": "^18",
-    "eslint": "9.x",
-    "eslint-plugin-react": "^7.34.3",
     "globals": "^15.8.0",
     "react": "^18",
     "react-dom": "^18",
     "tshy": "^3.0.2",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^7.16.0"
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "@radix-ui/react-compose-refs": "^1.1.0",
+    "@types/invariant": "^2.2.37",
+    "@xstate/react": "^4.1.1",
+    "invariant": "^2.2.4",
+    "react-aria": "^3.33.1",
+    "xstate": "^5.14.0"
   },
   "tshy": {
     "exclude": [
@@ -51,16 +54,6 @@
         "default": "./dist/commonjs/ResizeableGridPanels.js"
       }
     }
-  },
-  "dependencies": {
-    "@radix-ui/react-compose-refs": "^1.1.0",
-    "@types/invariant": "^2.2.37",
-    "@xstate/react": "^4.1.1",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "invariant": "^2.2.4",
-    "react-aria": "^3.33.1",
-    "reforest": "^0.13.0",
-    "xstate": "^5.14.0"
   },
   "main": "./dist/commonjs/ResizeableGridPanels.js",
   "types": "./dist/commonjs/ResizeableGridPanels.d.ts",
