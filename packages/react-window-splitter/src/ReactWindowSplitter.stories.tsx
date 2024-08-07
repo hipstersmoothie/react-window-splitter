@@ -1,130 +1,514 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
+import React from "react";
 import {
-  PanelGroup as PanelGroupPrimitive,
+  PanelGroup,
   PanelGroupProps,
-  Panel as PanelPrimitive,
+  Panel,
   PanelProps,
-  PanelResizer as PanelResizerPrimitive,
+  PanelResizer,
+  PanelHandle,
+  PanelGroupHandle,
   PanelResizerProps,
-} from "../../../react-window-splitter/dist/esm/ReactWindowSplitter";
+} from "./ReactWindowSplitter.js";
 
-export function ColorfulPanelGroup(props: PanelGroupProps) {
-  return <PanelGroupPrimitive {...props} className={`${props.className}`} />;
-}
+export default {
+  title: "Components/ResizeableGridPanels",
+};
 
-export function ColorfulPanel({
-  color,
-  displayDimensions = "width",
-  className,
-  children,
-  ...props
-}: PanelProps & {
-  color?: "green" | "red" | "pink" | "blue" | "orange";
-  displayDimensions?: "width" | "height" | "both";
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState<
-    { width: number; height: number } | undefined
-  >();
-
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-
-      if (!entry) {
-        return;
-      }
-
-      setDimensions({
-        width: entry.borderBoxSize[0].inlineSize,
-        height: entry.borderBoxSize[0].blockSize,
-      });
-    });
-
-    observer.observe(ref.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [props.id]);
-
-  let wrapperClassName = "";
-  let lineClassName = "";
-
-  if (color === "green") {
-    wrapperClassName =
-      "border-4 bg-green-3 dark:bg-greendark-3 border-green-9 dark:border-greendark-9 text-green-normal";
-    lineClassName = "bg-greena-7 dark:bg-greenadark-7";
-  } else if (color === "red") {
-    wrapperClassName =
-      "border-4 bg-red-3 dark:bg-reddark-3 border-red-9 dark:border-reddark-9 text-red-normal";
-    lineClassName = "bg-reda-7 dark:bg-redadark-7";
-  } else if (color === "pink") {
-    wrapperClassName =
-      "border-4 bg-pink-3 dark:bg-pinkdark-3 border-pink-9 dark:border-pinkdark-9 text-pink-normal";
-    lineClassName = "bg-pinka-7 dark:bg-pinkadark-7";
-  } else if (color === "blue") {
-    wrapperClassName =
-      "border-4 bg-blue-3 dark:bg-bluedark-3 border-blue-9 dark:border-bluedark-9 text-blue-normal";
-    lineClassName = "bg-bluea-7 dark:bg-blueadark-7";
-  } else if (color === "orange") {
-    wrapperClassName =
-      "border-4 bg-orange-3 dark:bg-orangedark-3 border-orange-9 dark:border-orangedark-9 text-orange-normal";
-    lineClassName = "bg-orangea-7 dark:bg-orangeadark-7";
-  }
-
+function StyledPanelGroup(props: PanelGroupProps) {
   return (
-    <PanelPrimitive
-      ref={ref}
+    <PanelGroup
       {...props}
-      className={`overflow-hidden flex items-center justify-center ${wrapperClassName} ${className}`}
-    >
-      {children
-        ? children
-        : dimensions && (
-            <span className="flex items-center font-mono w-full mx-2">
-              <span className={`${lineClassName} h-0.5 flex-1`} />
-              <span className={`p-2`}>
-                {(displayDimensions === "width"
-                  ? dimensions.width
-                  : displayDimensions === "height"
-                    ? dimensions.height
-                    : 0
-                ).toFixed(2)}
-                px
-              </span>
-              <span className={`${lineClassName} h-0.5 flex-1`} />
-            </span>
-          )}
-    </PanelPrimitive>
+      style={{
+        border: "1px solid rgba(0, 0, 0, 0.3)",
+        background: "rgba(0, 0, 0, 0.1)",
+        borderRadius: 12,
+        ...props.style,
+      }}
+    />
   );
 }
 
-export function ColorfulPanelResizer(props: PanelResizerProps) {
+function StyledPanel({ children, ...props }: PanelProps) {
   return (
-    <PanelResizerPrimitive
+    <Panel
+      style={{
+        overflow: "hidden",
+      }}
       {...props}
-      size="20px"
-      className="h-full relative group"
     >
       <div
-        className="
-          absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full
-          group-data-[handle-orientation='horizontal']:w-2 group-data-[handle-orientation='horizontal']:h-8
-          group-data-[handle-orientation='vertical']:w-8 group-data-[handle-orientation='vertical']:h-2
-          bg-gray-action border border-gray-normal 
-          group-data-[state='dragging']:bg-blue-6 group-data-[state='dragging']:border-blue-10
-          dark:group-data-[state='dragging']:bg-bluedark-6 dark:group-data-[state='dragging']:border-bluedark-10
-          group-focus:bg-blue-9 group-focus:border-blue-10
-          dark:group-focus:bg-bluedark-9 dark:group-focus:border-bluedark-10
-        "
-      />
-    </PanelResizerPrimitive>
+        style={{
+          padding: 20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        {children}
+      </div>
+    </Panel>
+  );
+}
+
+function StyledResizer(props: PanelResizerProps) {
+  return <PanelResizer size="10px" style={{ background: "red" }} {...props} />;
+}
+
+export function Simple() {
+  return (
+    <StyledPanelGroup>
+      <StyledPanel>
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel>
+        <div>Panel 2</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function Autosave() {
+  return (
+    <StyledPanelGroup autosaveId="autosave" autosaveStrategy="cookie">
+      <StyledPanel id="1">
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer id="resizer" />
+      <StyledPanel id="2">
+        <div>Panel 2</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function SimpleMin() {
+  return (
+    <StyledPanelGroup>
+      <StyledPanel min="100px">
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">
+        <div>Panel 2</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">
+        <div>Panel 3</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function SimpleMinMax() {
+  return (
+    <StyledPanelGroup>
+      <StyledPanel min="100px" max="200px">
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">
+        <div>Panel 2</div>
+      </StyledPanel>
+      <StyledResizer size="20px" />
+      <StyledPanel min="100px">
+        <div>Panel 3</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function SimpleConstraints() {
+  return (
+    <StyledPanelGroup>
+      <StyledPanel min="100px" max="50%">
+        <div>Panel 1</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel>
+        <div>Panel 2</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function HorizontalLayout() {
+  return (
+    <StyledPanelGroup orientation="horizontal">
+      <StyledPanel default="30%" min="20%">
+        left
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="20%">middle</StyledPanel>
+      <StyledResizer />
+      <StyledPanel default="30%" min="20%">
+        right
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function VerticalLayout() {
+  return (
+    <StyledPanelGroup orientation="vertical">
+      <StyledPanel default="30%" min="20%">
+        left
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="20%">middle</StyledPanel>
+      <StyledResizer />
+      <StyledPanel default="30%" min="20%">
+        right
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function NestedGroups() {
+  return (
+    <PanelGroup
+      orientation="horizontal"
+      style={{
+        border: "1px solid rgba(0, 0, 0, 0.3)",
+        borderRadius: 12,
+        height: 400,
+      }}
+    >
+      <Panel min="10%">left</Panel>
+      <StyledResizer />
+      <Panel min="10%">
+        <PanelGroup orientation="vertical">
+          <Panel min="10%">top</Panel>
+          <StyledResizer />
+          <Panel min="10%">
+            <PanelGroup orientation="horizontal">
+              <Panel min="20%">left</Panel>
+              <StyledResizer />
+              <Panel min="20%">right</Panel>
+            </PanelGroup>
+          </Panel>
+        </PanelGroup>
+      </Panel>
+      <StyledResizer />
+      <Panel min="10%">right</Panel>
+    </PanelGroup>
+  );
+}
+
+export function WithOverflow() {
+  return (
+    <StyledPanelGroup style={{ height: 400 }}>
+      <Panel min="200px">
+        <div
+          style={{
+            overflow: "auto",
+            padding: 40,
+            height: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+            euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi, eu
+            tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+        </div>
+      </Panel>
+      <StyledResizer />
+      <Panel min="200px">
+        <div
+          style={{
+            overflow: "auto",
+            padding: 40,
+            height: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+            euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi, eu
+            tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+          <p>
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl. Sed euismod, nisl eget ultricies
+            ultrices, nunc nisi aliquam nisi, eu tincidunt nisl nisl eu nisl.
+            Sed euismod, nisl eget ultricies ultrices, nunc nisi aliquam nisi,
+            eu tincidunt nisl nisl eu nisl.
+          </p>
+        </div>
+      </Panel>
+    </StyledPanelGroup>
+  );
+}
+
+export function Collapsible() {
+  const [collapsed, setCollapsed] = React.useState(true);
+
+  return (
+    <StyledPanelGroup>
+      <StyledPanel
+        min="100px"
+        collapsible={true}
+        collapsedSize="60px"
+        style={{ border: "10px solid green", boxSizing: "border-box" }}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE PASSIVE", isCollapsed);
+        }}
+      >
+        <div>1</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">
+        <div>2</div>
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel
+        min="100px"
+        collapsible={true}
+        collapsedSize="60px"
+        defaultCollapsed={true}
+        style={{ border: "10px solid blue", boxSizing: "border-box" }}
+        collapsed={collapsed}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE CONTROLLED", isCollapsed);
+          setCollapsed(isCollapsed);
+        }}
+      >
+        <div>3</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function ImperativePanel() {
+  const groupRef = React.useRef<PanelGroupHandle>(null);
+  const panelRef = React.useRef<PanelHandle>(null);
+
+  return (
+    <>
+      <StyledPanelGroup handle={groupRef}>
+        <StyledPanel
+          handle={panelRef}
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
+          <div>1</div>
+        </StyledPanel>
+        <StyledResizer />
+        <StyledPanel min="100px">
+          <div>2</div>
+        </StyledPanel>
+        <StyledResizer />
+        <StyledPanel
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+          defaultCollapsed={true}
+        >
+          <div>3</div>
+        </StyledPanel>
+      </StyledPanelGroup>
+
+      <div>
+        <button
+          onClick={() => alert(`Sizes: ${groupRef.current?.getPixelSizes()}`)}
+        >
+          Get pixel sizes
+        </button>
+        <button
+          onClick={() =>
+            alert(`Sizes: ${groupRef.current?.getPercentageSizes()}`)
+          }
+        >
+          Get percent sizes
+        </button>
+        <button
+          onClick={() =>
+            groupRef.current?.setSizes([
+              "200px",
+              "10px",
+              "50%",
+              "10px",
+              "150px",
+            ])
+          }
+        >
+          Override sizes
+        </button>
+      </div>
+
+      <div>
+        <button onClick={() => panelRef.current?.collapse()}>Collapse</button>
+        <button
+          onClick={() => alert(`Collapsed: ${panelRef.current?.isCollapsed()}`)}
+        >
+          Is Collapsed?
+        </button>
+        <button onClick={() => panelRef.current?.expand()}>Expand</button>
+        <button
+          onClick={() => alert(`Expanded: ${panelRef.current?.isExpanded()}`)}
+        >
+          Is Expanded?
+        </button>
+        <button onClick={() => alert(`Id: ${panelRef.current?.getId()}`)}>
+          Get Id
+        </button>
+        <button
+          onClick={() => alert(`Size: ${panelRef.current?.getPixelSize()}`)}
+        >
+          Get Pixel Size
+        </button>
+        <button
+          onClick={() =>
+            alert(`Percentage: ${panelRef.current?.getPercentageSize()}`)
+          }
+        >
+          Get Percentage Size
+        </button>
+        <button onClick={() => panelRef.current?.setSize("30px")}>
+          Set size to 100px
+        </button>
+        <button onClick={() => panelRef.current?.setSize("50%")}>
+          Set size to 50%
+        </button>
+      </div>
+    </>
+  );
+}
+
+export function ConditionalPanel() {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <React.StrictMode>
+      <StyledPanelGroup>
+        <StyledPanel
+          id="panel-1"
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
+          <div>1</div>
+        </StyledPanel>
+        <StyledResizer id="handle-1" />
+        <StyledPanel id="panel-2" min="100px">
+          <div>2</div>
+        </StyledPanel>
+        {isExpanded && (
+          <>
+            <StyledResizer id="handle-2" />
+            <StyledPanel id="panel-3" min="100px">
+              3<button onClick={() => setIsExpanded(false)}>Close</button>
+            </StyledPanel>
+          </>
+        )}
+      </StyledPanelGroup>
+      <button onClick={() => setIsExpanded(true)}>Expand</button>
+    </React.StrictMode>
+  );
+}
+
+export function ConditionalPanelComplex() {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <React.StrictMode>
+      <StyledPanelGroup>
+        <StyledPanel
+          id="panel-1"
+          min="100px"
+          collapsible={true}
+          collapsedSize="60px"
+        >
+          <div>1</div>
+        </StyledPanel>
+        <StyledResizer id="handle-1" />
+        <StyledPanel id="panel-2" min="100px">
+          <div>2</div>
+        </StyledPanel>
+        <StyledResizer id="handle-2" />
+        <StyledPanel id="panel-3" min="100px">
+          <div>3</div>
+        </StyledPanel>
+        {isExpanded && (
+          <>
+            <StyledResizer id="handle-3" />
+            <StyledPanel id="panel-4" min="100px">
+              expanded
+              <button onClick={() => setIsExpanded(false)}>Close</button>
+            </StyledPanel>
+          </>
+        )}
+        <StyledResizer id="handle-4" />
+        <StyledPanel
+          min="200px"
+          collapsible={true}
+          collapsedSize="60px"
+          defaultCollapsed={true}
+          id="panel-5"
+        >
+          <div>4</div>
+        </StyledPanel>
+      </StyledPanelGroup>
+      <button onClick={() => setIsExpanded(true)}>Expand</button>
+    </React.StrictMode>
   );
 }
