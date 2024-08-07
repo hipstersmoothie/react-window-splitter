@@ -39,3 +39,15 @@ function Example() {
   );
 }
 ```
+
+## Server Side Rendering + Strict Mode
+
+While not required for the simple case, for anything more complex you will
+need to add an `id` prop to your panels and handles.
+This is so that the component can tell all of the components apart during layout and rendering._createMdxContent
+
+Features that require `id`:
+
+- Conditional Panels
+- Server Side Rendering
+- React Strict Mode

@@ -3,7 +3,6 @@
 - [ ] Docs
   - [ ] Imperative Panels
   - [ ] Persistance
-  - [ ] Server Side Rendering
   - [ ] Prior Art
 - [ ] [Tests](https://github.com/kolodny/safetest)
 - [ ] Bugs

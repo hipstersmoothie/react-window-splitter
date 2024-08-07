@@ -50,9 +50,6 @@ async function Sidebar({}) {
           Imperative APIs
         </SidebarItem>
         <SidebarItem path="/docs/examples/persistance">Persistance</SidebarItem>
-        <SidebarItem path="/docs/examples/server-side-rendering">
-          Server Side Rendering
-        </SidebarItem>
       </SidebarGroup>
       <SidebarGroup title="Thanks">
         <SidebarItem path="/docs/api/prior-art">Prior Art</SidebarItem>
