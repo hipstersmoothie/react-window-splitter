@@ -58,11 +58,11 @@ function StyledResizer(props: PanelResizerProps) {
 export function Simple() {
   return (
     <StyledPanelGroup>
-      <StyledPanel>
+      <StyledPanel id="1">
         <div>Panel 1</div>
       </StyledPanel>
-      <StyledResizer />
-      <StyledPanel>
+      <StyledResizer id="2" />
+      <StyledPanel id="3">
         <div>Panel 2</div>
       </StyledPanel>
     </StyledPanelGroup>

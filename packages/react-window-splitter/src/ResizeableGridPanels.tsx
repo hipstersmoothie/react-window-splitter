@@ -1,11 +1,19 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useImperativeHandle } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useImperativeHandle,
+  createContext,
+  useRef,
+  useState,
+} from "react";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
+import { useIndex, useIndexedChildren } from "reforest";
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -563,6 +571,24 @@ function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
   return sortWithOrder([...restItems, newItem]);
 }
 
+function getInitialSize(data: RegisterPanelEvent["data"]) {
+  let currentValue = "1fr";
+
+  if (data.collapsible && data.collapsed) {
+    currentValue = data.collapsedSize || "0px";
+  } else if (data.default) {
+    currentValue = data.default;
+  } else if (data.min && data.max) {
+    currentValue = `minmax(${data.min}, ${data.max})`;
+  } else if (data.max) {
+    currentValue = `minmax(0, ${data.max})`;
+  } else if (data.min) {
+    currentValue = `minmax(${data.min}, 1fr)`;
+  }
+
+  return currentValue;
+}
+
 // #endregion
 
 // #region Update Logic
@@ -996,12 +1022,13 @@ const groupMachine = createMachine(
         autosaveId?: string;
         orientation?: Orientation;
         groupId: string;
+        initialItems: Item[];
       },
     },
     context: ({ input }) => ({
       size: 0,
       hasMeasured: false,
-      items: [],
+      items: input.initialItems || [],
       orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
       autosaveId: input.autosaveId,
@@ -1072,24 +1099,10 @@ const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["registerPanel"]);
 
-          let currentValue = "1fr";
-
-          if (event.data.collapsible && event.data.collapsed) {
-            currentValue = event.data.collapsedSize || "0px";
-          } else if (event.data.default) {
-            currentValue = event.data.default;
-          } else if (event.data.min && event.data.max) {
-            currentValue = `minmax(${event.data.min}, ${event.data.max})`;
-          } else if (event.data.max) {
-            currentValue = `minmax(0, ${event.data.max})`;
-          } else if (event.data.min) {
-            currentValue = `minmax(${event.data.min}, 1fr)`;
-          }
-
           return addDeDuplicatedItems(context.items, {
             type: "panel",
             ...event.data,
-            currentValue,
+            currentValue: getInitialSize(event.data),
           });
         },
       }),
@@ -1332,21 +1345,6 @@ function useDebugGroupMachineContext({ id }: { id: string }) {
   console.log("GROUP CONTEXT", id, context);
 }
 
-function useItemId(label: string, id?: string) {
-  const autosaveId = GroupMachineContext.useSelector(
-    (state) => state.context.autosaveId
-  );
-
-  if (autosaveId && !id) {
-    throw new Error(
-      "You must provide an id to PanelResizer/Panels when using autosave"
-    );
-  }
-
-  const defaultId = useId();
-  return `${label}-${id || defaultId}`;
-}
-
 function getCookie(name: string) {
   const cookieString = document.cookie;
   const cookies = cookieString.split("; ");
@@ -1395,6 +1393,44 @@ export interface PanelGroupProps
   autosaveStrategy?: "localStorage" | "cookie";
 }
 
+const InitialMapContext = createContext<Record<string, Item>>({});
+const PreRenderContext = createContext(false);
+
+function PrerenderTree({
+  children,
+  onPrerender,
+}: {
+  children: React.ReactNode;
+  onPrerender: () => void;
+}) {
+  const [shouldPrerender, setShouldPrerender] = React.useState(true);
+
+  useIsomorphicLayoutEffect(() => {
+    setShouldPrerender(false);
+    onPrerender();
+  }, []);
+
+  return shouldPrerender ? (
+    <div className="opacity-0 absolute">
+      <PreRenderContext.Provider value={true}>
+        {children}
+      </PreRenderContext.Provider>
+    </div>
+  ) : null;
+}
+
+function useGroupItem(item: Item) {
+  const isPrerender = React.useContext(PreRenderContext);
+  // const { index } = useIndex()!;
+  const initialMap = React.useContext(InitialMapContext);
+
+  if (isPrerender) {
+    console.log("REGISTERING", item);
+    initialMap[item.id] = item;
+    console.log("REGISTERED", initialMap);
+  }
+}
+
 /** A group of panels that has constraints and a user can resize */
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
   function PanelGroup(
@@ -1402,62 +1438,100 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
       autosaveId,
       autosaveStrategy = "localStorage",
       snapshot: snapshotProp,
+      children,
       ...props
     },
     ref
   ) {
-    const groupId = `panel-group-${useId()}`;
-    const [snapshot, setSnapshot] = React.useState<
-      Snapshot<unknown> | true | undefined
-    >(snapshotProp);
-
-    if (typeof window !== "undefined" && autosaveId && !snapshot) {
-      const localSnapshot =
-        autosaveStrategy === "localStorage"
-          ? localStorage.getItem(autosaveId)
-          : getCookie(autosaveId);
-
-      if (localSnapshot) {
-        setSnapshot(JSON.parse(localSnapshot));
-      } else {
-        setSnapshot(true);
-      }
-    }
+    const [hasPreRendered, setHasPreRendered] = useState(false);
+    const initialMap = useRef<Record<string, Item>>({});
+    const indexedChildren = useIndexedChildren(children);
 
     return (
-      <GroupMachineContext.Provider
-        options={{
-          input: { autosaveId, orientation: props.orientation, groupId },
-          snapshot: typeof snapshot === "object" ? snapshot : undefined,
-        }}
-        logic={groupMachine.provide({
-          actions: {
-            onAutosave: (context) => {
-              if (!autosaveId) {
-                return;
-              }
+      <InitialMapContext.Provider value={initialMap.current}>
+        {!hasPreRendered && (
+          <PrerenderTree onPrerender={() => setHasPreRendered(true)}>
+            {indexedChildren}
+          </PrerenderTree>
+        )}
 
-              // Wait for new context to be committed
-              requestAnimationFrame(() => {
-                const data = JSON.stringify(
-                  context.self.getPersistedSnapshot()
-                );
-
-                if (autosaveStrategy === "localStorage") {
-                  localStorage.setItem(autosaveId, data);
-                } else {
-                  document.cookie = `${autosaveId}=${data}; path=/`;
-                }
-              });
-            },
-          },
-        })}
-      >
-        <PanelGroupImplementation ref={ref} {...props} />
-      </GroupMachineContext.Provider>
+        <PanelGroupMachine ref={ref} initialItems={initialMap} {...props}>
+          {indexedChildren}
+        </PanelGroupMachine>
+      </InitialMapContext.Provider>
     );
   }
 );
+
+const PanelGroupMachine = React.forwardRef<
+  HTMLDivElement,
+  PanelGroupProps & {
+    initialItems: React.MutableRefObject<Record<string, Item>>;
+  }
+>(function PanelGroup(
+  {
+    autosaveId,
+    autosaveStrategy = "localStorage",
+    snapshot: snapshotProp,
+    initialItems,
+    ...props
+  },
+  ref
+) {
+  const groupId = `panel-group-${useId()}`;
+  const [snapshot, setSnapshot] = React.useState<
+    Snapshot<unknown> | true | undefined
+  >(snapshotProp);
+
+  if (typeof window !== "undefined" && autosaveId && !snapshot) {
+    const localSnapshot =
+      autosaveStrategy === "localStorage"
+        ? localStorage.getItem(autosaveId)
+        : getCookie(autosaveId);
+
+    if (localSnapshot) {
+      setSnapshot(JSON.parse(localSnapshot));
+    } else {
+      setSnapshot(true);
+    }
+  }
+
+  return (
+    <GroupMachineContext.Provider
+      options={{
+        input: {
+          autosaveId,
+          orientation: props.orientation,
+          groupId,
+          initialItems: Object.values(initialItems.current),
+        },
+        snapshot: typeof snapshot === "object" ? snapshot : undefined,
+      }}
+      logic={groupMachine.provide({
+        actions: {
+          onAutosave: (context) => {
+            if (!autosaveId) {
+              return;
+            }
+
+            // Wait for new context to be committed
+            requestAnimationFrame(() => {
+              const data = JSON.stringify(context.self.getPersistedSnapshot());
+
+              if (autosaveStrategy === "localStorage") {
+                localStorage.setItem(autosaveId, data);
+              } else {
+                document.cookie = `${autosaveId}=${data}; path=/`;
+              }
+            });
+          },
+        },
+      })}
+    >
+      <PanelGroupImplementation ref={ref} {...props} />
+    </GroupMachineContext.Provider>
+  );
+});
 
 const PanelGroupImplementation = React.forwardRef<
   HTMLDivElement,
@@ -1478,7 +1552,6 @@ const PanelGroupImplementation = React.forwardRef<
   const template = GroupMachineContext.useSelector((state) =>
     buildTemplate(state.context.items)
   );
-  const size = GroupMachineContext.useSelector((state) => state.context.size);
 
   // When the prop for `orientation` updates also update the state machine
   if (orientationProp && orientationProp !== orientation) {
@@ -1570,7 +1643,6 @@ const PanelGroupImplementation = React.forwardRef<
       {...mergeProps(props, {
         style: {
           display: "grid",
-          opacity: size === 0 ? 0 : 1,
           gridTemplateColumns:
             orientation === "horizontal" ? template : undefined,
           gridTemplateRows: orientation === "vertical" ? template : undefined,
@@ -1638,7 +1710,73 @@ export interface PanelProps
 
 /** A panel within a `PanelGroup` */
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
-  function Panel(
+  function Panel(props, outerRef) {
+    const {
+      min,
+      max,
+      defaultCollapsed,
+      collapsible = false,
+      collapsedSize,
+      collapsed,
+      onCollapseChange,
+      order,
+    } = props;
+    const isPrerender = React.useContext(PreRenderContext);
+    const { indexPathString: panelId } = useIndex()!;
+    const onCollapseChangeRef = React.useRef(onCollapseChange);
+    const data = {
+      min: min || "0px",
+      max: max || "100%",
+      id: panelId,
+      collapsed: collapsible
+        ? collapsed ?? defaultCollapsed ?? false
+        : undefined,
+      collapsible,
+      collapsedSize: collapsedSize ?? "0px",
+      onCollapseChange: onCollapseChangeRef,
+      collapseIsControlled: typeof collapsed !== "undefined",
+      sizeBeforeCollapse: undefined,
+      order,
+    };
+    const panelDataRef = React.useRef({
+      type: "panel" as const,
+      ...data,
+      currentValue: getInitialSize(data),
+    });
+
+    React.useEffect(() => {
+      // const newData = {
+      //   min: min || "0px",
+      //   max: max || "100%",
+      //   id: panelId,
+      //   collapsed: collapsible
+      //     ? collapsed ?? defaultCollapsed ?? false
+      //     : undefined,
+      //   collapsible,
+      //   collapsedSize: collapsedSize ?? "0px",
+      //   onCollapseChange: onCollapseChangeRef,
+      //   collapseIsControlled: typeof collapsed !== "undefined",
+      //   sizeBeforeCollapse: undefined,
+      //   order,
+      // };
+      // panelDataRef.current = {
+      //   ...newData,
+      //   currentValue: getInitialSize(newData),
+      // };
+    });
+
+    useGroupItem(panelDataRef.current);
+
+    if (isPrerender) {
+      return null;
+    }
+
+    return <PanelVisible ref={outerRef} {...props} />;
+  }
+);
+
+const PanelVisible = React.forwardRef<HTMLDivElement, PanelProps>(
+  function PanelVisible(
     {
       min,
       max,
@@ -1653,11 +1791,11 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     },
     outerRef
   ) {
+    const { indexPathString: panelId } = useIndex()!;
+    const isPrerender = React.useContext(PreRenderContext);
     const innerRef = React.useRef<HTMLDivElement>(null);
     const ref = useComposedRefs(outerRef, innerRef);
-    const panelId = useItemId("panel", props.id);
     const { send, ref: machineRef } = GroupMachineContext.useActorRef();
-    const onCollapseChangeRef = React.useRef(onCollapseChange);
     const panel = GroupMachineContext.useSelector(({ context }) => {
       try {
         return getPanelWithId(context, panelId);
@@ -1665,74 +1803,42 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         return undefined;
       }
     });
-    const hasMeasured = GroupMachineContext.useSelector(
-      ({ context }) => context.hasMeasured
-    );
-    const hasRegistered = React.useRef(Boolean(panel));
 
-    const panelDataRef = React.useRef({
-      min: min || "0px",
-      max: max || "100%",
-      id: panelId,
-      collapsed: collapsible
-        ? collapsed ?? defaultCollapsed ?? false
-        : undefined,
-      collapsible,
-      collapsedSize: collapsedSize ?? "0px",
-      onCollapseChange: onCollapseChangeRef,
-      collapseIsControlled: typeof collapsed !== "undefined",
-      sizeBeforeCollapse: undefined,
-      order,
-    });
-
-    React.useEffect(() => {
-      panelDataRef.current = {
-        min: min || "0px",
-        max: max || "100%",
-        id: panelId,
-        collapsed: collapsible
-          ? collapsed ?? defaultCollapsed ?? false
-          : undefined,
-        collapsible,
-        collapsedSize: collapsedSize ?? "0px",
-        onCollapseChange: onCollapseChangeRef,
-        collapseIsControlled: typeof collapsed !== "undefined",
-        sizeBeforeCollapse: undefined,
-        order,
-      };
-    });
-
-    if (!hasRegistered.current && !hasMeasured) {
-      hasRegistered.current = true;
-
-      send({
-        type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
-        data: panelDataRef.current,
-      });
+    if (isPrerender) {
+      return null;
     }
 
-    React.useEffect(() => {
-      if (hasMeasured && !hasRegistered.current) {
-        send({
-          type: "registerDynamicPanel",
-          data: panelDataRef.current,
-        });
-      }
-    }, [hasMeasured]);
+    // if (!hasRegistered.current && !hasMeasured) {
+    //   hasRegistered.current = true;
 
-    React.useEffect(() => {
-      return () => {
-        const context = machineRef.getSnapshot().context;
+    //   send({
+    //     type: hasMeasured ? "registerDynamicPanel" : "registerPanel",
+    //     data: panelDataRef.current,
+    //   });
+    // }
 
-        // React strict mode hack to get around the component getting unmounted
-        if (context.size === 0) {
-          return;
-        }
+    // React.useEffect(() => {
+    //   if (hasMeasured && !hasRegistered.current) {
+    //     send({
+    //       type: "registerDynamicPanel",
+    //       data: panelDataRef.current,
+    //     });
+    //   }
+    // }, [hasMeasured]);
 
-        send({ type: "unregisterPanel", id: panelId });
-        hasRegistered.current = false;
-      };
-    }, [send, panelId]);
+    // React.useEffect(() => {
+    //   return () => {
+    //     const context = machineRef.getSnapshot().context;
+
+    //     // React strict mode hack to get around the component getting unmounted
+    //     if (context.size === 0) {
+    //       return;
+    //     }
+
+    //     send({ type: "unregisterPanel", id: panelId });
+    //     hasRegistered.current = false;
+    //   };
+    // }, [send, panelId]);
 
     // For controlled collapse we track if the `collapse` prop changes
     // and update the state machine if it does.
@@ -1825,8 +1931,46 @@ export interface PanelResizerProps
 
 /** A resize handle to place between panels. */
 export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer({ size = "0px", order, disabled, ...props }, ref) {
-    const handleId = useItemId("panel-resizer", props.id);
+  function PanelResizer(props, ref) {
+    const { size = "0px", order } = props;
+    const { indexPathString: handleId } = useIndex()!;
+    const isPrerender = React.useContext(PreRenderContext);
+    const data = React.useRef({
+      type: "handle" as const,
+      id: handleId,
+      size,
+      order,
+    });
+
+    React.useEffect(() => {
+      if (isPrerender) {
+        return;
+      }
+
+      data.current = {
+        type: "handle",
+        id: handleId,
+        size,
+        order,
+      };
+    }, [handleId, size, order]);
+
+    useGroupItem(data.current);
+
+    if (isPrerender) {
+      return null;
+    }
+
+    return <PanelResizerVisible ref={ref} {...props} />;
+  }
+);
+
+const PanelResizerVisible = React.forwardRef<HTMLDivElement, PanelResizerProps>(
+  function PanelResizerVisible(
+    { size = "0px", order, disabled, ...props },
+    ref
+  ) {
+    const { indexPathString: handleId } = useIndex()!;
     const unit = parseUnit(size);
     const [isDragging, setIsDragging] = React.useState(false);
     const { send, ref: machineRef } = GroupMachineContext.useActorRef();
@@ -1852,9 +1996,6 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     );
     const overshoot = GroupMachineContext.useSelector(
       (state) => state.context.dragOvershoot
-    );
-    const hasMeasured = GroupMachineContext.useSelector(
-      ({ context }) => context.hasMeasured
     );
     const handle = GroupMachineContext.useSelector(({ context }) => {
       try {
@@ -1887,23 +2028,23 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
 
     const hasRegistered = React.useRef(Boolean(handle));
 
-    if (!hasRegistered.current && !hasMeasured) {
-      hasRegistered.current = true;
-      send({
-        type: "registerPanelHandle",
-        data: { id: handleId, size, order },
-      });
-    }
+    // if (!hasRegistered.current && !hasMeasured) {
+    //   hasRegistered.current = true;
+    //   send({
+    //     type: "registerPanelHandle",
+    //     data: { id: handleId, size, order },
+    //   });
+    // }
 
-    // If we don't add the dynamic parts in an effect we get react errors
-    useIsomorphicLayoutEffect(() => {
-      if (hasMeasured && !hasRegistered.current) {
-        send({
-          type: "registerPanelHandle",
-          data: { id: handleId, size, order },
-        });
-      }
-    }, [handleId, size, order, send, hasMeasured]);
+    // // If we don't add the dynamic parts in an effect we get react errors
+    // useIsomorphicLayoutEffect(() => {
+    //   if (hasMeasured && !hasRegistered.current) {
+    //     send({
+    //       type: "registerPanelHandle",
+    //       data: { id: handleId, size, order },
+    //     });
+    //   }
+    // }, [handleId, size, order, send, hasMeasured]);
 
     React.useEffect(() => {
       return () => {

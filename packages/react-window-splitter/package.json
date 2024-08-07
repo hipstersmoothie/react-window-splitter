@@ -59,6 +59,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "invariant": "^2.2.4",
     "react-aria": "^3.33.1",
+    "reforest": "^0.13.0",
     "xstate": "^5.14.0"
   },
   "main": "./dist/commonjs/ResizeableGridPanels.js",
