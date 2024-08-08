@@ -1,10 +1,14 @@
 {
   "name": "monorepo",
   "type": "module",
+  "packageManager": "pnpm@9.6.0",
   "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^1.6.1",
@@ -24,6 +28,7 @@
     "globals": "^15.8.0",
     "prettier": "^3.3.3",
     "storybook": "^8.2.2",
+    "turbo": "^2.0.12",
     "typescript": "^5.5.3",
     "typescript-eslint": "^7.16.0"
   }

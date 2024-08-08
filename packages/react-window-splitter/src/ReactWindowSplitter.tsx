@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import Cookies from "universal-cookie";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
@@ -253,11 +254,11 @@ type EventForType<T extends GroupMachineEvent["type"]> = Extract<
 /** Assert that the provided event is one of the accepted types */
 function isEvent<T extends GroupMachineEvent["type"]>(
   event: GroupMachineEvent,
-  eventType: T[],
+  eventType: T[]
 ): asserts event is EventForType<T> {
   invariant(
     eventType.includes(event.type as T),
-    `Invalid event type: ${eventType}. Expected: ${eventType.join(" | ")}`,
+    `Invalid event type: ${eventType}. Expected: ${eventType.join(" | ")}`
   );
 }
 
@@ -267,7 +268,7 @@ function isPanelData(value: unknown): value is PanelData {
     value &&
       typeof value === "object" &&
       "type" in value &&
-      value.type === "panel",
+      value.type === "panel"
   );
 }
 
@@ -277,7 +278,7 @@ function isPanelHandle(value: unknown): value is PanelHandleData {
     value &&
       typeof value === "object" &&
       "type" in value &&
-      value.type === "handle",
+      value.type === "handle"
   );
 }
 
@@ -344,11 +345,11 @@ function getUnitPixelValue(context: GroupMachineContextValue, unit: Unit) {
 function clampUnit(
   context: GroupMachineContextValue,
   item: PanelData,
-  value: number,
+  value: number
 ) {
   return Math.min(
     Math.max(value, getUnitPixelValue(context, item.min)),
-    getUnitPixelValue(context, item.max),
+    getUnitPixelValue(context, item.max)
   );
 }
 
@@ -363,21 +364,10 @@ function getPanelWithId(context: GroupMachineContextValue, panelId: string) {
   throw new Error(`Expected panel with id: ${panelId}`);
 }
 
-/** Get a handle with a particular ID. */
-function getHandleWithId(context: GroupMachineContextValue, handleId: string) {
-  const item = context.items.find((item) => item.id === handleId);
-
-  if (item && isPanelHandle(item)) {
-    return item;
-  }
-
-  throw new Error(`Expected handle with id: ${handleId}`);
-}
-
 /** Get the panel before a handle */
 function getPanelBeforeHandleId(
   context: GroupMachineContextValue,
-  handleId: string,
+  handleId: string
 ) {
   const handleIndex = context.items.findIndex((item) => item.id === handleId);
   const item = context.items[handleIndex - 1];
@@ -395,7 +385,7 @@ function getPanelBeforeHandleId(
  */
 function getCollapsiblePanelForHandleId(
   context: GroupMachineContextValue,
-  handleId: string,
+  handleId: string
 ) {
   if (!context.items.length) {
     return undefined;
@@ -427,7 +417,7 @@ function getCollapsiblePanelForHandleId(
  */
 function getHandleForPanelId(
   context: GroupMachineContextValue,
-  panelId: string,
+  panelId: string
 ) {
   const panelIndex = context.items.findIndex((item) => item.id === panelId);
 
@@ -488,7 +478,7 @@ function sortWithOrder(items: Array<Item>) {
 function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
   invariant(
     typeof item.currentValue === "number",
-    `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`,
+    `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
   );
 
   if (item.collapsible && !item.collapsed) {
@@ -506,7 +496,7 @@ function findPanelWithSpace(
   context: GroupMachineContextValue,
   items: Array<Item>,
   start: number,
-  direction: number,
+  direction: number
 ) {
   for (
     let i = start;
@@ -565,7 +555,7 @@ function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
   const currentItemIndex = items.findIndex(
     (item) =>
       item.id === newItem.id ||
-      (typeof item.order === "number" && item.order === newItem.order),
+      (typeof item.order === "number" && item.order === newItem.order)
   );
 
   let restItems = items;
@@ -669,7 +659,7 @@ function prepareItems(context: GroupMachineContextValue) {
       (i.currentValue.includes("fr") ||
         (i.currentValue.includes("minmax") && !i.currentValue.includes("calc")))
         ? index
-        : -1,
+        : -1
     )
     .filter((i) => i !== -1);
 
@@ -702,7 +692,7 @@ function prepareItems(context: GroupMachineContextValue) {
       typeof i.currentValue === "string" &&
       i.currentValue.includes("minmax")
         ? index
-        : -1,
+        : -1
     )
     .filter((i) => i !== -1);
 
@@ -743,10 +733,10 @@ function updateLayout(
         value: MoveMoveEvent;
         handleId: string;
         controlled?: boolean;
-      },
+      }
 ): Partial<GroupMachineContextValue> {
   const handleIndex = context.items.findIndex(
-    (item) => item.id === dragEvent.handleId,
+    (item) => item.id === dragEvent.handleId
   );
 
   if (handleIndex === -1) {
@@ -772,7 +762,7 @@ function updateLayout(
     context,
     newItems,
     handleIndex + moveDirection,
-    moveDirection,
+    moveDirection
   );
 
   // No panel with space, just record the drag overshoot
@@ -788,7 +778,7 @@ function updateLayout(
 
   invariant(
     panelAfter && isPanelData(panelAfter),
-    `Expected panel after: ${handle.id}`,
+    `Expected panel after: ${handle.id}`
   );
 
   const newDragOvershoot = context.dragOvershoot + moveAmount;
@@ -838,7 +828,7 @@ function updateLayout(
   let panelBeforeNewValue = clampUnit(
     context,
     panelBefore,
-    (panelBefore.currentValue as number) - moveAmount * moveDirection,
+    (panelBefore.currentValue as number) - moveAmount * moveDirection
   );
 
   // Also apply the move amount the panel after the slider
@@ -847,7 +837,7 @@ function updateLayout(
   let panelAfterNewValue = clampUnit(
     context,
     panelAfter,
-    (panelAfter.currentValue as number) + applied,
+    (panelAfter.currentValue as number) + applied
   );
 
   // If the panel was collapsed, expand it
@@ -934,7 +924,7 @@ function updateLayout(
             ? b.currentValue
             : parseUnit(b.currentValue as Unit).value
           : parseUnit(b.size).value),
-      0,
+      0
     );
 
   // TODO: this is wrong?
@@ -1006,7 +996,7 @@ function iterativelyUpdateLayout({
           deltaX: context.orientation === "horizontal" ? direction : 0,
           deltaY: context.orientation === "horizontal" ? 0 : direction,
         },
-      },
+      }
     );
   }
 
@@ -1130,7 +1120,7 @@ const groupMachine = createMachine(
             currentValue,
           });
           const itemIndex = newItems.findIndex(
-            (item) => item.id === event.data.id,
+            (item) => item.id === event.data.id
           );
           const newContext = { ...context, items: newItems };
           let leftToApply = currentValue;
@@ -1141,7 +1131,7 @@ const groupMachine = createMachine(
               newContext,
               newItems,
               itemIndex,
-              -1,
+              -1
             );
 
             if (!panel) {
@@ -1149,7 +1139,7 @@ const groupMachine = createMachine(
             }
 
             const panelIndex = newItems.findIndex(
-              (item) => item.id === panel.id,
+              (item) => item.id === panel.id
             );
 
             if (panelIndex === -1) {
@@ -1159,7 +1149,7 @@ const groupMachine = createMachine(
             const newValue = clampUnit(
               newContext,
               panel,
-              (panel.currentValue as number) - leftToApply,
+              (panel.currentValue as number) - leftToApply
             );
 
             leftToApply -= newValue;
@@ -1186,7 +1176,7 @@ const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["unregisterPanel", "unregisterPanelHandle"]);
           const itemIndex = context.items.findIndex(
-            (item) => item.id === event.id,
+            (item) => item.id === event.id
           );
 
           if (itemIndex === -1) {
@@ -1216,7 +1206,7 @@ const groupMachine = createMachine(
               context,
               newItems,
               itemIndex + direction,
-              direction,
+              direction
             );
 
             if (!targetPanel) {
@@ -1233,7 +1223,7 @@ const groupMachine = createMachine(
             const newValue = clampUnit(
               context,
               targetPanel,
-              oldValue + removedSize,
+              oldValue + removedSize
             );
 
             targetPanel.currentValue = newValue;
@@ -1273,7 +1263,7 @@ const groupMachine = createMachine(
             handleId: handle.item.id,
             controlled: event.controlled,
             delta: (panel.currentValue as number) - collapsedSize,
-          }),
+          })
         );
       }),
       expandPanel: enqueueActions(({ context, event, enqueue }) => {
@@ -1296,7 +1286,7 @@ const groupMachine = createMachine(
               (panel.sizeBeforeCollapse ??
                 getUnitPixelValue(context, panel.min)) -
               (panel.currentValue as number),
-          }),
+          })
         );
       }),
       onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
@@ -1313,7 +1303,7 @@ const groupMachine = createMachine(
         const newSize = clampUnit(
           context,
           panel,
-          getUnitPixelValue(context, event.size),
+          getUnitPixelValue(context, event.size)
         );
         const isBigger = newSize > current;
         const delta = isBigger ? newSize - current : current - newSize;
@@ -1324,7 +1314,7 @@ const groupMachine = createMachine(
             direction: (handle.direction * (isBigger ? 1 : -1)) as -1 | 1,
             handleId: handle.item.id,
             delta,
-          }),
+          })
         );
       }),
       onSetDynamicPanelSize: ({ context, event }) => {
@@ -1333,7 +1323,7 @@ const groupMachine = createMachine(
         panel.currentValue = event.size;
       },
     },
-  },
+  }
 );
 
 // #endregion
@@ -1345,19 +1335,6 @@ const GroupMachineContext = createActorContext(groupMachine);
 function useDebugGroupMachineContext({ id }: { id: string }) {
   const context = GroupMachineContext.useSelector((state) => state.context);
   console.log("GROUP CONTEXT", id, context);
-}
-
-function getCookie(name: string) {
-  const cookieString = document.cookie;
-  const cookies = cookieString.split("; ");
-
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i]?.split("=");
-    if (cookie?.[0] === name) {
-      return cookie[1];
-    }
-  }
-  return null;
 }
 
 export interface PanelGroupHandle {
@@ -1422,7 +1399,7 @@ function PrerenderTree({
 }
 
 function useGroupItem<T extends Item>(
-  itemArg: Omit<T, "id"> & { id?: string },
+  itemArg: Omit<T, "id"> & { id?: string }
 ): T {
   const isPrerender = React.useContext(PreRenderContext);
   const initialMap = React.useContext(InitialMapContext);
@@ -1439,7 +1416,7 @@ function useGroupItem<T extends Item>(
   // The way this hooks is called is never conditional so the usage here is fine
   /* eslint-disable react-hooks/rules-of-hooks */
   const currentItem = GroupMachineContext.useSelector(({ context }) =>
-    context.items.find((i) => i.id === id),
+    context.items.find((i) => i.id === id)
   ) as T;
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
 
@@ -1451,7 +1428,7 @@ function useGroupItem<T extends Item>(
     if (!item) {
       invariant(
         itemArg.id,
-        "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well.",
+        "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well."
       );
 
       if (isPanelData(itemArg)) {
@@ -1473,7 +1450,7 @@ function useGroupItem<T extends Item>(
 
     return () => {
       const el = document.querySelector(
-        `[data-splitter-id="${id}"]`,
+        `[data-splitter-id="${id}"]`
       ) as HTMLElement;
 
       if (el || !id) {
@@ -1496,7 +1473,7 @@ function flattenChildren(children: React.ReactNode[]): React.ReactNode[] {
   return children.flatMap((child) =>
     React.isValidElement(child) && child.type === React.Fragment
       ? flattenChildren(child.props.children)
-      : child,
+      : child
   );
 }
 
@@ -1506,7 +1483,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     const [hasPreRendered, setHasPreRendered] = useState(false);
     const initialMap = useRef<Record<string, Item>>({});
     const indexedChildren = useIndexedChildren(
-      flattenChildren(React.Children.toArray(children)),
+      flattenChildren(React.Children.toArray(children))
     );
 
     return (
@@ -1522,7 +1499,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
         </PanelGroupMachine>
       </InitialMapContext.Provider>
     );
-  },
+  }
 );
 
 const PanelGroupMachine = React.forwardRef<
@@ -1538,18 +1515,20 @@ const PanelGroupMachine = React.forwardRef<
     initialItems,
     ...props
   },
-  ref,
+  ref
 ) {
   const groupId = `panel-group-${useId()}`;
   const [snapshot, setSnapshot] = React.useState<
     Snapshot<unknown> | true | undefined
   >(snapshotProp);
 
-  if (typeof window !== "undefined" && autosaveId && !snapshot) {
-    const localSnapshot =
-      autosaveStrategy === "localStorage"
-        ? localStorage.getItem(autosaveId)
-        : getCookie(autosaveId);
+  if (
+    typeof window !== "undefined" &&
+    autosaveId &&
+    !snapshot &&
+    autosaveStrategy === "localStorage"
+  ) {
+    const localSnapshot = localStorage.getItem(autosaveId);
 
     if (localSnapshot) {
       setSnapshot(JSON.parse(localSnapshot));
@@ -1572,7 +1551,6 @@ const PanelGroupMachine = React.forwardRef<
       logic={groupMachine.provide({
         actions: {
           onAutosave: (context) => {
-            console.log("AUTOSAVE", { autosaveId });
             if (!autosaveId) {
               return;
             }
@@ -1584,10 +1562,12 @@ const PanelGroupMachine = React.forwardRef<
               if (autosaveStrategy === "localStorage") {
                 localStorage.setItem(autosaveId, data);
               } else {
-                document.cookie = `${autosaveId}=${data}; path=/`;
-              }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const ActualClass = (Cookies as any).default || Cookies;
+                const cookies = new ActualClass(null, { path: "/" });
 
-              console.log("PERSISTED");
+                cookies.set(autosaveId, data, { path: "/", maxAge: 31536000 });
+              }
             });
           },
         },
@@ -1603,19 +1583,19 @@ const PanelGroupImplementation = React.forwardRef<
   PanelGroupProps
 >(function PanelGroupImplementation(
   { handle, orientation: orientationProp, ...props },
-  outerRef,
+  outerRef
 ) {
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
   const orientation = GroupMachineContext.useSelector(
-    (state) => state.context.orientation,
+    (state) => state.context.orientation
   );
   const groupId = GroupMachineContext.useSelector(
-    (state) => state.context.groupId,
+    (state) => state.context.groupId
   );
   const template = GroupMachineContext.useSelector((state) =>
-    buildTemplate(state.context.items),
+    buildTemplate(state.context.items)
   );
 
   // When the prop for `orientation` updates also update the state machine
@@ -1659,7 +1639,7 @@ const PanelGroupImplementation = React.forwardRef<
         return prepareItems(context).map((i) =>
           isPanelData(i)
             ? (i.currentValue as number)
-            : getUnitPixelValue(context, i.size),
+            : getUnitPixelValue(context, i.size)
         );
       },
       getPercentageSizes() {
@@ -1792,7 +1772,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         min: min || "0px",
         max: max || "100%",
         collapsed: collapsible
-          ? (collapsed ?? defaultCollapsed ?? false)
+          ? collapsed ?? defaultCollapsed ?? false
           : undefined,
         collapsible,
         collapsedSize: collapsedSize ?? "0px",
@@ -1803,7 +1783,15 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       };
 
       return { ...data, currentValue: getInitialSize(data) };
-    }, []);
+    }, [
+      collapsed,
+      collapsedSize,
+      collapsible,
+      defaultCollapsed,
+      max,
+      min,
+      props.id,
+    ]);
 
     const { id: panelId } = useGroupItem(panelDataRef);
 
@@ -1812,7 +1800,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     }
 
     return <PanelVisible ref={outerRef} {...props} panelId={panelId} />;
-  },
+  }
 );
 
 const PanelVisible = React.forwardRef<
@@ -1820,7 +1808,7 @@ const PanelVisible = React.forwardRef<
   PanelProps & { panelId: string }
 >(function PanelVisible(
   { collapsible = false, collapsed, handle, panelId, ...props },
-  outerRef,
+  outerRef
 ) {
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
@@ -1874,7 +1862,7 @@ const PanelVisible = React.forwardRef<
         const context = machineRef.getSnapshot().context;
         const panel = getPanelWithId(
           { ...context, items: prepareItems(context) },
-          panelId,
+          panelId
         );
 
         if (typeof panel.currentValue === "string") {
@@ -1892,7 +1880,7 @@ const PanelVisible = React.forwardRef<
         const panel = getPanelWithId({ ...context, items }, panelId);
         return getUnitPercentageValue(
           context.size,
-          panel.currentValue as Unit | number,
+          panel.currentValue as Unit | number
         );
       },
     };
@@ -1933,7 +1921,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
         size,
         id: props.id,
       }),
-      [size, props.id],
+      [size, props.id]
     );
 
     const { id: handleId } = useGroupItem(data);
@@ -1943,7 +1931,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
     }
 
     return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
-  },
+  }
 );
 
 const PanelResizerVisible = React.forwardRef<
@@ -1951,11 +1939,11 @@ const PanelResizerVisible = React.forwardRef<
   PanelResizerProps & { handleId: string }
 >(function PanelResizerVisible(
   { size = "0px", disabled, handleId, ...props },
-  ref,
+  ref
 ) {
   const unit = parseUnit(size);
   const [isDragging, setIsDragging] = React.useState(false);
-  const { send, ref: machineRef } = GroupMachineContext.useActorRef();
+  const { send } = GroupMachineContext.useActorRef();
   const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getPanelBeforeHandleId(context, handleId);
@@ -1971,21 +1959,14 @@ const PanelResizerVisible = React.forwardRef<
     }
   });
   const orientation = GroupMachineContext.useSelector(
-    (state) => state.context.orientation,
+    (state) => state.context.orientation
   );
   const groupsSize = GroupMachineContext.useSelector(
-    (state) => state.context.size,
+    (state) => state.context.size
   );
   const overshoot = GroupMachineContext.useSelector(
-    (state) => state.context.dragOvershoot,
+    (state) => state.context.dragOvershoot
   );
-  const handle = GroupMachineContext.useSelector(({ context }) => {
-    try {
-      return getHandleWithId(context, handleId);
-    } catch (e) {
-      return undefined;
-    }
-  });
   const { moveProps } = useMove({
     onMoveStart: () => {
       setIsDragging(true);
@@ -2007,22 +1988,6 @@ const PanelResizerVisible = React.forwardRef<
       }
     }
   };
-
-  const hasRegistered = React.useRef(Boolean(handle));
-
-  React.useEffect(() => {
-    return () => {
-      const context = machineRef.getSnapshot().context;
-
-      // React strict mode hack to get around the component getting unmounted
-      if (context.size === 0) {
-        return;
-      }
-
-      send({ type: "unregisterPanelHandle", id: handleId });
-      hasRegistered.current = false;
-    };
-  }, [send, handleId]);
 
   let cursor: React.CSSProperties["cursor"];
 
@@ -2086,7 +2051,7 @@ const PanelResizerVisible = React.forwardRef<
           ? undefined
           : getUnitPercentageValue(
               groupsSize,
-              panelBeforeHandle.currentValue as Unit,
+              panelBeforeHandle.currentValue as Unit
             )
       }
       {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}

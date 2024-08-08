@@ -23,10 +23,10 @@ const parser = docgen.withCustomConfig(
     savePropValueAsString: true,
     shouldExtractLiteralValuesFromEnum: true,
     shouldExtractValuesFromUnion: true,
-  },
+  }
 );
 const allDocs = parser.parse(
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx",
+  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx"
 );
 
 export default async function ApiPage({
@@ -41,7 +41,6 @@ export default async function ApiPage({
     return <div>Not found</div>;
   }
 
-  console.log(doc.props.handle.type.value);
   return (
     <div className="max-w-3xl mx-auto px-8">
       <H1>
