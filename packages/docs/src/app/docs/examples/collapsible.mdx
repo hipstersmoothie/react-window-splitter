@@ -26,13 +26,19 @@ You can control this by using the `collapsedSize` prop.
   <ColorfulPanel color="red" min="130px" id="3" />
 </ColorfulPanelGroup>
 
-<div className="my-6">
-  <CodeBlock
-    source="../../../examples/CollapsibleExample.tsx"
-    allowErrors={true}
-    showToolbar={false}
-  />
-</div>
+```tsx
+import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
+
+function CollapsibleExample() {
+  return (
+    <PanelGroup>
+      <Panel collapsible collapsedSize="100px" min="150px" max="400px" />
+      <PanelResizer />
+      <Panel min="130px" />
+    </PanelGroup>
+  );
+}
+```
 
 ## Default Collapsed
 
@@ -60,11 +66,37 @@ use the [imperative API](/docs/examples/imperative) or you can
 have full control over the collapsed state by using the `collapsed` 
 and `onCollapseChange` props.
 
+```tsx
+import { useState } from "react";
+import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
 
-<div className="my-6">
-  <CodeBlock
-    source="../../../examples/CollapsibleControlledExample.tsx"
-    allowErrors={true}
-    showToolbar={false}
-  />
-</div>
+function CollapsibleExample() {
+  const [collapsed, setCollapsed] = useState(true);
+
+  const onCollapseChange = (isCollapsed: boolean) => {
+    // Do whatever logic you want here.
+    // If you don't change the collapsed state, the panel
+    // will not collapse.
+    const shouldSetValue = true;
+
+    if (shouldSetValue) {
+      setCollapsed(isCollapsed);
+    }
+  };
+
+  return (
+    <PanelGroup>
+      <Panel
+        min="150px"
+        max="400px"
+        collapsible
+        collapsedSize="100px"
+        collapsed={collapsed}
+        onCollapseChange={onCollapseChange}
+      />
+      <PanelResizer />
+      <Panel min="130px" />
+    </PanelGroup>
+  );
+}
+```

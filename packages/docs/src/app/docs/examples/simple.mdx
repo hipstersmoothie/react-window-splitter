@@ -44,11 +44,16 @@ You can also split the area vertically by using the `orientation` prop.
   />
 </ColorfulPanelGroup>
 
-<div className="my-6">
-  <CodeBlock
-    source="../../../examples/VerticalExample.tsx"
-    allowErrors={true}
-    showToolbar={false}
-    focusedLines="5"
-  />
-</div>
+```tsx
+import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
+
+function VerticalExample() {
+  return (
+    <PanelGroup orientation="vertical">
+      <Panel min="50px" max="300px" />
+      <PanelResizer />
+      <Panel min="50px" />
+    </PanelGroup>
+  );
+}
+```

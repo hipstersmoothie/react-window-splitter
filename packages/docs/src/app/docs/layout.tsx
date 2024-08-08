@@ -35,7 +35,7 @@ function Header() {
 
 async function Sidebar({}) {
   return (
-    <div className="w-64 flex flex-col gap-4 py-2 px-2 flex-shrink-0">
+    <div className="w-64 flex flex-col gap-6 py-2 px-2 flex-shrink-0">
       <SidebarGroup>
         <SidebarItem path="/docs/install">Install</SidebarItem>
       </SidebarGroup>
@@ -46,10 +46,12 @@ async function Sidebar({}) {
         <SidebarItem path="/docs/examples/conditional">
           Conditional Panels
         </SidebarItem>
-        <SidebarItem path="/docs/examples/imperative">
-          Imperative APIs
-        </SidebarItem>
         <SidebarItem path="/docs/examples/persistance">Persistance</SidebarItem>
+      </SidebarGroup>
+      <SidebarGroup title="API Docs">
+        <SidebarItem path="/docs/api/panel-group">PanelGroup</SidebarItem>
+        <SidebarItem path="/docs/api/panel">Panel</SidebarItem>
+        <SidebarItem path="/docs/api/panel-resizer">PanelResizer</SidebarItem>
       </SidebarGroup>
       <SidebarGroup title="Thanks">
         <SidebarItem path="/docs/api/prior-art">Prior Art</SidebarItem>

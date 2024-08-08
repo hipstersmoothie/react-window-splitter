@@ -1,6 +1,6 @@
 import { pascalCase } from "change-case";
 import * as docgen from "react-docgen-typescript";
-import { CodeInline } from "mdxts/components";
+import { CodeInline, ExportedTypes } from "mdxts/components";
 import {
   H1,
   InlineCode,
@@ -8,6 +8,7 @@ import {
   TableCell,
   TableHeader,
   StyledMarkdown,
+  H2,
 } from "../../../../Components/Content";
 
 const parser = docgen.withCustomConfig(
@@ -19,10 +20,13 @@ const parser = docgen.withCustomConfig(
             !prop.parent.fileName.includes("@emotion")
         : true;
     },
+    savePropValueAsString: true,
+    shouldExtractLiteralValuesFromEnum: true,
+    shouldExtractValuesFromUnion: true,
   }
 );
 const allDocs = parser.parse(
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ResizeableGridPanels.tsx"
+  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx"
 );
 
 export default async function ApiPage({
@@ -37,6 +41,7 @@ export default async function ApiPage({
     return <div>Not found</div>;
   }
 
+  console.log(doc.props.handle.type.value);
   return (
     <div className="max-w-3xl mx-auto px-8">
       <H1>
@@ -72,6 +77,9 @@ export default async function ApiPage({
           ))}
         </tbody>
       </Table>
+      <H2>Imperative API</H2>
+
+      <ExportedTypes source="react-window-splitter/src/ReactWindowSplitter.tsx" />
     </div>
   );
 }
