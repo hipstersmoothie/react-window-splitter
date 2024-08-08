@@ -21,8 +21,10 @@ export default async function Persistance() {
       <H1>Persistance</H1>
 
       <Paragraph>
-        You can persist the state of the layout by using the `autosaveId` prop
-        on the `PanelGroup`. You muse also provide a unique id for each panel.
+        You can persist the state of the layout by using the{" "}
+        <InlineCode>autosaveId</InlineCode> prop on the{" "}
+        <InlineCode>PanelGroup</InlineCode>. You muse also provide a unique{" "}
+        <InlineCode>id</InlineCode> for each panel.
       </Paragraph>
 
       <div className="my-6">
