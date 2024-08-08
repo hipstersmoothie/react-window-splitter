@@ -1,7 +1,6 @@
 # TODO
 
 - [ ] Docs
-  - [ ] Imperative Panels
   - [ ] Prior Art
 - [ ] [Tests](https://github.com/kolodny/safetest)
 - [ ] Bugs

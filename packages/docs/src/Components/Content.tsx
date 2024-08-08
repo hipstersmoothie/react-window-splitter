@@ -72,32 +72,52 @@ export function InlineCode({
   );
 }
 
-export function H1({ children }: { children: React.ReactNode }) {
+export function H1({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h1 className="group text-4xl mb-6 group" data-heading="1">
-      {children}
-    </h1>
+    <h1
+      className={`group text-4xl mb-6 group ${className}`}
+      data-heading="1"
+      {...props}
+    />
   );
 }
 
-export function H2({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-2xl mt-8 mb-6">{children}</h2>;
+export function H2({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h2 className={`text-2xl mt-8 mb-6 ${className}`} {...props} />;
 }
 
-export function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xl my-6">{children}</h3>;
+export function H3({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={`text-xl my-6 ${className}`} {...props} />;
 }
 
-export function Paragraph({ children }: { children: React.ReactNode }) {
-  return <p className="my-6">{children}</p>;
+export function Paragraph({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={`my-6 ${className}`} {...props} />;
 }
 
-export function UnorderedList({ children }: { children: React.ReactNode }) {
-  return <ul className="my-6 list-disc pl-6">{children}</ul>;
+export function UnorderedList({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLUListElement>) {
+  return <ul className={`my-6 list-disc pl-6 ${className}`} {...props} />;
 }
 
-export function ListItem({ children }: { children: React.ReactNode }) {
-  return <li className="my-2">{children}</li>;
+export function ListItem({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLLIElement>) {
+  return <li className={`my-2 ${className}`} {...props} />;
 }
 
 export function Wrapper({ children }: { children: React.ReactNode }) {

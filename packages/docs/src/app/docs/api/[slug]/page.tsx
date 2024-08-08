@@ -1,6 +1,7 @@
 import { pascalCase } from "change-case";
 import * as docgen from "react-docgen-typescript";
-import { CodeInline, ExportedTypes } from "mdxts/components";
+import { CodeInline } from "mdxts/components";
+import { Project } from "ts-morph";
 import {
   H1,
   InlineCode,
@@ -11,23 +12,24 @@ import {
   H2,
 } from "../../../../Components/Content";
 
-const parser = docgen.withCustomConfig(
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/tsconfig.json",
-  {
-    propFilter: (prop) => {
-      return prop.parent
-        ? !prop.parent.fileName.includes("@types/react") &&
-            !prop.parent.fileName.includes("@emotion")
-        : true;
-    },
-    savePropValueAsString: true,
-    shouldExtractLiteralValuesFromEnum: true,
-    shouldExtractValuesFromUnion: true,
-  }
-);
-const allDocs = parser.parse(
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx"
-);
+const tsConfig =
+  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/tsconfig.json";
+const targetFile =
+  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx";
+const parser = docgen.withCustomConfig(tsConfig, {
+  propFilter: (prop) => {
+    return prop.parent
+      ? !prop.parent.fileName.includes("@types/react") &&
+          !prop.parent.fileName.includes("@emotion")
+      : true;
+  },
+});
+const allDocs = parser.parse(targetFile);
+
+const project = new Project({
+  tsConfigFilePath: tsConfig,
+});
+const file = project.getSourceFile(targetFile);
 
 export default async function ApiPage({
   params,
@@ -40,6 +42,20 @@ export default async function ApiPage({
   if (!doc) {
     return <div>Not found</div>;
   }
+
+  const [, handleProp] =
+    Object.entries(doc.props).find(([k]) => k.includes("handle")) || [];
+  const handleType = handleProp?.type?.name.match(/Ref<(.*)>/)?.[1];
+  const handleDocs = handleType
+    ? file
+        ?.getInterface(handleType)
+        ?.getProperties()
+        .map((p) => ({
+          name: p.getName(),
+          description: p.getJsDocs().map((d) => d.getDescription().trim())[0],
+          type: p.getType().getText(),
+        })) || []
+    : [];
 
   return (
     <div className="max-w-3xl mx-auto px-8">
@@ -76,9 +92,39 @@ export default async function ApiPage({
           ))}
         </tbody>
       </Table>
-      <H2>Imperative API</H2>
-
-      <ExportedTypes source="react-window-splitter/src/ReactWindowSplitter.tsx" />
+      {handleDocs.length > 0 && (
+        <>
+          <H2 id="imperative-api">Imperative API</H2>
+          <Table>
+            <thead>
+              <tr>
+                <TableHeader>Name</TableHeader>
+                <TableHeader>Type</TableHeader>
+                <TableHeader>Description</TableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {handleDocs.map((prop) => (
+                <tr key={prop.name}>
+                  <TableCell>
+                    <InlineCode>{prop.name}</InlineCode>
+                  </TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <CodeInline
+                      language="ts"
+                      className="text-sm !px-2 !py-0.5 !whitespace-pre-wrap !block !w-fit"
+                      value={prop.type}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StyledMarkdown value={prop.description} />
+                  </TableCell>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
+      )}
     </div>
   );
 }

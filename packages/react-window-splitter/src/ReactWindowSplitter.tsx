@@ -1363,10 +1363,6 @@ export interface PanelGroupProps
   snapshot?: Snapshot<unknown>;
   /**
    * How to save the persisted state
-   *
-   * - `localStorage` - Save the state to `localStorage`
-   * - `cookie` - Save the state to a cookie
-   *
    * @default "localStorage"
    */
   autosaveStrategy?: "localStorage" | "cookie";
