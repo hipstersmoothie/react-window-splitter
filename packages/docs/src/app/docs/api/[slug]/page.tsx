@@ -14,7 +14,7 @@ import {
 const parser = docgen.withCustomConfig(
   "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/tsconfig.json",
   {
-    propFilter: (prop: any) => {
+    propFilter: (prop) => {
       return prop.parent
         ? !prop.parent.fileName.includes("@types/react") &&
             !prop.parent.fileName.includes("@emotion")
@@ -23,10 +23,10 @@ const parser = docgen.withCustomConfig(
     savePropValueAsString: true,
     shouldExtractLiteralValuesFromEnum: true,
     shouldExtractValuesFromUnion: true,
-  }
+  },
 );
 const allDocs = parser.parse(
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx"
+  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx",
 );
 
 export default async function ApiPage({

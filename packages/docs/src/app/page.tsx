@@ -1,5 +1,4 @@
 import HeaderExample from "../Components/HeaderExample";
-import Link from "next/link";
 import { CodeBlock } from "mdxts/components";
 import { CopyPackageNameButton } from "../Components/CopyPackageNameButton";
 import { ButtonLink } from "../Components/Button";

@@ -1,13 +1,15 @@
 {
   "name": "monorepo",
+  "type": "module",
   "scripts": {
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^1.6.1",
     "@eslint/compat": "^1.1.1",
     "@eslint/js": "^9.6.0",
-    "@chromatic-com/storybook": "^1.6.1",
     "@storybook/addon-essentials": "^8.2.2",
     "@storybook/addon-interactions": "^8.2.2",
     "@storybook/addon-links": "^8.2.2",
@@ -17,8 +19,10 @@
     "@storybook/react-vite": "^8.2.2",
     "@storybook/test": "^8.2.2",
     "eslint": "9.x",
+    "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react": "^7.34.3",
+    "globals": "^15.8.0",
+    "prettier": "^3.3.3",
     "storybook": "^8.2.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^7.16.0"

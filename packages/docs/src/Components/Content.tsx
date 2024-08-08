@@ -38,14 +38,22 @@ export function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   );
 }
 
-export function InlineCode({ className, ...props }: any) {
+export function InlineCode({
+  className,
+  ...props
+}: Omit<React.ComponentProps<"code">, "children"> & {
+  children: string;
+}) {
   if (className?.includes("language-")) {
     const [, language] = className.match(/language-(.*)/) || [];
+
     return (
       <CodeBlock
         className={{ container: "py-4" }}
         value={props.children}
-        language={language}
+        language={
+          language as React.ComponentProps<typeof CodeBlock>["language"]
+        }
       />
     );
   }

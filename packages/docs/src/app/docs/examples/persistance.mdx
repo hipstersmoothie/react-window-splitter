@@ -1,9 +1,14 @@
 import { CodeBlock } from "mdxts/components";
+import { PersistanceExampleVisual } from "../../../examples/PersistanceExampleVisual.tsx";
 
 # Persistance
 
 You can persist the state of the layout by using the `autosaveId` prop on the `PanelGroup`.
 You muse also provide a unique id for each panel.
+
+<div className="my-6">
+  <PersistanceExampleVisual />
+</div>
 
 ```tsx
 import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
@@ -24,4 +29,3 @@ function PersistanceExample() {
 By default the layout will be persisted to `localStorage`.
 
 If you want to persist to `cookie` you can set `autosaveStrategy='cookie'`.
-

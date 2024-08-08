@@ -1,6 +1,6 @@
 import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
 
-function Example() {
+export function Example() {
   return (
     <PanelGroup>
       <Panel min="130px" max="400px" />
