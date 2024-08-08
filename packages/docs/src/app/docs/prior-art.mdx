@@ -1,0 +1,39 @@
+# Prior Art
+
+This library is heavily inspired by the following libraries:
+
+- [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)
+
+This library was build to match the API of `react-resizable-panels` but with a few key differences._createMdxContent
+
+## 1. Mixed Units
+
+In `react-resizable-panels` you can only use percentages to define the size of the panels.
+At one point they did have support for pixels but it because it was causing too many bugs.
+For the product I work on we need support for pixels since the designs were defined like that.
+So I had created my own fork of `react-resizable-panels` that added support for pixels but 
+it made the code very complicated and had lots of hard to debug subtle bugs.
+
+This library is built to support both pixels and percentages. You can use either and even
+mix and match!
+
+This is mainly accomplished by building on `grid` instead of `flex`.
+With `grid` it's much easier to define a complex layout with a mix of percentages, pixels, and other handy units.
+The full approach is documented in the source code.
+
+## 2. Controlled Panels
+
+`react-resizable-panels` has support for collapsible panels but it's very hard to control it.
+Also having a panel collapsed by default was pretty tricky to do.
+Personally I like Radix's pattern for controlled components so I matched that here in the collapse API:
+
+- Just `collapsible` prop => The `PanelGroup` will control the collapsed state
+- `collapsible` and `onCollapseChange` prop => The `PanelGroup` will control the collapsed state, but will notify you when it changes
+- `collapsible`, `collapsed` and `onCollapseChange` prop => The `PanelGroup` defers the collapse state fully to you. If you don't update wherever you are storing `collapsed` when `onCollapseChange` is called the panel's collapsed state will not update
+- `defaultCollapsed` prop => Render the panel collapsed by default, but let the `PanelGroup` control the collapsed state 
+
+## 3. Cookie Based Layout Persistance (SSR)
+
+`react-resizable-panels` has support for persisting the state of the layout to `localStorage` or a custom method.
+You can make it work but it's not very convenient.
+Since the easiest method for storing user settings for server use is cookies, `react-window-splitter` has [support for persisting the state of the layout to `cookie` storage.](/docs/examples/persistance#cookie-storage)

@@ -54,7 +54,7 @@ async function Sidebar() {
         <SidebarItem path="/docs/api/panel-resizer">PanelResizer</SidebarItem>
       </SidebarGroup>
       <SidebarGroup title="Thanks">
-        <SidebarItem path="/docs/api/prior-art">Prior Art</SidebarItem>
+        <SidebarItem path="/docs/prior-art">Prior Art</SidebarItem>
       </SidebarGroup>
     </div>
   );

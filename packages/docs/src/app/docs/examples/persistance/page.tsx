@@ -37,7 +37,7 @@ export default async function Persistance() {
         showToolbar={false}
       />
 
-      <H2>Cookie Storage</H2>
+      <H2 id="cookie-storage">Cookie Storage</H2>
 
       <Paragraph>
         By default the layout will be persisted to{" "}
