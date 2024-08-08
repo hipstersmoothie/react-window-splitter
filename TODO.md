@@ -2,7 +2,6 @@
 
 - [ ] Docs
   - [ ] Imperative Panels
-  - [ ] Persistance
   - [ ] Prior Art
 - [ ] [Tests](https://github.com/kolodny/safetest)
 - [ ] Bugs

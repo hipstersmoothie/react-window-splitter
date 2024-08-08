@@ -43,6 +43,17 @@ export default async function Persistance() {
         <InlineCode>cookie</InlineCode> you can set{" "}
         <InlineCode>{"autosaveStrategy='cookie'"}</InlineCode>
       </Paragraph>
+
+      <Paragraph>
+        You will also need to read the state from the cookie in your server. In
+        the following example we get the cookies in a Next.js App Router page.
+      </Paragraph>
+
+      <CodeBlock
+        source="../../../../examples/PersistanceCookieExample.tsx"
+        allowErrors={true}
+        showToolbar={false}
+      />
     </Wrapper>
   );
 }

@@ -35,7 +35,7 @@ function Header() {
 
 async function Sidebar() {
   return (
-    <div className="w-64 flex flex-col gap-6 py-2 px-2 flex-shrink-0">
+    <div className="w-64 flex flex-col gap-6 py-2 px-2 flex-shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto">
       <SidebarGroup>
         <SidebarItem path="/docs/install">Install</SidebarItem>
       </SidebarGroup>
