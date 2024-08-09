@@ -1,7 +1,7 @@
 {
   "name": "monorepo",
   "packageManager": "pnpm@9.6.0",
-  "repository": "hipstersmoothie/react-window-splitter",
+  "repository": "https://github.com/hipstersmoothie/react-window-splitter",
   "author": {
     "name": "Andrew Lisowski",
     "email": "lisowski54@gmail.com"
