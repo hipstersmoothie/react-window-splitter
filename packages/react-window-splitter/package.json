@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/package.json",
   "name": "react-window-splitter",
   "sideEffects": false,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A WAI-ARIA compliant window splitter for React.",
   "homepage": "https://react-window-splitter-six.vercel.app",
   "repository": "https://github.com/hipstersmoothie/react-window-splitter",
