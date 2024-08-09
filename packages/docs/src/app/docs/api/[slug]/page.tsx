@@ -1,7 +1,8 @@
-import { pascalCase } from "change-case";
+import { pascalCase, kebabCase } from "change-case";
 import * as docgen from "react-docgen-typescript";
 import { CodeInline } from "mdxts/components";
 import { Project } from "ts-morph";
+import path from "path";
 import {
   H1,
   InlineCode,
@@ -12,10 +13,13 @@ import {
   H2,
 } from "../../../../Components/Content";
 
-const tsConfig =
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/tsconfig.json";
-const targetFile =
-  "/Users/andrewlisowski/Documents/react-window-splitter/packages/react-window-splitter/src/ReactWindowSplitter.tsx";
+const splitterPackage = path.join(
+  __dirname,
+  "../../../../../../../react-window-splitter"
+);
+const tsConfig = path.join(splitterPackage, "tsconfig.json");
+const targetFile = path.join(splitterPackage, "src/ReactWindowSplitter.tsx");
+
 const parser = docgen.withCustomConfig(tsConfig, {
   propFilter: (prop) => {
     return prop.parent
@@ -127,4 +131,10 @@ export default async function ApiPage({
       )}
     </div>
   );
+}
+
+export async function generateStaticParams() {
+  return allDocs.map((doc) => ({
+    slug: kebabCase(doc.displayName),
+  }));
 }

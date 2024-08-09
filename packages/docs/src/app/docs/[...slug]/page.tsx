@@ -19,3 +19,11 @@ export default async function Page({ params }: Props) {
     </Wrapper>
   );
 }
+
+export async function generateStaticParams() {
+  const docs = allDocs.all().filter((doc) => doc.tsPath?.includes(".mdx"));
+
+  return docs.map((doc) => ({
+    slug: doc.pathname.split("/").slice(2),
+  }));
+}
