@@ -305,7 +305,7 @@ export function Collapsible() {
     <StyledPanelGroup>
       <StyledPanel
         min="100px"
-        collapsible={true}
+        collapsible
         collapsedSize="60px"
         style={{ border: "10px solid green", boxSizing: "border-box" }}
         onCollapseChange={(isCollapsed) => {
@@ -321,9 +321,9 @@ export function Collapsible() {
       <StyledResizer />
       <StyledPanel
         min="100px"
-        collapsible={true}
+        collapsible
         collapsedSize="60px"
-        defaultCollapsed={true}
+        defaultCollapsed
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
         collapsed={collapsed}
         onCollapseChange={(isCollapsed) => {
@@ -347,7 +347,7 @@ export function ImperativePanel() {
         <StyledPanel
           handle={panelRef}
           min="100px"
-          collapsible={true}
+          collapsible
           collapsedSize="60px"
         >
           <div>1</div>
@@ -359,9 +359,9 @@ export function ImperativePanel() {
         <StyledResizer />
         <StyledPanel
           min="100px"
-          collapsible={true}
+          collapsible
           collapsedSize="60px"
-          defaultCollapsed={true}
+          defaultCollapsed
         >
           <div>3</div>
         </StyledPanel>
@@ -454,12 +454,7 @@ export function ConditionalPanel() {
   return (
     <React.StrictMode>
       <StyledPanelGroup>
-        <StyledPanel
-          id="panel-1"
-          min="100px"
-          collapsible={true}
-          collapsedSize="60px"
-        >
+        <StyledPanel id="panel-1" min="100px" collapsible collapsedSize="60px">
           <div>1</div>
         </StyledPanel>
         <StyledResizer id="handle-1" />
@@ -491,12 +486,7 @@ export function ConditionalPanelComplex() {
   return (
     <React.StrictMode>
       <StyledPanelGroup>
-        <StyledPanel
-          id="panel-1"
-          min="100px"
-          collapsible={true}
-          collapsedSize="60px"
-        >
+        <StyledPanel id="panel-1" min="100px" collapsible collapsedSize="60px">
           <div>1</div>
         </StyledPanel>
         <StyledResizer id="handle-1" />
@@ -521,9 +511,9 @@ export function ConditionalPanelComplex() {
         <StyledResizer id="handle-4" />
         <StyledPanel
           min="200px"
-          collapsible={true}
+          collapsible
           collapsedSize="60px"
-          defaultCollapsed={true}
+          defaultCollapsed
           id="panel-5"
         >
           <div>4</div>

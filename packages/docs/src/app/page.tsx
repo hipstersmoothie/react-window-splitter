@@ -26,7 +26,7 @@ export default async function Home() {
         <HeaderExample />
         <CodeBlock
           source="../examples/HeaderExample.tsx"
-          allowErrors={true}
+          allowErrors
           showToolbar={false}
         />
 

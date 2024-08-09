@@ -17,9 +17,20 @@ export default [
     files: ["**/*.{ts,tsx}"],
     ignores: ["**/.storybook/**"],
     ...react.configs["recommended-type-checked"],
+    settings: {
+      "react-x": {
+        additionalHooks: {
+          useLayoutEffect: ["useIsomorphicLayoutEffect"],
+        },
+      },
+    },
     languageOptions: {
       parser: tsParser,
       parserOptions: { project: "./tsconfig.json" },
+    },
+    rules: {
+      "@eslint-react/prefer-shorthand-boolean": "error",
+      "@eslint-react/naming-convention/filename-extension": "error",
     },
   },
   {

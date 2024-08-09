@@ -35,7 +35,7 @@ export default async function Persistance() {
       <CodeBlock
         value={PersistanceExampleCode}
         language="tsx"
-        allowErrors={true}
+        allowErrors
         showToolbar={false}
       />
 
@@ -56,7 +56,7 @@ export default async function Persistance() {
       <CodeBlock
         value={PersistanceCookieExampleCode}
         language="tsx"
-        allowErrors={true}
+        allowErrors
         showToolbar={false}
       />
     </>
