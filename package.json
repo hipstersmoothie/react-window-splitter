@@ -1,6 +1,5 @@
 {
   "name": "monorepo",
-  "version": "0.1.0",
   "packageManager": "pnpm@9.6.0",
   "repository": "hipstersmoothie/react-window-splitter",
   "author": {
