@@ -2,6 +2,25 @@
 
 #### ⚠️ Pushed to `main`
 
+- init all contributors (lisowski54@gmail.com)
+- remove todo.md (lisowski54@gmail.com)
+- try this (lisowski54@gmail.com)
+- add root readme (lisowski54@gmail.com)
+- `react-window-splitter`
+  - mark package as side effect free (lisowski54@gmail.com)
+  - lints (lisowski54@gmail.com)
+  - use different eslint plugin (lisowski54@gmail.com)
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
+# v0.1.8 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
 - remove todo.md ([@hipstersmoothie](https://github.com/hipstersmoothie))
 - try this ([@hipstersmoothie](https://github.com/hipstersmoothie))
 - add root readme ([@hipstersmoothie](https://github.com/hipstersmoothie))
