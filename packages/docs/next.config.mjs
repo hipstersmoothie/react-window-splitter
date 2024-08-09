@@ -9,6 +9,11 @@ const withMdxts = createMdxtsPlugin({
 const nextConfig = {
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   reactStrictMode: true,
+  experimental: {
+    outputFileTracingIncludes: {
+      "/**/*": ["./src/examples/**/*"],
+    },
+  },
 };
 
 export default withMdxts(nextConfig);
