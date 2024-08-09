@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "react-window-splitter",
   "version": "0.1.4",
   "description": "",
@@ -66,12 +67,6 @@
   "main": "./dist/commonjs/ReactWindowSplitter.js",
   "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
   "module": "./dist/esm/ReactWindowSplitter.js",
-  "files": [
-    "dist",
-    "src",
-    "README.md",
-    "CHANGELOG.md"
-  ],
   "keywords": [
     "react",
     "panel",
