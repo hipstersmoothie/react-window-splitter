@@ -13,9 +13,6 @@ const withMdxts = createMdxtsPlugin({
 const nextConfig = {
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   reactStrictMode: true,
-  experimental: {
-    outputFileTracingRoot: path.join(__dirname, "../.."),
-  },
 };
 
 export default withMdxts(nextConfig);
