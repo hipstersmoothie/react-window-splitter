@@ -1,3 +1,30 @@
+# v0.1.3 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
+- put auto config in package.json (lisowski54@gmail.com)
+- remove (lisowski54@gmail.com)
+- try making them mdx files (lisowski54@gmail.com)
+- include all examples - 2 (lisowski54@gmail.com)
+- include all examples (lisowski54@gmail.com)
+- switch to mdx pages (lisowski54@gmail.com)
+- fix content match (lisowski54@gmail.com)
+- add missing deps (lisowski54@gmail.com)
+- `react-window-splitter`
+  - cleanup readme (lisowski54@gmail.com)
+  - add links (lisowski54@gmail.com)
+  - fix linting (lisowski54@gmail.com)
+  - add basic readme (lisowski54@gmail.com)
+  - fix peer dep warnings (lisowski54@gmail.com)
+  - fix build locally (lisowski54@gmail.com)
+  - add engine (lisowski54@gmail.com)
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.2 (Thu Aug 08 2024)
 
 #### ⚠️ Pushed to `main`

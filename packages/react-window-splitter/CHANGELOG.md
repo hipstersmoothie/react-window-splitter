@@ -1,3 +1,21 @@
+# v0.1.3 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
+- cleanup readme (lisowski54@gmail.com)
+- add links (lisowski54@gmail.com)
+- fix linting (lisowski54@gmail.com)
+- add basic readme (lisowski54@gmail.com)
+- fix peer dep warnings (lisowski54@gmail.com)
+- fix build locally (lisowski54@gmail.com)
+- add engine (lisowski54@gmail.com)
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.2 (Thu Aug 08 2024)
 
 #### ⚠️ Pushed to `main`
