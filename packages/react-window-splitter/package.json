@@ -15,7 +15,6 @@
     "dev": "tshy -w",
     "lint": "eslint src"
   },
-  "keywords": [],
   "license": "MIT",
   "peerDependencies": {
     "react": ">=16",
@@ -63,5 +62,18 @@
   },
   "main": "./dist/commonjs/ReactWindowSplitter.js",
   "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
-  "module": "./dist/esm/ReactWindowSplitter.js"
+  "module": "./dist/esm/ReactWindowSplitter.js",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "react",
+    "panel",
+    "splitter",
+    "resizable",
+    "window"
+  ]
 }
