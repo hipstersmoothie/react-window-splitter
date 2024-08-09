@@ -2,6 +2,33 @@
 
 #### ⚠️ Pushed to `main`
 
+- put auto config in package.json ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- remove ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- try making them mdx files ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- include all examples - 2 ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- include all examples ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- switch to mdx pages ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix content match ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add missing deps ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- `react-window-splitter`
+  - cleanup readme ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - add links ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - fix linting ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - add basic readme ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - fix peer dep warnings ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - fix build locally ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - add engine ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
+# v0.1.3 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
 - put auto config in package.json (lisowski54@gmail.com)
 - remove (lisowski54@gmail.com)
 - try making them mdx files (lisowski54@gmail.com)
