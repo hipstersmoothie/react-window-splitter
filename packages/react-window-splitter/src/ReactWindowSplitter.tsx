@@ -1252,7 +1252,7 @@ const groupMachine = createMachine(
         const handle = getHandleForPanelId(context, event.panelId);
         const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
 
-        if (panel.currentValue !== collapsedSize) {
+        if (panel.currentValue !== collapsedSize && !event.controlled) {
           panel.sizeBeforeCollapse = panel.currentValue as number;
         }
 
