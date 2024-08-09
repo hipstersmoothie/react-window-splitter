@@ -20,6 +20,10 @@ export default [
         version: "18",
       },
     },
+    rules: {
+      ...reactPlugin.configs.flat.recommended.rules,
+      "react/prop-types": "off",
+    },
   },
   {
     files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],

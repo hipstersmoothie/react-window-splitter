@@ -6,6 +6,7 @@ const allContributorsOptions = {
   },
 };
 
+// eslint-disable-next-line no-undef
 module.export = function rc() {
   return {
     plugins: ["released", "npm", ["all-contributors", allContributorsOptions]],

@@ -1812,7 +1812,7 @@ const PanelVisible = React.forwardRef<
   const panel = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getPanelWithId(context, panelId);
-    } catch (e) {
+    } catch {
       return undefined;
     }
   });
@@ -1943,14 +1943,14 @@ const PanelResizerVisible = React.forwardRef<
   const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getPanelBeforeHandleId(context, handleId);
-    } catch (e) {
+    } catch {
       return undefined;
     }
   });
   const collapsiblePanel = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getCollapsiblePanelForHandleId(context, handleId);
-    } catch (e) {
+    } catch {
       return undefined;
     }
   });
