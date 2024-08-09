@@ -31,6 +31,7 @@
     "@xstate/react": "^4.1.1",
     "invariant": "^2.2.4",
     "react-aria": "^3.33.1",
+    "reforest": "^0.13.0",
     "universal-cookie": "^7.2.0",
     "xstate": "^5.14.0"
   },
