@@ -1,3 +1,17 @@
+# v0.1.8 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
+- mark package as side effect free ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- lints ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- use different eslint plugin ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.7 (Fri Aug 09 2024)
 
 #### 🐛 Bug Fix
