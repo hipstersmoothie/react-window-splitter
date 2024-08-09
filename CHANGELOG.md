@@ -1,3 +1,16 @@
+# v0.1.5 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
+- `react-window-splitter`
+  - try to get readme rendering ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.3 (Fri Aug 09 2024)
 
 #### ⚠️ Pushed to `main`
