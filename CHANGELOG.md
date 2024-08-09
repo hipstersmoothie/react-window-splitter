@@ -1,3 +1,16 @@
+# v0.1.6 (Fri Aug 09 2024)
+
+#### ⚠️ Pushed to `main`
+
+- `react-window-splitter`
+  - fix readme (lisowski54@gmail.com)
+
+#### Authors: 1
+
+- Andrew Lisowski (lisowski54@gmail.com)
+
+---
+
 # v0.1.5 (Fri Aug 09 2024)
 
 #### ⚠️ Pushed to `main`
