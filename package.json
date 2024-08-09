@@ -42,5 +42,31 @@
     "storybook": "^8.2.2",
     "turbo": "^2.0.12",
     "typescript": "^5.5.3"
+  },
+  "auto": {
+    "plugins": [
+      "released",
+      "npm",
+      [
+        "all-contributors",
+        {
+          "types": {
+            "code": [
+              "**/src/**/*",
+              "**/package.json",
+              "**/tsconfig.json"
+            ],
+            "doc": [
+              "**/*.md",
+              "**/packages/docs/**"
+            ],
+            "test": [
+              "**/*.test.ts",
+              "**/*.test.tsx"
+            ]
+          }
+        }
+      ]
+    ]
   }
 }
