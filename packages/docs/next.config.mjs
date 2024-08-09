@@ -1,8 +1,13 @@
 import { createMdxtsPlugin } from "mdxts/next";
+import bundleAnalyzer from "@next/bundle-analyzer";
 
 const withMdxts = createMdxtsPlugin({
   theme: "github-dark-dimmed",
   gitSource: "https://github.com/hipstersmoothie/react-window-splitter",
+});
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
 });
 
 /** @type {import('next').NextConfig} */
@@ -11,4 +16,4 @@ const nextConfig = {
   reactStrictMode: true,
 };
 
-export default withMdxts(nextConfig);
+export default withBundleAnalyzer(withMdxts(nextConfig));
