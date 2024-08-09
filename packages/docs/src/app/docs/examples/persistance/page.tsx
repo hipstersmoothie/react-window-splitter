@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
+import { CodeBlock } from "mdxts/components";
 import { PersistanceExampleVisual } from "../../../../examples/PersistanceExampleVisual";
 import { H1, H2, InlineCode, Paragraph } from "../../../../Components/Content";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import PersistanceExampleCode from "./PersistanceExample.mdx";
+import PersistanceExampleCode from "!!raw-loader!./PersistanceExample";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import PersistanceCookieExampleCode from "./PersistanceCookieExample.mdx";
+import PersistanceCookieExampleCode from "!!raw-loader!./PersistanceCookieExample";
 
 export default async function Persistance() {
   const cookieStore = cookies();
@@ -31,7 +32,12 @@ export default async function Persistance() {
         <PersistanceExampleVisual snapshot={snapshot} />
       </div>
 
-      <PersistanceExampleCode />
+      <CodeBlock
+        value={PersistanceExampleCode}
+        language="tsx"
+        allowErrors={true}
+        showToolbar={false}
+      />
 
       <H2 id="cookie-storage">Cookie Storage</H2>
 
@@ -47,7 +53,12 @@ export default async function Persistance() {
         the following example we get the cookies in a Next.js App Router page.
       </Paragraph>
 
-      <PersistanceCookieExampleCode />
+      <CodeBlock
+        value={PersistanceCookieExampleCode}
+        language="tsx"
+        allowErrors={true}
+        showToolbar={false}
+      />
     </>
   );
 }

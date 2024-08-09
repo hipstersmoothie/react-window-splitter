@@ -1,4 +1,3 @@
-```tsx
 import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
 
 export function PersistanceExample() {
@@ -10,4 +9,3 @@ export function PersistanceExample() {
     </PanelGroup>
   );
 }
-```

@@ -1,4 +1,3 @@
-```tsx
 import { cookies } from "next/headers";
 import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
 
@@ -21,4 +20,3 @@ export function PersistanceExamplePage() {
     </PanelGroup>
   );
 }
-```

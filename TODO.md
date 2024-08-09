@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] Publish v0
 - [ ] [Tests](https://github.com/kolodny/safetest)
 - [ ] Bugs
   - [ ] Conditional Panels Example jumping
