@@ -1748,16 +1748,11 @@ export interface PanelProps
 
 /** A panel within a `PanelGroup` */
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
-  function Panel(props, outerRef) {
-    const {
-      min,
-      max,
-      defaultCollapsed,
-      collapsible = false,
-      collapsedSize,
-      collapsed,
-      onCollapseChange,
-    } = props;
+  function Panel(
+    { defaultCollapsed, min, max, collapsedSize, onCollapseChange, ...props },
+    outerRef
+  ) {
+    const { collapsible = false, collapsed } = props;
     const isPrerender = React.useContext(PreRenderContext);
     const onCollapseChangeRef = React.useRef(onCollapseChange);
     const panelDataRef = React.useMemo(() => {
@@ -1799,7 +1794,12 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 
 const PanelVisible = React.forwardRef<
   HTMLDivElement,
-  PanelProps & { panelId: string }
+  Omit<
+    PanelProps,
+    "collapsedSize" | "onCollapseChange" | "defaultCollapsed" | "min" | "max"
+  > & {
+    panelId: string;
+  }
 >(function PanelVisible(
   { collapsible = false, collapsed, handle, panelId, ...props },
   outerRef
