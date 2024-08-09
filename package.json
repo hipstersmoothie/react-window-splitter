@@ -16,7 +16,7 @@
     "build-storybook": "storybook build",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "release": "auto shipit"
+    "release": "pnpm run build && auto shipit"
   },
   "devDependencies": {
     "@auto-it/all-contributors": "^11.2.0",
