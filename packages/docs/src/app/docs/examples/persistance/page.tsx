@@ -1,13 +1,7 @@
 import { CodeBlock } from "mdxts/components";
 import { cookies } from "next/headers";
 import { PersistanceExampleVisual } from "../../../../examples/PersistanceExampleVisual";
-import {
-  H1,
-  H2,
-  InlineCode,
-  Paragraph,
-  Wrapper,
-} from "../../../../Components/Content";
+import { H1, H2, InlineCode, Paragraph } from "../../../../Components/Content";
 
 export default async function Persistance() {
   const cookieStore = cookies();
@@ -17,7 +11,7 @@ export default async function Persistance() {
     : undefined;
 
   return (
-    <Wrapper>
+    <>
       <H1>Persistance</H1>
 
       <Paragraph>
@@ -56,6 +50,6 @@ export default async function Persistance() {
         allowErrors={true}
         showToolbar={false}
       />
-    </Wrapper>
+    </>
   );
 }

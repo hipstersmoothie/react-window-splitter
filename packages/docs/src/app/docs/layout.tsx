@@ -3,6 +3,7 @@ import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { IconLink } from "../../Components/IconButton";
 import { Tooltip, TooltipTrigger } from "../../Components/Tooltip";
 import { SidebarGroup, SidebarItem } from "../../Components/Sidebar";
+import { Wrapper } from "../../Components/Content";
 
 function Header() {
   return (
@@ -70,7 +71,7 @@ export default function DocsLayout({
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        {children}
+        <Wrapper>{children}</Wrapper>
       </div>
     </div>
   );

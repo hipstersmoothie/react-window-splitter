@@ -7,6 +7,7 @@ const withMdxts = createMdxtsPlugin({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   reactStrictMode: true,
 };
 
