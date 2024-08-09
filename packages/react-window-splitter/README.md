@@ -38,7 +38,7 @@ function Example() {
 
 While not required for the simple case, for anything more complex you will
 need to add an `id` prop to your panels and handles.
-This is so that the component can tell all of the components apart during layout and rendering.\_createMdxContent
+This is so that the component can tell all of the components apart during layout and rendering.
 
 Features that require `id`:
 
