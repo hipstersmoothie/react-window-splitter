@@ -15,17 +15,17 @@
     "dev": "turbo run dev",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "lint": "eslint .",
+    "lint": "turbo run lint lint-root",
+    "lint-root": "eslint .",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },
   "devDependencies": {
+    "@internal/eslint-config": "workspace:*",
     "@auto-it/all-contributors": "^11.2.0",
     "@auto-it/first-time-contributor": "^11.2.0",
     "@auto-it/released": "^11.2.0",
     "@chromatic-com/storybook": "^1.6.1",
-    "@eslint/compat": "^1.1.1",
-    "@eslint/js": "^9.6.0",
     "@storybook/addon-essentials": "^8.2.2",
     "@storybook/addon-interactions": "^8.2.2",
     "@storybook/addon-links": "^8.2.2",
@@ -34,17 +34,13 @@
     "@storybook/react": "^8.2.2",
     "@storybook/react-vite": "^8.2.2",
     "@storybook/test": "^8.2.2",
-    "@types/eslint__js": "^8.42.3",
     "auto": "^11.2.0",
     "eslint": "^9.8.0",
-    "eslint-plugin-react": "^7.35.0",
-    "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.8.0",
     "lerna": "^8.1.8",
     "prettier": "^3.3.3",
     "storybook": "^8.2.2",
     "turbo": "^2.0.12",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^8.0.1"
+    "typescript": "^5.5.3"
   }
 }

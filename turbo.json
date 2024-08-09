@@ -9,6 +9,8 @@
     "dev": {
       "cache": false,
       "persistent": true
-    }
+    },
+    "lint": { "outputs": [] },
+    "//#lint-root": { "outputs": [] }
   }
 }
