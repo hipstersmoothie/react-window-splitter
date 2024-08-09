@@ -8,6 +8,8 @@ A full featured window splitter for React.
 - Controlled panels
 - Layout Persistance - LocalStorage and Cookie
 
+[Read the full docs](https://react-window-splitter-six.vercel.app)
+
 ## Install
 
 ```bash
@@ -43,24 +45,6 @@ Features that require `id`:
 - Conditional Panels
 - Server Side Rendering
 - React Strict Mode
-
-## Props
-
-### PanelGroup
-
-| Name             | Type                        | Description                                     |
-| ---------------- | --------------------------- | ----------------------------------------------- |
-| children         | React.ReactNode             |                                                 |
-| autosaveId       | string                      | Persisted state to initialized the machine with |
-| autosaveStrategy | "localStorage" \| "cookie"  | How to save the persisted state                 |
-| className        | string                      |                                                 |
-| collapsible      | boolean                     |                                                 |
-| collapsedSize    | Unit                        |                                                 |
-| defaultCollapsed | boolean                     |                                                 |
-| default          | Unit                        |                                                 |
-| handle           | React.Ref<PanelGroupHandle> | Imperative handle to control the group          |
-| id               | string                      |                                                 |
-| orientation      | "horizontal" \| "vertical"  |                                                 |
 
 ## Prior Art
 
