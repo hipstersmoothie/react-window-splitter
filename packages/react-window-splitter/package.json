@@ -1,7 +1,12 @@
 {
   "name": "react-window-splitter",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
+  "repository": "hipstersmoothie/react-window-splitter",
+  "author": {
+    "name": "Andrew Lisowski",
+    "email": "lisowski54@gmail.com"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -11,8 +16,7 @@
     "lint": "eslint src"
   },
   "keywords": [],
-  "author": "Andrew Lisowski",
-  "license": "ISC",
+  "license": "MIT",
   "peerDependencies": {
     "react": ">=16",
     "react-dom": ">=16"

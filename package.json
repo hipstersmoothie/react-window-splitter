@@ -1,7 +1,12 @@
 {
   "name": "monorepo",
-  "type": "module",
+  "version": "0.1.0",
   "packageManager": "pnpm@9.6.0",
+  "repository": "hipstersmoothie/react-window-splitter",
+  "author": {
+    "name": "Andrew Lisowski",
+    "email": "lisowski54@gmail.com"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -11,9 +16,13 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "release": "auto shipit"
   },
   "devDependencies": {
+    "@auto-it/all-contributors": "^11.2.0",
+    "@auto-it/first-time-contributor": "^11.2.0",
+    "@auto-it/released": "^11.2.0",
     "@chromatic-com/storybook": "^1.6.1",
     "@eslint/compat": "^1.1.1",
     "@eslint/js": "^9.6.0",
@@ -25,6 +34,7 @@
     "@storybook/react": "^8.2.2",
     "@storybook/react-vite": "^8.2.2",
     "@storybook/test": "^8.2.2",
+    "auto": "^11.2.0",
     "eslint": "9.x",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^4.6.2",
