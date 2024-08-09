@@ -1,3 +1,15 @@
+# v0.1.7 (Fri Aug 09 2024)
+
+#### 🐛 Bug Fix
+
+- Bump version to: v0.1.6 \[skip ci\] ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.6 (Fri Aug 09 2024)
 
 #### ⚠️ Pushed to `main`
