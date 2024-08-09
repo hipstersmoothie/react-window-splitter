@@ -1,9 +1,10 @@
 import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
-import reactPlugin from "eslint-plugin-react";
+import react from "@eslint-react/eslint-plugin";
 import { fixupPluginRules } from "@eslint/compat";
 import eslintPluginReactHooks from "eslint-plugin-react-hooks";
+import * as tsParser from "@typescript-eslint/parser";
 
 export default [
   { ignores: ["**/dist/**", "**/.next/**"] },
@@ -13,21 +14,22 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
-    ...reactPlugin.configs.flat.recommended,
-    settings: {
-      react: {
-        version: "18",
-      },
-    },
-    rules: {
-      ...reactPlugin.configs.flat.recommended.rules,
-      "react/prop-types": "off",
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["**/.storybook/**"],
+    ...react.configs["recommended-type-checked"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { project: "./tsconfig.json" },
     },
   },
   {
-    files: ["**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}"],
-    ...reactPlugin.configs.flat["jsx-runtime"],
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["**/.storybook/**"],
+    ...react.configs["dom"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { project: "./tsconfig.json" },
+    },
   },
   {
     plugins: {

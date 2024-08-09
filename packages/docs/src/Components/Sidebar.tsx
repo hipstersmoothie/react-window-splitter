@@ -36,7 +36,7 @@ export function SidebarGroup({
 }) {
   return (
     <div>
-      {title && (
+      {Boolean(title) && (
         <div className="text-gray-normal text-sm font-bold px-4 h-6 flex items-center">
           {title}
         </div>

@@ -369,11 +369,13 @@ export function ImperativePanel() {
 
       <div>
         <button
+          type="button"
           onClick={() => alert(`Sizes: ${groupRef.current?.getPixelSizes()}`)}
         >
           Get pixel sizes
         </button>
         <button
+          type="button"
           onClick={() =>
             alert(`Sizes: ${groupRef.current?.getPercentageSizes()}`)
           }
@@ -381,6 +383,7 @@ export function ImperativePanel() {
           Get percent sizes
         </button>
         <button
+          type="button"
           onClick={() =>
             groupRef.current?.setSizes([
               "200px",
@@ -396,37 +399,48 @@ export function ImperativePanel() {
       </div>
 
       <div>
-        <button onClick={() => panelRef.current?.collapse()}>Collapse</button>
+        <button type="button" onClick={() => panelRef.current?.collapse()}>
+          Collapse
+        </button>
         <button
+          type="button"
           onClick={() => alert(`Collapsed: ${panelRef.current?.isCollapsed()}`)}
         >
           Is Collapsed?
         </button>
-        <button onClick={() => panelRef.current?.expand()}>Expand</button>
+        <button type="button" onClick={() => panelRef.current?.expand()}>
+          Expand
+        </button>
         <button
+          type="button"
           onClick={() => alert(`Expanded: ${panelRef.current?.isExpanded()}`)}
         >
           Is Expanded?
         </button>
-        <button onClick={() => alert(`Id: ${panelRef.current?.getId()}`)}>
+        <button
+          type="button"
+          onClick={() => alert(`Id: ${panelRef.current?.getId()}`)}
+        >
           Get Id
         </button>
         <button
+          type="button"
           onClick={() => alert(`Size: ${panelRef.current?.getPixelSize()}`)}
         >
           Get Pixel Size
         </button>
         <button
+          type="button"
           onClick={() =>
             alert(`Percentage: ${panelRef.current?.getPercentageSize()}`)
           }
         >
           Get Percentage Size
         </button>
-        <button onClick={() => panelRef.current?.setSize("30px")}>
+        <button type="button" onClick={() => panelRef.current?.setSize("30px")}>
           Set size to 100px
         </button>
-        <button onClick={() => panelRef.current?.setSize("50%")}>
+        <button type="button" onClick={() => panelRef.current?.setSize("50%")}>
           Set size to 50%
         </button>
       </div>
@@ -456,12 +470,17 @@ export function ConditionalPanel() {
           <>
             <StyledResizer id="handle-2" />
             <StyledPanel id="panel-3" min="100px">
-              3<button onClick={() => setIsExpanded(false)}>Close</button>
+              3
+              <button type="button" onClick={() => setIsExpanded(false)}>
+                Close
+              </button>
             </StyledPanel>
           </>
         )}
       </StyledPanelGroup>
-      <button onClick={() => setIsExpanded(true)}>Expand</button>
+      <button type="button" onClick={() => setIsExpanded(true)}>
+        Expand
+      </button>
     </React.StrictMode>
   );
 }
@@ -493,7 +512,9 @@ export function ConditionalPanelComplex() {
             <StyledResizer id="handle-3" />
             <StyledPanel id="panel-4" min="100px">
               expanded
-              <button onClick={() => setIsExpanded(false)}>Close</button>
+              <button type="button" onClick={() => setIsExpanded(false)}>
+                Close
+              </button>
             </StyledPanel>
           </>
         )}
@@ -508,7 +529,9 @@ export function ConditionalPanelComplex() {
           <div>4</div>
         </StyledPanel>
       </StyledPanelGroup>
-      <button onClick={() => setIsExpanded(true)}>Expand</button>
+      <button type="button" onClick={() => setIsExpanded(true)}>
+        Expand
+      </button>
     </React.StrictMode>
   );
 }
