@@ -1,3 +1,15 @@
+# v0.1.2 (Thu Aug 08 2024)
+
+#### ⚠️ Pushed to `main`
+
+- ship only needed files (lisowski54@gmail.com)
+
+#### Authors: 1
+
+- Andrew Lisowski (lisowski54@gmail.com)
+
+---
+
 # v0.1.1 (Thu Aug 08 2024)
 
 #### 🐛 Bug Fix
