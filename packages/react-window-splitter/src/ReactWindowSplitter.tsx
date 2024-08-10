@@ -2247,9 +2247,8 @@ const PanelResizerVisible = React.forwardRef<
   }
 
   return (
-    <button
-      ref={ref}
-      type="button"
+    <div
+      ref={ref as unknown as React.Ref<HTMLDivElement>}
       role="separator"
       data-splitter-type="handle"
       data-splitter-id={handleId}
@@ -2276,6 +2275,7 @@ const PanelResizerVisible = React.forwardRef<
         disabled ? {} : moveProps,
         { onKeyDown }
       )}
+      tabIndex={0}
       style={{
         cursor,
         ...props.style,
