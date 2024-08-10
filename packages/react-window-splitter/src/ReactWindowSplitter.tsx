@@ -910,13 +910,21 @@ function updateLayout(
   // Don't let the panel expand until the threshold is reached
   if (!dragEvent.disregardCollapseBuffer) {
     if (panelAfter.collapsible && panelAfter.collapsed) {
+      const isInLeftBuffer = newDragOvershoot < 0 && moveDirection > 0;
+      const isInLeftOvershoot = newDragOvershoot > 0 && moveDirection > 0;
+      const isInRightBuffer = newDragOvershoot > 0 && moveDirection < 0;
+      const isInRightOvershoot = newDragOvershoot < 0 && moveDirection < 0;
       const potentialNewValue =
-        (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
+        (panelAfter.currentValue as number) +
+        newDragOvershoot * (isInRightBuffer ? moveDirection : 1);
       const min = getUnitPixelValue(context, panelAfter.min);
 
       if (
-        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-        // If the panel is at it's min, expand it
+        (newDragOvershoot === 0 ||
+          isInRightBuffer ||
+          isInLeftBuffer ||
+          ((isInLeftOvershoot || isInRightOvershoot) &&
+            Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD)) &&
         potentialNewValue < min
       ) {
         return { dragOvershoot: newDragOvershoot };
