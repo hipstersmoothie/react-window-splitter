@@ -100,24 +100,8 @@ interface PanelData
 }
 
 const collapseAnimations = {
-  "back-in": easings.easeBackIn,
-  "back-out": easings.easeBackOut,
-  "back-in-out": easings.easeBackInOut,
-  "sin-in": easings.easeSinIn,
-  "sin-out": easings.easeSinOut,
-  "sin-in-out": easings.easeSinInOut,
-  "quad-in": easings.easeQuadIn,
-  "quad-out": easings.easeQuadOut,
-  "quad-in-out": easings.easeQuadInOut,
-  "cubic-in": easings.easeCubicIn,
-  "cubic-out": easings.easeCubicOut,
-  "cubic-in-out": easings.easeCubicInOut,
-  "expo-in": easings.easeExpIn,
-  "expo-out": easings.easeExpOut,
-  "expo-in-out": easings.easeExpInOut,
-  "circ-in": easings.easeCircleIn,
-  "circ-out": easings.easeCircleOut,
-  "circ-in-out": easings.easeCircleInOut,
+  "ease-in-out": easings.easeQuadInOut,
+  bounce: easings.easeBackInOut,
   linear: easings.easeLinear,
 };
 
