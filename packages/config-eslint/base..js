@@ -7,10 +7,10 @@ import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import * as tsParser from "@typescript-eslint/parser";
 
 export default [
-  { env: { node: true } },
   { ignores: ["**/dist/**", "**/.next/**"] },
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
   { languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } } },
+  { languageOptions: { globals: globals.node } },
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,

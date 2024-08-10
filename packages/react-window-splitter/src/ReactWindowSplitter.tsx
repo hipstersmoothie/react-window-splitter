@@ -1268,8 +1268,9 @@ const groupMachine = createMachine(
     actions: {
       onToggleCollapseComplete: assign({
         items: ({ context, event: e }) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const output = (e as any).output as AnimationActorOutput;
-          invariant((e as any).output, "Expected output from animation actor");
+          invariant(output, "Expected output from animation actor");
 
           const panel = getPanelWithId(context, output.panelId);
           panel.collapsed = output.action === "collapse";
@@ -2248,6 +2249,7 @@ const PanelResizerVisible = React.forwardRef<
   return (
     <button
       ref={ref}
+      type="button"
       role="separator"
       data-splitter-type="handle"
       data-splitter-id={handleId}
