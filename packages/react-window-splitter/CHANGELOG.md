@@ -1,3 +1,33 @@
+# v0.2.0 (Sat Aug 10 2024)
+
+#### 🚀 Enhancement
+
+- Collapse Animation [#10](https://github.com/hipstersmoothie/react-window-splitter/pull/10) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### 🐛 Bug Fix
+
+- fix controlled collapse ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- make it a div so the styling is easier ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix lint ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add cos for animation ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add custom ease functions ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add ability to specify duration ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- only support a few ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- get animation working well ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add more animations ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- get collapsing working better ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add animation prop to Panel ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- use rafz ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- get a basic animation working ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix old collapsed value getting clear for controlled collapse ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix extra props in dom ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.8 (Fri Aug 09 2024)
 
 #### ⚠️ Pushed to `main`

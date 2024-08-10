@@ -1,3 +1,16 @@
+# v0.2.0 (Sat Aug 10 2024)
+
+#### 🚀 Enhancement
+
+- `react-window-splitter`
+  - Collapse Animation [#10](https://github.com/hipstersmoothie/react-window-splitter/pull/10) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.1.8 (Fri Aug 09 2024)
 
 #### ⚠️ Pushed to `main`
