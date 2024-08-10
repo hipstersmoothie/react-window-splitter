@@ -160,6 +160,14 @@ function CollapsibleExample() {
 
 You can completely customize the easing function by providing a function to the `collapseAnimation` prop.
 
+The function provided to `ease` takes a number `t` that represent the progress of the animation in the range of `[0, 1]`.
+The return value of the function should be a number between `[0, 1]` that represents the altered progress of the animation. 
+
+Some good libraries you can use to create your own easing function are:
+
+- [framer-motion](https://www.framer.com/motion/)
+- [d3-ease](https://github.com/d3/d3-ease)
+
 <div className="my-6">
   <CustomCollapseAnimation />
 </div>
