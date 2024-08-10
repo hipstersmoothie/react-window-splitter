@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@internal/eslint-config": "workspace:*",
+    "@types/d3-ease": "^3.0.2",
     "@types/node": "^20.14.10",
     "@types/react": "^18",
     "eslint": "^9.8.0",
@@ -38,6 +39,7 @@
     "@react-spring/rafz": "^9.7.4",
     "@types/invariant": "^2.2.37",
     "@xstate/react": "^4.1.1",
+    "d3-ease": "^3.0.1",
     "invariant": "^2.2.4",
     "react-aria": "^3.33.1",
     "reforest": "^0.13.0",

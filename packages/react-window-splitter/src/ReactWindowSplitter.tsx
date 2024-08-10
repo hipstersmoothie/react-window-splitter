@@ -96,7 +96,25 @@ interface PanelData
    */
   sizeBeforeCollapse: number | undefined;
   /** Animate the collapse/expand */
-  collapseAnimation?: CollapseAnimation;
+  collapseAnimation?:
+    | CollapseAnimation
+    | { duration: number; easing: CollapseAnimation };
+}
+
+function getCollapseAnimation(panel: PanelData) {
+  let easeFn = collapseAnimations.linear;
+  let duration = 300;
+
+  if (panel.collapseAnimation) {
+    if (typeof panel.collapseAnimation === "string") {
+      easeFn = collapseAnimations[panel.collapseAnimation];
+    } else if ("duration" in panel.collapseAnimation) {
+      easeFn = collapseAnimations[panel.collapseAnimation.easing];
+      duration = panel.collapseAnimation.duration ?? duration;
+    }
+  }
+
+  return { ease: easeFn, duration };
 }
 
 const collapseAnimations = {
@@ -1125,7 +1143,7 @@ const animationActor = fromPromise<
       }
 
       const fps = 60;
-      const duration = 2000;
+      const { duration, ease } = getCollapseAnimation(panel);
       const totalFrames = Math.ceil(
         panel.collapseAnimation ? duration / (1000 / fps) : 1
       );
@@ -1134,9 +1152,7 @@ const animationActor = fromPromise<
 
       function renderFrame() {
         const progress = (frame + 1) / totalFrames;
-        const e = panel.collapseAnimation
-          ? collapseAnimations[panel.collapseAnimation](progress)
-          : 1;
+        const e = panel.collapseAnimation ? ease(progress) : 1;
         const delta = (e * fullDelta - appliedDelta) * direction;
 
         send({ type: "applyDelta", handleId: handle.item.id, delta });
