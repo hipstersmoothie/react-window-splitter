@@ -96,8 +96,29 @@ interface PanelData
    */
   sizeBeforeCollapse: number | undefined;
   /** Animate the collapse/expand */
-  collapseAnimation?: "sin-in" | "sin-out";
+  collapseAnimation?: CollapseAnimation;
 }
+
+const collapseAnimations = {
+  "sin-in": easings.easeSinIn,
+  "sin-out": easings.easeSinOut,
+  "sin-in-out": easings.easeSinInOut,
+  "quad-in": easings.easeQuadIn,
+  "quad-out": easings.easeQuadOut,
+  "quad-in-out": easings.easeQuadInOut,
+  "cubic-in": easings.easeCubicIn,
+  "cubic-out": easings.easeCubicOut,
+  "cubic-in-out": easings.easeCubicInOut,
+  "expo-in": easings.easeExpIn,
+  "expo-out": easings.easeExpOut,
+  "expo-in-out": easings.easeExpInOut,
+  "circ-in": easings.easeCircleIn,
+  "circ-out": easings.easeCircleOut,
+  "circ-in-out": easings.easeCircleInOut,
+  linear: easings.easeLinear,
+};
+
+type CollapseAnimation = keyof typeof collapseAnimations;
 
 interface PanelHandleData extends Order {
   type: "handle";
@@ -1125,7 +1146,9 @@ const animationActor = fromPromise<
 
       function renderFrame() {
         const progress = (frame + 1) / totalFrames;
-        const e = panel.collapseAnimation ? easings.easeSinIn(progress) : 1;
+        const e = panel.collapseAnimation
+          ? collapseAnimations[panel.collapseAnimation](progress)
+          : 1;
         const delta = (e * fullDelta - appliedDelta) * direction;
 
         send({ type: "applyDelta", handleId: handle.item.id, delta });
