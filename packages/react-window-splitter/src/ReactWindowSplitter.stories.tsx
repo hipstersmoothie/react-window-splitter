@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { spring } from "framer-motion";
 import {
   PanelGroup,
   PanelGroupProps,
@@ -304,6 +305,7 @@ export function Collapsible() {
   return (
     <StyledPanelGroup>
       <StyledPanel
+        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -314,21 +316,68 @@ export function Collapsible() {
       >
         <div>1</div>
       </StyledPanel>
-      <StyledResizer />
-      <StyledPanel min="100px">
+      <StyledResizer id="resizer-1" />
+      <StyledPanel id="panel-2" min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer />
+      <StyledResizer id="resizer-2" />
       <StyledPanel
         min="100px"
         collapsible
         collapsedSize="60px"
         defaultCollapsed
+        collapseAnimation={{ easing: "bounce", duration: 1000 }}
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
         collapsed={collapsed}
         onCollapseChange={(isCollapsed) => {
           console.log("COLLAPSE CONTROLLED", isCollapsed);
           setCollapsed(isCollapsed);
+        }}
+        id="panel-3"
+      >
+        <div>3</div>
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
+export function CustomCollapseAnimation() {
+  const springFn = useMemo(() => {
+    return spring({
+      keyframes: [0, 1],
+      velocity: 0.0,
+      stiffness: 100,
+      damping: 10,
+      mass: 1.0,
+    });
+  }, []);
+
+  return (
+    <StyledPanelGroup>
+      <StyledPanel
+        id="panel-1"
+        min="100px"
+        collapsible
+        collapsedSize="60px"
+        style={{ border: "10px solid green", boxSizing: "border-box" }}
+      >
+        <div>1</div>
+      </StyledPanel>
+      <StyledResizer id="resizer-1" />
+      <StyledPanel id="panel-2" min="100px">
+        <div>2</div>
+      </StyledPanel>
+      <StyledResizer id="resizer-2" />
+      <StyledPanel
+        style={{ border: "10px solid blue", boxSizing: "border-box" }}
+        id="panel-3"
+        min="100px"
+        collapsible
+        collapsedSize="60px"
+        defaultCollapsed
+        collapseAnimation={{
+          duration: 1000,
+          easing: (t) => springFn.next(t * 1000).value,
         }}
       >
         <div>3</div>
@@ -349,11 +398,12 @@ export function ImperativePanel() {
           min="100px"
           collapsible
           collapsedSize="60px"
+          id="panel-1"
         >
           <div>1</div>
         </StyledPanel>
-        <StyledResizer />
-        <StyledPanel min="100px">
+        <StyledResizer id="resizer-1" />
+        <StyledPanel id="panel-2" min="100px">
           <div>2</div>
         </StyledPanel>
         <StyledResizer />
@@ -362,6 +412,7 @@ export function ImperativePanel() {
           collapsible
           collapsedSize="60px"
           defaultCollapsed
+          id="panel-3"
         >
           <div>3</div>
         </StyledPanel>

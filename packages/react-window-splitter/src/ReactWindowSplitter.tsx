@@ -8,13 +8,27 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { raf } from "@react-spring/rafz";
 import Cookies from "universal-cookie";
-import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
-import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
+import {
+  mergeProps,
+  MoveMoveEvent,
+  useButton,
+  useId,
+  useMove,
+} from "react-aria";
+import {
+  createMachine,
+  assign,
+  enqueueActions,
+  Snapshot,
+  fromPromise,
+} from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
 import { useIndex, useIndexedChildren } from "reforest";
+import * as easings from "d3-ease";
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -87,7 +101,40 @@ interface PanelData
    * If the panel starts out collapsed it will use the `min`.
    */
   sizeBeforeCollapse: number | undefined;
+  /** Animate the collapse/expand */
+  collapseAnimation?:
+    | CollapseAnimation
+    | { duration: number; easing: CollapseAnimation | ((t: number) => number) };
 }
+
+function getCollapseAnimation(panel: PanelData) {
+  let easeFn = collapseAnimations.linear;
+  let duration = 300;
+
+  if (panel.collapseAnimation) {
+    if (typeof panel.collapseAnimation === "string") {
+      easeFn = collapseAnimations[panel.collapseAnimation];
+    } else if ("duration" in panel.collapseAnimation) {
+      duration = panel.collapseAnimation.duration ?? duration;
+
+      if (typeof panel.collapseAnimation.easing === "function") {
+        easeFn = panel.collapseAnimation.easing;
+      } else {
+        easeFn = collapseAnimations[panel.collapseAnimation.easing];
+      }
+    }
+  }
+
+  return { ease: easeFn, duration };
+}
+
+const collapseAnimations = {
+  "ease-in-out": easings.easeQuadInOut,
+  bounce: easings.easeBackInOut,
+  linear: easings.easeLinear,
+};
+
+type CollapseAnimation = keyof typeof collapseAnimations;
 
 interface PanelHandleData extends Order {
   type: "handle";
@@ -159,6 +206,12 @@ interface SetSizeEvent {
     width: number;
     height: number;
   };
+}
+
+interface ApplyDeltaEvent {
+  type: "applyDelta";
+  delta: number;
+  handleId: string;
 }
 
 interface SetOrientationEvent {
@@ -240,7 +293,8 @@ type GroupMachineEvent =
   | CollapsePanelEvent
   | ExpandPanelEvent
   | SetPanelPixelSizeEvent
-  | SetDynamicPanelPixelSizeEvent;
+  | SetDynamicPanelPixelSizeEvent
+  | ApplyDeltaEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> = Extract<
   GroupMachineEvent,
@@ -496,7 +550,8 @@ function findPanelWithSpace(
   context: GroupMachineContextValue,
   items: Array<Item>,
   start: number,
-  direction: number
+  direction: number,
+  disregardCollapseBuffer?: boolean
 ) {
   for (
     let i = start;
@@ -509,7 +564,15 @@ function findPanelWithSpace(
       return;
     }
 
-    if (isPanelData(panel) && panelHasSpace(context, panel)) {
+    if (!isPanelData(panel)) {
+      continue;
+    }
+
+    const targetPanel = disregardCollapseBuffer
+      ? createUnrestrainedPanel(context, panel)
+      : panel;
+
+    if (panelHasSpace(context, targetPanel)) {
       return panel;
     }
   }
@@ -583,6 +646,17 @@ function getInitialSize(data: Omit<RegisterPanelEvent["data"], "id">) {
   }
 
   return currentValue;
+}
+
+function createUnrestrainedPanel(
+  context: GroupMachineContextValue,
+  data: PanelData
+) {
+  return {
+    ...data,
+    min: "0px" as const,
+    max: `${context.size}px` as const,
+  };
 }
 
 // #endregion
@@ -727,12 +801,16 @@ function prepareItems(context: GroupMachineContextValue) {
 function updateLayout(
   context: GroupMachineContextValue,
   dragEvent:
-    | (DragHandleEvent & { controlled?: boolean })
+    | (DragHandleEvent & {
+        controlled?: boolean;
+        disregardCollapseBuffer?: never;
+      })
     | {
         type: "collapsePanel";
         value: MoveMoveEvent;
         handleId: string;
         controlled?: boolean;
+        disregardCollapseBuffer?: boolean;
       }
 ): Partial<GroupMachineContextValue> {
   const handleIndex = context.items.findIndex(
@@ -762,7 +840,8 @@ function updateLayout(
     context,
     newItems,
     handleIndex + moveDirection,
-    moveDirection
+    moveDirection,
+    dragEvent.disregardCollapseBuffer
   );
 
   // No panel with space, just record the drag overshoot
@@ -784,73 +863,82 @@ function updateLayout(
   const newDragOvershoot = context.dragOvershoot + moveAmount;
 
   // Don't let the panel expand until the threshold is reached
-  if (panelAfter.collapsible && panelAfter.collapsed) {
-    const potentialNewValue =
-      (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
-    const min = getUnitPixelValue(context, panelAfter.min);
+  if (!dragEvent.disregardCollapseBuffer) {
+    if (panelAfter.collapsible && panelAfter.collapsed) {
+      const potentialNewValue =
+        (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
+      const min = getUnitPixelValue(context, panelAfter.min);
 
-    if (
-      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-      // If the panel is at it's min, expand it
-      potentialNewValue < min
+      if (
+        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
+        // If the panel is at it's min, expand it
+        potentialNewValue < min
+      ) {
+        return { dragOvershoot: newDragOvershoot };
+      }
+    }
+    // Don't let the panel collapse until the threshold is reached
+    else if (
+      panelBefore.collapsible &&
+      panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
     ) {
-      return { dragOvershoot: newDragOvershoot };
-    }
-  }
-  // Don't let the panel collapse until the threshold is reached
-  else if (
-    panelBefore.collapsible &&
-    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
-  ) {
-    const potentialNewValue =
-      panelBefore.currentValue - Math.abs(newDragOvershoot);
+      const potentialNewValue =
+        panelBefore.currentValue - Math.abs(newDragOvershoot);
 
-    if (
-      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-      potentialNewValue > getUnitPixelValue(context, panelBefore.collapsedSize)
-    ) {
-      return { dragOvershoot: newDragOvershoot };
+      if (
+        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
+        potentialNewValue >
+          getUnitPixelValue(context, panelBefore.collapsedSize)
+      ) {
+        return { dragOvershoot: newDragOvershoot };
+      }
     }
-  }
-  // If we're already overshooting just keep adding to the overshoot
-  else {
-    if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
-      return { dragOvershoot: newDragOvershoot };
-    }
+    // If we're already overshooting just keep adding to the overshoot
+    else {
+      if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
+        return { dragOvershoot: newDragOvershoot };
+      }
 
-    if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
-      return { dragOvershoot: newDragOvershoot };
+      if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
+        return { dragOvershoot: newDragOvershoot };
+      }
     }
   }
 
   // Apply the move amount to the panel before the slider
+  const unrestrainedPanelBefore = createUnrestrainedPanel(context, panelBefore);
   const panelBeforePreviousValue = panelBefore.currentValue as number;
-  let panelBeforeNewValue = clampUnit(
-    context,
-    panelBefore,
-    (panelBefore.currentValue as number) - moveAmount * moveDirection
-  );
+  const panelBeforeNewValueRaw =
+    (panelBefore.currentValue as number) - moveAmount * moveDirection;
+  let panelBeforeNewValue = dragEvent.disregardCollapseBuffer
+    ? clampUnit(context, unrestrainedPanelBefore, panelBeforeNewValueRaw)
+    : clampUnit(context, panelBefore, panelBeforeNewValueRaw);
 
   // Also apply the move amount the panel after the slider
+  const unrestrainedPanelAfter = createUnrestrainedPanel(context, panelAfter);
   const panelAfterPreviousValue = panelAfter.currentValue as number;
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  let panelAfterNewValue = clampUnit(
-    context,
-    panelAfter,
-    (panelAfter.currentValue as number) + applied
-  );
+  const panelAfterNewValueRaw = (panelAfter.currentValue as number) + applied;
+  let panelAfterNewValue = dragEvent.disregardCollapseBuffer
+    ? clampUnit(context, unrestrainedPanelAfter, panelAfterNewValueRaw)
+    : clampUnit(context, panelAfter, panelAfterNewValueRaw);
 
+  if (dragEvent.disregardCollapseBuffer) {
+    if (panelAfter.collapsible && panelAfter.collapsed) {
+      panelAfter.collapsed = false;
+    }
+  }
   // If the panel was collapsed, expand it
   // We need to re-apply the move amount since the the expansion of the
   // collapsed panel disregards that.
-  if (panelAfter.collapsible && panelAfter.collapsed) {
+  else if (panelAfter.collapsible && panelAfter.collapsed) {
     if (
       panelAfter.onCollapseChange?.current &&
       panelAfter.collapseIsControlled &&
       !dragEvent.controlled
     ) {
       panelAfter.onCollapseChange.current(false);
-      return {};
+      return { dragOvershoot: newDragOvershoot };
     }
 
     // Calculate the amount "extra" after the minSize the panel should grow
@@ -882,10 +970,14 @@ function updateLayout(
     }
   }
 
+  const panelBeforeIsAboutToCollapse =
+    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min);
+
   // If the panel was expanded and now is at it's min size, collapse it
   if (
+    !dragEvent.disregardCollapseBuffer &&
     panelBefore.collapsible &&
-    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
+    panelBeforeIsAboutToCollapse
   ) {
     if (
       panelBefore.onCollapseChange?.current &&
@@ -893,7 +985,7 @@ function updateLayout(
       !dragEvent.controlled
     ) {
       panelBefore.onCollapseChange.current(true);
-      return {};
+      return { dragOvershoot: newDragOvershoot };
     }
 
     // Make it collapsed
@@ -960,6 +1052,25 @@ function commitLayout(context: GroupMachineContextValue) {
   return newItems;
 }
 
+function fakeKeyboardEvent({
+  delta,
+  orientation,
+}: {
+  delta: number;
+  orientation: Orientation;
+}) {
+  return {
+    type: "move",
+    pointerType: "keyboard",
+    shiftKey: false,
+    ctrlKey: false,
+    altKey: false,
+    metaKey: false,
+    deltaX: orientation === "horizontal" ? delta : 0,
+    deltaY: orientation === "horizontal" ? 0 : delta,
+  } as const;
+}
+
 /** Iteratively applies a large delta value simulating a user's drag */
 function iterativelyUpdateLayout({
   context,
@@ -967,12 +1078,14 @@ function iterativelyUpdateLayout({
   delta,
   direction,
   controlled,
+  disregardCollapseBuffer,
 }: {
   context: GroupMachineContextValue;
   handleId: string;
   delta: number;
   direction: -1 | 1;
   controlled?: boolean;
+  disregardCollapseBuffer?: boolean;
 }) {
   let newContext: Partial<GroupMachineContextValue> = context;
 
@@ -986,16 +1099,11 @@ function iterativelyUpdateLayout({
         handleId,
         type: "collapsePanel",
         controlled,
-        value: {
-          type: "move",
-          pointerType: "keyboard",
-          shiftKey: false,
-          ctrlKey: false,
-          altKey: false,
-          metaKey: false,
-          deltaX: context.orientation === "horizontal" ? direction : 0,
-          deltaY: context.orientation === "horizontal" ? 0 : direction,
-        },
+        disregardCollapseBuffer,
+        value: fakeKeyboardEvent({
+          delta: direction,
+          orientation: context.orientation,
+        }),
       }
     );
   }
@@ -1006,6 +1114,77 @@ function iterativelyUpdateLayout({
 // #endregion
 
 // #region Machine
+
+interface AnimationActorInput {
+  context: GroupMachineContextValue;
+  event: CollapsePanelEvent | ExpandPanelEvent;
+  send: (event: GroupMachineEvent) => void;
+}
+
+interface AnimationActorOutput {
+  panelId: string;
+  action: "expand" | "collapse";
+}
+
+const animationActor = fromPromise<
+  AnimationActorOutput | undefined,
+  AnimationActorInput
+>(
+  ({ input: { send, context, event } }) =>
+    new Promise<AnimationActorOutput | undefined>((resolve) => {
+      const panel = getPanelWithId(context, event.panelId);
+      const handle = getHandleForPanelId(context, event.panelId);
+
+      let direction = handle.direction;
+      let fullDelta = 0;
+
+      if (event.type === "expandPanel") {
+        fullDelta =
+          (panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)) -
+          (panel.currentValue as number);
+      } else {
+        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
+
+        if (panel.currentValue !== collapsedSize && !event.controlled) {
+          panel.sizeBeforeCollapse = panel.currentValue as number;
+        }
+
+        direction *= -1 as -1 | 1;
+        fullDelta = (panel.currentValue as number) - collapsedSize;
+      }
+
+      const fps = 60;
+      const { duration, ease } = getCollapseAnimation(panel);
+      const totalFrames = Math.ceil(
+        panel.collapseAnimation ? duration / (1000 / fps) : 1
+      );
+      let frame = 0;
+      let appliedDelta = 0;
+
+      function renderFrame() {
+        const progress = (frame + 1) / totalFrames;
+        const e = panel.collapseAnimation ? ease(progress) : 1;
+        const delta = (e * fullDelta - appliedDelta) * direction;
+
+        send({ type: "applyDelta", handleId: handle.item.id, delta });
+        appliedDelta +=
+          Math.abs(delta) *
+          ((delta > 0 && direction === -1) || (delta < 0 && direction === 1)
+            ? -1
+            : 1);
+
+        if (++frame === totalFrames) {
+          const action = event.type === "expandPanel" ? "expand" : "collapse";
+          resolve({ panelId: panel.id, action });
+          return false;
+        }
+
+        return true;
+      }
+
+      raf(renderFrame);
+    })
+);
 
 const groupMachine = createMachine(
   {
@@ -1038,13 +1217,50 @@ const groupMachine = createMachine(
           setDynamicPanelInitialSize: {
             actions: ["prepare", "onSetDynamicPanelSize", "commit"],
           },
+          collapsePanel: [
+            {
+              actions: "notifyCollapseToggle",
+              guard: "shouldNotifyCollapseToggle",
+            },
+            { target: "togglingCollapse" },
+          ],
+          expandPanel: [
+            {
+              actions: "notifyCollapseToggle",
+              guard: "shouldNotifyCollapseToggle",
+            },
+            { target: "togglingCollapse" },
+          ],
         },
       },
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["prepare", "onDragHandle"] },
+          dragHandle: { actions: ["onDragHandle"] },
           dragHandleEnd: { target: "idle" },
+          collapsePanel: {
+            guard: "shouldCollapseToggle",
+            actions: "runCollapseToggle",
+          },
+          expandPanel: {
+            guard: "shouldCollapseToggle",
+            actions: "runCollapseToggle",
+          },
+        },
+        exit: ["commit", "onAutosave"],
+      },
+      togglingCollapse: {
+        entry: ["prepare"],
+        invoke: {
+          src: "animation",
+          input: (i) => ({ ...i, send: i.self.send }),
+          onDone: {
+            target: "idle",
+            actions: ["onToggleCollapseComplete"],
+          },
+        },
+        on: {
+          applyDelta: { actions: ["onApplyDelta"] },
         },
         exit: ["commit", "onAutosave"],
       },
@@ -1063,16 +1279,81 @@ const groupMachine = createMachine(
       },
       setSize: { actions: ["updateSize"] },
       setOrientation: { actions: ["updateOrientation"] },
-      collapsePanel: {
-        actions: ["prepare", "collapsePanel", "commit", "onAutosave"],
-      },
-      expandPanel: {
-        actions: ["prepare", "expandPanel", "commit", "onAutosave"],
-      },
     },
   },
   {
+    guards: {
+      shouldNotifyCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+        const panel = getPanelWithId(context, event.panelId);
+        return !event.controlled && panel.collapseIsControlled === true;
+      },
+      shouldCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+        const panel = getPanelWithId(context, event.panelId);
+        return panel.collapseIsControlled === true;
+      },
+    },
+    actors: {
+      animation: animationActor,
+    },
     actions: {
+      notifyCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+
+        const panel = getPanelWithId(context, event.panelId);
+
+        if (!panel.collapseIsControlled) {
+          throw new Error("Expected panel to be controlled");
+        }
+
+        panel.onCollapseChange?.current?.(!panel.collapsed);
+      },
+      runCollapseToggle: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+
+        const handle = getHandleForPanelId(context, event.panelId);
+        // When collapsing a panel it will be in the opposite direction
+        // that handle assumes
+        const delta =
+          event.type === "collapsePanel"
+            ? handle.direction * -1
+            : handle.direction;
+        const newContext = updateLayout(context, {
+          handleId: handle.item.id,
+          type: "dragHandle",
+          controlled: event.controlled,
+          value: fakeKeyboardEvent({ delta, orientation: context.orientation }),
+        });
+
+        enqueue.assign(newContext);
+      }),
+      onToggleCollapseComplete: assign({
+        items: ({ context, event: e }) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const output = (e as any).output as AnimationActorOutput;
+          invariant(output, "Expected output from animation actor");
+
+          const panel = getPanelWithId(context, output.panelId);
+          panel.collapsed = output.action === "collapse";
+
+          if (panel.collapsed) {
+            panel.currentValue = getUnitPixelValue(
+              context,
+              panel.collapsedSize
+            );
+          }
+
+          console.log(
+            "TOGGLE",
+            context.items.map((item) =>
+              isPanelData(item) ? item.currentValue : item.size
+            )
+          );
+
+          return context.items;
+        },
+      }),
       updateSize: assign({
         size: ({ context, event }) => {
           isEvent(event, ["setSize"]);
@@ -1245,49 +1526,17 @@ const groupMachine = createMachine(
         dragOvershoot: 0,
         items: ({ context }) => commitLayout(context),
       }),
-      collapsePanel: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["collapsePanel"]);
-
-        const panel = getPanelWithId(context, event.panelId);
-        const handle = getHandleForPanelId(context, event.panelId);
-        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
-
-        if (panel.currentValue !== collapsedSize) {
-          panel.sizeBeforeCollapse = panel.currentValue as number;
-        }
-
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: (handle.direction * -1) as -1 | 1,
-            context: { ...context, dragOvershoot: 0 },
-            handleId: handle.item.id,
-            controlled: event.controlled,
-            delta: (panel.currentValue as number) - collapsedSize,
-          })
-        );
-      }),
-      expandPanel: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["expandPanel"]);
-
-        const panel = getPanelWithId(context, event.panelId);
-        const handle = getHandleForPanelId(context, event.panelId);
-
-        if (!panel) {
-          return;
-        }
-
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: handle.direction,
-            context: { ...context, dragOvershoot: 0 },
-            handleId: handle.item.id,
-            controlled: event.controlled,
-            delta:
-              (panel.sizeBeforeCollapse ??
-                getUnitPixelValue(context, panel.min)) -
-              (panel.currentValue as number),
-          })
-        );
+      onApplyDelta: assign(({ context, event }) => {
+        isEvent(event, ["applyDelta"]);
+        return updateLayout(context, {
+          handleId: event.handleId,
+          type: "collapsePanel",
+          disregardCollapseBuffer: true,
+          value: fakeKeyboardEvent({
+            delta: event.delta,
+            orientation: context.orientation,
+          }),
+        });
       }),
       onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["setPanelPixelSize"]);
@@ -1720,6 +1969,7 @@ export interface PanelHandle {
 
 export interface PanelProps
   extends Constraints,
+    Pick<PanelData, "collapseAnimation">,
     React.HTMLAttributes<HTMLDivElement> {
   /**
    * __CONTROLLED COMPONENT__
@@ -1748,16 +1998,19 @@ export interface PanelProps
 
 /** A panel within a `PanelGroup` */
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
-  function Panel(props, outerRef) {
-    const {
+  function Panel(
+    {
+      defaultCollapsed,
       min,
       max,
-      defaultCollapsed,
-      collapsible = false,
       collapsedSize,
-      collapsed,
       onCollapseChange,
-    } = props;
+      collapseAnimation,
+      ...props
+    },
+    outerRef
+  ) {
+    const { collapsible = false, collapsed } = props;
     const isPrerender = React.useContext(PreRenderContext);
     const onCollapseChangeRef = React.useRef(onCollapseChange);
     const panelDataRef = React.useMemo(() => {
@@ -1774,10 +2027,15 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         collapseIsControlled: typeof collapsed !== "undefined",
         sizeBeforeCollapse: undefined,
         id: props.id,
+        collapseAnimation,
       };
 
-      return { ...data, currentValue: getInitialSize(data) };
+      return { ...data, currentValue: getInitialSize(data) } satisfies Omit<
+        PanelData,
+        "id"
+      >;
     }, [
+      collapseAnimation,
       collapsed,
       collapsedSize,
       collapsible,
@@ -1799,7 +2057,17 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
 
 const PanelVisible = React.forwardRef<
   HTMLDivElement,
-  PanelProps & { panelId: string }
+  Omit<
+    PanelProps,
+    | "collapsedSize"
+    | "onCollapseChange"
+    | "defaultCollapsed"
+    | "min"
+    | "max"
+    | "collapseAnimation"
+  > & {
+    panelId: string;
+  }
 >(function PanelVisible(
   { collapsible = false, collapsed, handle, panelId, ...props },
   outerRef
@@ -1842,6 +2110,7 @@ const PanelVisible = React.forwardRef<
       getId: () => panelId,
       collapse: () => {
         if (collapsible) {
+          // TODO: setting controlled here might be wrong
           send({ type: "collapsePanel", panelId, controlled: true });
         }
       },
@@ -1898,43 +2167,46 @@ const PanelVisible = React.forwardRef<
 });
 
 export interface PanelResizerProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLButtonElement>,
     Partial<Pick<PanelHandleData, "size">> {
   /** If the handle is disabled */
   disabled?: boolean;
 }
 
 /** A resize handle to place between panels. */
-export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer(props, ref) {
-    const { size = "0px" } = props;
-    const isPrerender = React.useContext(PreRenderContext);
-    const data = React.useMemo(
-      () => ({
-        type: "handle" as const,
-        size,
-        id: props.id,
-      }),
-      [size, props.id]
-    );
+export const PanelResizer = React.forwardRef<
+  HTMLButtonElement,
+  PanelResizerProps
+>(function PanelResizer(props, ref) {
+  const { size = "0px" } = props;
+  const isPrerender = React.useContext(PreRenderContext);
+  const data = React.useMemo(
+    () => ({
+      type: "handle" as const,
+      size,
+      id: props.id,
+    }),
+    [size, props.id]
+  );
 
-    const { id: handleId } = useGroupItem(data);
+  const { id: handleId } = useGroupItem(data);
 
-    if (isPrerender) {
-      return null;
-    }
-
-    return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
+  if (isPrerender) {
+    return null;
   }
-);
+
+  return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
+});
 
 const PanelResizerVisible = React.forwardRef<
-  HTMLDivElement,
+  HTMLButtonElement,
   PanelResizerProps & { handleId: string }
 >(function PanelResizerVisible(
   { size = "0px", disabled, handleId, ...props },
-  ref
+  outerRef
 ) {
+  const innerRef = React.useRef<HTMLButtonElement>(null);
+  const ref = useComposedRefs(outerRef, innerRef);
   const unit = parseUnit(size);
   const [isDragging, setIsDragging] = React.useState(false);
   const { send } = GroupMachineContext.useActorRef();
@@ -1952,6 +2224,7 @@ const PanelResizerVisible = React.forwardRef<
       return undefined;
     }
   });
+  const { buttonProps } = useButton({}, innerRef);
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
@@ -1985,6 +2258,7 @@ const PanelResizerVisible = React.forwardRef<
 
   let cursor: React.CSSProperties["cursor"];
 
+  // TODO: should this be an actor in the state machine?
   if (disabled) {
     cursor = "default";
   } else if (orientation === "horizontal") {
@@ -2026,9 +2300,8 @@ const PanelResizerVisible = React.forwardRef<
 
   return (
     <div
-      ref={ref}
+      ref={ref as unknown as React.Ref<HTMLDivElement>}
       role="separator"
-      tabIndex={0}
       data-splitter-type="handle"
       data-splitter-id={handleId}
       data-handle-orientation={orientation}
@@ -2048,7 +2321,13 @@ const PanelResizerVisible = React.forwardRef<
               panelBeforeHandle.currentValue as Unit
             )
       }
-      {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}
+      {...mergeProps(
+        props,
+        disabled ? {} : buttonProps,
+        disabled ? {} : moveProps,
+        { onKeyDown }
+      )}
+      tabIndex={0}
       style={{
         cursor,
         ...props.style,

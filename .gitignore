@@ -136,3 +136,5 @@ dist
 .tshy-build
 src/package.json
 .turbo
+
+packages/docs/analyze/** 
