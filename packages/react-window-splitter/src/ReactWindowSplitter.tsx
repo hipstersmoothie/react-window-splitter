@@ -10,7 +10,13 @@ import React, {
 } from "react";
 import Cookies from "universal-cookie";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
-import { createMachine, assign, enqueueActions, Snapshot } from "xstate";
+import {
+  createMachine,
+  assign,
+  enqueueActions,
+  Snapshot,
+  fromPromise,
+} from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
@@ -161,6 +167,13 @@ interface SetSizeEvent {
   };
 }
 
+interface ApplyDeltaEvent {
+  type: "applyDelta";
+  delta: number;
+  handleId: string;
+  direction: -1 | 1;
+}
+
 interface SetOrientationEvent {
   /** Set the orientation of the group */
   type: "setOrientation";
@@ -240,7 +253,8 @@ type GroupMachineEvent =
   | CollapsePanelEvent
   | ExpandPanelEvent
   | SetPanelPixelSizeEvent
-  | SetDynamicPanelPixelSizeEvent;
+  | SetDynamicPanelPixelSizeEvent
+  | ApplyDeltaEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> = Extract<
   GroupMachineEvent,
@@ -727,12 +741,16 @@ function prepareItems(context: GroupMachineContextValue) {
 function updateLayout(
   context: GroupMachineContextValue,
   dragEvent:
-    | (DragHandleEvent & { controlled?: boolean })
+    | (DragHandleEvent & {
+        controlled?: boolean;
+        disregardCollapseBuffer?: never;
+      })
     | {
         type: "collapsePanel";
         value: MoveMoveEvent;
         handleId: string;
         controlled?: boolean;
+        disregardCollapseBuffer?: boolean;
       }
 ): Partial<GroupMachineContextValue> {
   const handleIndex = context.items.findIndex(
@@ -784,42 +802,45 @@ function updateLayout(
   const newDragOvershoot = context.dragOvershoot + moveAmount;
 
   // Don't let the panel expand until the threshold is reached
-  if (panelAfter.collapsible && panelAfter.collapsed) {
-    const potentialNewValue =
-      (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
-    const min = getUnitPixelValue(context, panelAfter.min);
+  if (!dragEvent.disregardCollapseBuffer) {
+    if (panelAfter.collapsible && panelAfter.collapsed) {
+      const potentialNewValue =
+        (panelAfter.currentValue as number) + Math.abs(newDragOvershoot);
+      const min = getUnitPixelValue(context, panelAfter.min);
 
-    if (
-      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-      // If the panel is at it's min, expand it
-      potentialNewValue < min
+      if (
+        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
+        // If the panel is at it's min, expand it
+        potentialNewValue < min
+      ) {
+        return { dragOvershoot: newDragOvershoot };
+      }
+    }
+    // Don't let the panel collapse until the threshold is reached
+    else if (
+      panelBefore.collapsible &&
+      panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
     ) {
-      return { dragOvershoot: newDragOvershoot };
-    }
-  }
-  // Don't let the panel collapse until the threshold is reached
-  else if (
-    panelBefore.collapsible &&
-    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
-  ) {
-    const potentialNewValue =
-      panelBefore.currentValue - Math.abs(newDragOvershoot);
+      const potentialNewValue =
+        panelBefore.currentValue - Math.abs(newDragOvershoot);
 
-    if (
-      Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-      potentialNewValue > getUnitPixelValue(context, panelBefore.collapsedSize)
-    ) {
-      return { dragOvershoot: newDragOvershoot };
+      if (
+        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
+        potentialNewValue >
+          getUnitPixelValue(context, panelBefore.collapsedSize)
+      ) {
+        return { dragOvershoot: newDragOvershoot };
+      }
     }
-  }
-  // If we're already overshooting just keep adding to the overshoot
-  else {
-    if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
-      return { dragOvershoot: newDragOvershoot };
-    }
+    // If we're already overshooting just keep adding to the overshoot
+    else {
+      if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
+        return { dragOvershoot: newDragOvershoot };
+      }
 
-    if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
-      return { dragOvershoot: newDragOvershoot };
+      if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
+        return { dragOvershoot: newDragOvershoot };
+      }
     }
   }
 
@@ -831,6 +852,21 @@ function updateLayout(
     (panelBefore.currentValue as number) - moveAmount * moveDirection
   );
 
+  if (dragEvent.disregardCollapseBuffer) {
+    panelBeforeNewValue = clampUnit(
+      context,
+      { ...panelBefore, min: panelBefore.collapsedSize },
+      (panelBefore.currentValue as number) - moveAmount * moveDirection
+    );
+
+    if (
+      panelBeforeNewValue <=
+      getUnitPixelValue(context, panelBefore.collapsedSize)
+    ) {
+      panelBefore.collapsed = true;
+    }
+  }
+
   // Also apply the move amount the panel after the slider
   const panelAfterPreviousValue = panelAfter.currentValue as number;
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
@@ -840,10 +876,21 @@ function updateLayout(
     (panelAfter.currentValue as number) + applied
   );
 
+  if (dragEvent.disregardCollapseBuffer) {
+    if (panelAfter.collapsible && panelAfter.collapsed) {
+      panelAfter.collapsed = false;
+    }
+
+    panelAfterNewValue = clampUnit(
+      context,
+      { ...panelAfter, min: panelAfter.collapsedSize },
+      (panelAfter.currentValue as number) + applied
+    );
+  }
   // If the panel was collapsed, expand it
   // We need to re-apply the move amount since the the expansion of the
   // collapsed panel disregards that.
-  if (panelAfter.collapsible && panelAfter.collapsed) {
+  else if (panelAfter.collapsible && panelAfter.collapsed) {
     if (
       panelAfter.onCollapseChange?.current &&
       panelAfter.collapseIsControlled &&
@@ -882,10 +929,14 @@ function updateLayout(
     }
   }
 
+  const panelBeforeIsAboutToCollapse =
+    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min);
+
   // If the panel was expanded and now is at it's min size, collapse it
   if (
+    !dragEvent.disregardCollapseBuffer &&
     panelBefore.collapsible &&
-    panelBefore.currentValue === getUnitPixelValue(context, panelBefore.min)
+    panelBeforeIsAboutToCollapse
   ) {
     if (
       panelBefore.onCollapseChange?.current &&
@@ -967,12 +1018,14 @@ function iterativelyUpdateLayout({
   delta,
   direction,
   controlled,
+  disregardCollapseBuffer,
 }: {
   context: GroupMachineContextValue;
   handleId: string;
   delta: number;
   direction: -1 | 1;
   controlled?: boolean;
+  disregardCollapseBuffer?: boolean;
 }) {
   let newContext: Partial<GroupMachineContextValue> = context;
 
@@ -986,6 +1039,7 @@ function iterativelyUpdateLayout({
         handleId,
         type: "collapsePanel",
         controlled,
+        disregardCollapseBuffer,
         value: {
           type: "move",
           pointerType: "keyboard",
@@ -1006,6 +1060,12 @@ function iterativelyUpdateLayout({
 // #endregion
 
 // #region Machine
+
+interface AnimationActorInput {
+  context: GroupMachineContextValue;
+  event: CollapsePanelEvent | ExpandPanelEvent;
+  send: (event: GroupMachineEvent) => void;
+}
 
 const groupMachine = createMachine(
   {
@@ -1038,6 +1098,8 @@ const groupMachine = createMachine(
           setDynamicPanelInitialSize: {
             actions: ["prepare", "onSetDynamicPanelSize", "commit"],
           },
+          collapsePanel: { target: "togglingCollapse" },
+          expandPanel: { target: "togglingCollapse" },
         },
       },
       dragging: {
@@ -1045,6 +1107,22 @@ const groupMachine = createMachine(
         on: {
           dragHandle: { actions: ["prepare", "onDragHandle"] },
           dragHandleEnd: { target: "idle" },
+        },
+        exit: ["commit", "onAutosave"],
+      },
+      togglingCollapse: {
+        entry: ["prepare"],
+        invoke: {
+          src: "animation",
+          input: ({ context, event, self }) => ({
+            context,
+            event,
+            send: self.send,
+          }),
+          onDone: { target: "idle" },
+        },
+        on: {
+          applyDelta: { actions: ["onApplyDelta"] },
         },
         exit: ["commit", "onAutosave"],
       },
@@ -1063,15 +1141,76 @@ const groupMachine = createMachine(
       },
       setSize: { actions: ["updateSize"] },
       setOrientation: { actions: ["updateOrientation"] },
-      collapsePanel: {
-        actions: ["prepare", "collapsePanel", "commit", "onAutosave"],
-      },
-      expandPanel: {
-        actions: ["prepare", "expandPanel", "commit", "onAutosave"],
-      },
     },
   },
   {
+    actors: {
+      animation: fromPromise<void, AnimationActorInput, GroupMachineEvent>(
+        ({ input: { send, context, event } }) =>
+          new Promise<void>((resolve) => {
+            let delta = 0;
+            let direction: 1 | -1 = 1;
+            let handleId: string;
+
+            if (event.type === "expandPanel") {
+              const panel = getPanelWithId(context, event.panelId);
+              const handle = getHandleForPanelId(context, event.panelId);
+
+              if (!panel) {
+                return resolve();
+              }
+
+              handleId = handle.item.id;
+              direction = handle.direction;
+              delta =
+                (panel.sizeBeforeCollapse ??
+                  getUnitPixelValue(context, panel.min)) -
+                (panel.currentValue as number);
+            } else {
+              const panel = getPanelWithId(context, event.panelId);
+              const collapsedSize = getUnitPixelValue(
+                context,
+                panel.collapsedSize
+              );
+
+              if (panel.currentValue !== collapsedSize && !event.controlled) {
+                panel.sizeBeforeCollapse = panel.currentValue as number;
+              }
+
+              const handle = getHandleForPanelId(context, event.panelId);
+              handleId = handle.item.id;
+              direction = (handle.direction * -1) as -1 | 1;
+              delta = (panel.currentValue as number) - collapsedSize;
+            }
+
+            let fps = 1000 / 30;
+            let duration = 300;
+            let frames = duration / fps;
+
+            // const subDelta = duration > 0 ? delta / frames : delta;
+            const subDelta = delta / frames;
+
+            function renderFrame() {
+              frames -= 1;
+
+              send({
+                type: "applyDelta",
+                delta: subDelta,
+                direction,
+                handleId,
+              });
+
+              if (frames <= 0) {
+                resolve();
+              } else {
+                requestAnimationFrame(renderFrame);
+              }
+            }
+
+            requestAnimationFrame(renderFrame);
+          })
+      ),
+    },
     actions: {
       updateSize: assign({
         size: ({ context, event }) => {
@@ -1244,6 +1383,19 @@ const groupMachine = createMachine(
       commit: assign({
         dragOvershoot: 0,
         items: ({ context }) => commitLayout(context),
+      }),
+      onApplyDelta: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["applyDelta"]);
+
+        enqueue.assign(
+          iterativelyUpdateLayout({
+            direction: event.direction,
+            context,
+            handleId: event.handleId,
+            delta: event.delta,
+            disregardCollapseBuffer: true,
+          })
+        );
       }),
       collapsePanel: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["collapsePanel"]);
@@ -1842,6 +1994,7 @@ const PanelVisible = React.forwardRef<
       getId: () => panelId,
       collapse: () => {
         if (collapsible) {
+          // TODO: setting controlled here might be wrong
           send({ type: "collapsePanel", panelId, controlled: true });
         }
       },
@@ -1985,6 +2138,7 @@ const PanelResizerVisible = React.forwardRef<
 
   let cursor: React.CSSProperties["cursor"];
 
+  // TODO: should this be an actor in the state machine?
   if (disabled) {
     cursor = "default";
   } else if (orientation === "horizontal") {
