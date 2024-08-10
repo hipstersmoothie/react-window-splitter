@@ -96,7 +96,7 @@ interface PanelData
    */
   sizeBeforeCollapse: number | undefined;
   /** Animate the collapse/expand */
-  collapseAnimation?: "slide";
+  collapseAnimation?: "sin-in" | "sin-out";
 }
 
 interface PanelHandleData extends Order {
@@ -175,7 +175,6 @@ interface ApplyDeltaEvent {
   type: "applyDelta";
   delta: number;
   handleId: string;
-  direction: -1 | 1;
 }
 
 interface SetOrientationEvent {
@@ -1015,6 +1014,25 @@ function commitLayout(context: GroupMachineContextValue) {
   return newItems;
 }
 
+function fakeKeyboardEvent({
+  delta,
+  orientation,
+}: {
+  delta: number;
+  orientation: Orientation;
+}) {
+  return {
+    type: "move",
+    pointerType: "keyboard",
+    shiftKey: false,
+    ctrlKey: false,
+    altKey: false,
+    metaKey: false,
+    deltaX: orientation === "horizontal" ? delta : 0,
+    deltaY: orientation === "horizontal" ? 0 : delta,
+  } as const;
+}
+
 /** Iteratively applies a large delta value simulating a user's drag */
 function iterativelyUpdateLayout({
   context,
@@ -1044,16 +1062,10 @@ function iterativelyUpdateLayout({
         type: "collapsePanel",
         controlled,
         disregardCollapseBuffer,
-        value: {
-          type: "move",
-          pointerType: "keyboard",
-          shiftKey: false,
-          ctrlKey: false,
-          altKey: false,
-          metaKey: false,
-          deltaX: context.orientation === "horizontal" ? direction : 0,
-          deltaY: context.orientation === "horizontal" ? 0 : direction,
-        },
+        value: fakeKeyboardEvent({
+          delta: direction,
+          orientation: context.orientation,
+        }),
       }
     );
   }
@@ -1070,6 +1082,67 @@ interface AnimationActorInput {
   event: CollapsePanelEvent | ExpandPanelEvent;
   send: (event: GroupMachineEvent) => void;
 }
+
+interface AnimationActorOutput {
+  panelId: string;
+  action: "expand" | "collapse";
+}
+
+const animationActor = fromPromise<
+  AnimationActorOutput | undefined,
+  AnimationActorInput
+>(
+  ({ input: { send, context, event } }) =>
+    new Promise<AnimationActorOutput | undefined>((resolve) => {
+      const panel = getPanelWithId(context, event.panelId);
+      const handle = getHandleForPanelId(context, event.panelId);
+
+      let direction = handle.direction;
+      let fullDelta = 0;
+
+      if (event.type === "expandPanel") {
+        fullDelta =
+          (panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)) -
+          (panel.currentValue as number);
+      } else {
+        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
+
+        if (panel.currentValue !== collapsedSize && !event.controlled) {
+          panel.sizeBeforeCollapse = panel.currentValue as number;
+        }
+
+        direction *= -1 as -1 | 1;
+        fullDelta = (panel.currentValue as number) - collapsedSize;
+      }
+
+      const fps = 60;
+      const duration = 300;
+      const totalFrames = Math.ceil(
+        panel.collapseAnimation ? duration / (1000 / fps) : 1
+      );
+      let frame = 0;
+      let appliedDelta = 0;
+
+      function renderFrame() {
+        const progress = (frame + 1) / totalFrames;
+        const e = panel.collapseAnimation ? easings.easeSinIn(progress) : 1;
+        const delta = (e * fullDelta - appliedDelta) * direction;
+
+        send({ type: "applyDelta", handleId: handle.item.id, delta });
+        appliedDelta += Math.abs(delta);
+
+        if (++frame === totalFrames) {
+          const action = event.type === "expandPanel" ? "expand" : "collapse";
+          resolve({ panelId: panel.id, action });
+          return false;
+        }
+
+        return true;
+      }
+
+      raf(renderFrame);
+    })
+);
 
 const groupMachine = createMachine(
   {
@@ -1118,12 +1191,11 @@ const groupMachine = createMachine(
         entry: ["prepare"],
         invoke: {
           src: "animation",
-          input: ({ context, event, self }) => ({
-            context,
-            event,
-            send: self.send,
-          }),
-          onDone: { target: "idle" },
+          input: (i) => ({ ...i, send: i.self.send }),
+          onDone: {
+            target: "idle",
+            actions: ["onToggleCollapseComplete"],
+          },
         },
         on: {
           applyDelta: { actions: ["onApplyDelta"] },
@@ -1149,75 +1221,27 @@ const groupMachine = createMachine(
   },
   {
     actors: {
-      animation: fromPromise<void, AnimationActorInput, GroupMachineEvent>(
-        ({ input: { send, context, event } }) =>
-          new Promise<void>((resolve) => {
-            let delta = 0;
-            let direction: 1 | -1 = 1;
-            let handleId: string;
-            let panel: PanelData;
-
-            if (event.type === "expandPanel") {
-              panel = getPanelWithId(context, event.panelId);
-              const handle = getHandleForPanelId(context, event.panelId);
-
-              if (!panel) {
-                return resolve();
-              }
-
-              handleId = handle.item.id;
-              direction = handle.direction;
-              delta =
-                (panel.sizeBeforeCollapse ??
-                  getUnitPixelValue(context, panel.min)) -
-                (panel.currentValue as number);
-            } else {
-              panel = getPanelWithId(context, event.panelId);
-              const collapsedSize = getUnitPixelValue(
-                context,
-                panel.collapsedSize
-              );
-
-              if (panel.currentValue !== collapsedSize && !event.controlled) {
-                panel.sizeBeforeCollapse = panel.currentValue as number;
-              }
-
-              const handle = getHandleForPanelId(context, event.panelId);
-              handleId = handle.item.id;
-              direction = (handle.direction * -1) as -1 | 1;
-              delta = (panel.currentValue as number) - collapsedSize;
-            }
-
-            const fps = 1000 / 30;
-            const duration = 150;
-            let frames = panel.collapseAnimation ? duration / fps : 1;
-
-            // const subDelta = duration > 0 ? delta / frames : delta;
-            const subDelta = delta / frames;
-
-            function renderFrame() {
-              frames -= 1;
-
-              send({
-                type: "applyDelta",
-                delta: subDelta,
-                direction,
-                handleId,
-              });
-
-              if (frames <= 0) {
-                resolve();
-                return false;
-              }
-
-              return true;
-            }
-
-            raf(renderFrame);
-          })
-      ),
+      animation: animationActor,
     },
     actions: {
+      onToggleCollapseComplete: assign({
+        items: ({ context, event: e }) => {
+          const output = (e as any).output as AnimationActorOutput;
+          invariant((e as any).output, "Expected output from animation actor");
+
+          const panel = getPanelWithId(context, output.panelId);
+          panel.collapsed = output.action === "collapse";
+
+          if (panel.collapsed) {
+            panel.currentValue = getUnitPixelValue(
+              context,
+              panel.collapsedSize
+            );
+          }
+
+          return context.items;
+        },
+      }),
       updateSize: assign({
         size: ({ context, event }) => {
           isEvent(event, ["setSize"]);
@@ -1390,62 +1414,18 @@ const groupMachine = createMachine(
         dragOvershoot: 0,
         items: ({ context }) => commitLayout(context),
       }),
-      onApplyDelta: enqueueActions(({ context, event, enqueue }) => {
+      onApplyDelta: assign(({ context, event }) => {
         isEvent(event, ["applyDelta"]);
-
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: event.direction,
-            context,
-            handleId: event.handleId,
+        return updateLayout(context, {
+          handleId: event.handleId,
+          type: "collapsePanel",
+          controlled: false,
+          disregardCollapseBuffer: true,
+          value: fakeKeyboardEvent({
             delta: event.delta,
-            disregardCollapseBuffer: true,
-          })
-        );
-      }),
-      collapsePanel: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["collapsePanel"]);
-
-        const panel = getPanelWithId(context, event.panelId);
-        const handle = getHandleForPanelId(context, event.panelId);
-        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
-
-        if (panel.currentValue !== collapsedSize && !event.controlled) {
-          panel.sizeBeforeCollapse = panel.currentValue as number;
-        }
-
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: (handle.direction * -1) as -1 | 1,
-            context: { ...context, dragOvershoot: 0 },
-            handleId: handle.item.id,
-            controlled: event.controlled,
-            delta: (panel.currentValue as number) - collapsedSize,
-          })
-        );
-      }),
-      expandPanel: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["expandPanel"]);
-
-        const panel = getPanelWithId(context, event.panelId);
-        const handle = getHandleForPanelId(context, event.panelId);
-
-        if (!panel) {
-          return;
-        }
-
-        enqueue.assign(
-          iterativelyUpdateLayout({
-            direction: handle.direction,
-            context: { ...context, dragOvershoot: 0 },
-            handleId: handle.item.id,
-            controlled: event.controlled,
-            delta:
-              (panel.sizeBeforeCollapse ??
-                getUnitPixelValue(context, panel.min)) -
-              (panel.currentValue as number),
-          })
-        );
+            orientation: context.orientation,
+          }),
+        });
       }),
       onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["setPanelPixelSize"]);
