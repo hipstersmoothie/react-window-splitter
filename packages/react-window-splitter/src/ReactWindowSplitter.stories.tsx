@@ -304,6 +304,7 @@ export function Collapsible() {
   return (
     <StyledPanelGroup>
       <StyledPanel
+        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -314,22 +315,24 @@ export function Collapsible() {
       >
         <div>1</div>
       </StyledPanel>
-      <StyledResizer />
-      <StyledPanel min="100px">
+      <StyledResizer id="resizer-1" />
+      <StyledPanel id="panel-2" min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer />
+      <StyledResizer id="resizer-2" />
       <StyledPanel
         min="100px"
         collapsible
         collapsedSize="60px"
         defaultCollapsed
+        collapseAnimation="slide"
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
         collapsed={collapsed}
         onCollapseChange={(isCollapsed) => {
           console.log("COLLAPSE CONTROLLED", isCollapsed);
           setCollapsed(isCollapsed);
         }}
+        id="panel-3"
       >
         <div>3</div>
       </StyledPanel>
@@ -349,11 +352,12 @@ export function ImperativePanel() {
           min="100px"
           collapsible
           collapsedSize="60px"
+          id="panel-1"
         >
           <div>1</div>
         </StyledPanel>
-        <StyledResizer />
-        <StyledPanel min="100px">
+        <StyledResizer id="resizer-1" />
+        <StyledPanel id="panel-2" min="100px">
           <div>2</div>
         </StyledPanel>
         <StyledResizer />
@@ -362,6 +366,7 @@ export function ImperativePanel() {
           collapsible
           collapsedSize="60px"
           defaultCollapsed
+          id="panel-3"
         >
           <div>3</div>
         </StyledPanel>

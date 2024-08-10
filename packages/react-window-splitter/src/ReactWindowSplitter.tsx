@@ -95,6 +95,8 @@ interface PanelData
    * If the panel starts out collapsed it will use the `min`.
    */
   sizeBeforeCollapse: number | undefined;
+  /** Animate the collapse/expand */
+  collapseAnimation?: "slide";
 }
 
 interface PanelHandleData extends Order {
@@ -1153,9 +1155,10 @@ const groupMachine = createMachine(
             let delta = 0;
             let direction: 1 | -1 = 1;
             let handleId: string;
+            let panel: PanelData;
 
             if (event.type === "expandPanel") {
-              const panel = getPanelWithId(context, event.panelId);
+              panel = getPanelWithId(context, event.panelId);
               const handle = getHandleForPanelId(context, event.panelId);
 
               if (!panel) {
@@ -1169,7 +1172,7 @@ const groupMachine = createMachine(
                   getUnitPixelValue(context, panel.min)) -
                 (panel.currentValue as number);
             } else {
-              const panel = getPanelWithId(context, event.panelId);
+              panel = getPanelWithId(context, event.panelId);
               const collapsedSize = getUnitPixelValue(
                 context,
                 panel.collapsedSize
@@ -1185,9 +1188,9 @@ const groupMachine = createMachine(
               delta = (panel.currentValue as number) - collapsedSize;
             }
 
-            let fps = 1000 / 30;
-            let duration = 150;
-            let frames = duration / fps;
+            const fps = 1000 / 30;
+            const duration = 150;
+            let frames = panel.collapseAnimation ? duration / fps : 1;
 
             // const subDelta = duration > 0 ? delta / frames : delta;
             const subDelta = delta / frames;
@@ -1875,6 +1878,7 @@ export interface PanelHandle {
 
 export interface PanelProps
   extends Constraints,
+    Pick<PanelData, "collapseAnimation">,
     React.HTMLAttributes<HTMLDivElement> {
   /**
    * __CONTROLLED COMPONENT__
@@ -1904,7 +1908,15 @@ export interface PanelProps
 /** A panel within a `PanelGroup` */
 export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
   function Panel(
-    { defaultCollapsed, min, max, collapsedSize, onCollapseChange, ...props },
+    {
+      defaultCollapsed,
+      min,
+      max,
+      collapsedSize,
+      onCollapseChange,
+      collapseAnimation,
+      ...props
+    },
     outerRef
   ) {
     const { collapsible = false, collapsed } = props;
@@ -1924,10 +1936,15 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         collapseIsControlled: typeof collapsed !== "undefined",
         sizeBeforeCollapse: undefined,
         id: props.id,
+        collapseAnimation,
       };
 
-      return { ...data, currentValue: getInitialSize(data) };
+      return { ...data, currentValue: getInitialSize(data) } satisfies Omit<
+        PanelData,
+        "id"
+      >;
     }, [
+      collapseAnimation,
       collapsed,
       collapsedSize,
       collapsible,
@@ -1951,7 +1968,12 @@ const PanelVisible = React.forwardRef<
   HTMLDivElement,
   Omit<
     PanelProps,
-    "collapsedSize" | "onCollapseChange" | "defaultCollapsed" | "min" | "max"
+    | "collapsedSize"
+    | "onCollapseChange"
+    | "defaultCollapsed"
+    | "min"
+    | "max"
+    | "collapseAnimation"
   > & {
     panelId: string;
   }
