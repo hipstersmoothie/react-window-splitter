@@ -6,14 +6,16 @@ const withMdxts = createMdxtsPlugin({
   gitSource: "https://github.com/hipstersmoothie/react-window-splitter",
 });
 
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-});
+const withBundleAnalyzer = bundleAnalyzer({ enabled: true });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+let nextConfig = withMdxts({
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   reactStrictMode: true,
-};
+});
 
-export default withBundleAnalyzer(withMdxts(nextConfig));
+if (process.env.ANALYZE === "true") {
+  nextConfig = withBundleAnalyzer(nextConfig);
+}
+
+export default nextConfig;
