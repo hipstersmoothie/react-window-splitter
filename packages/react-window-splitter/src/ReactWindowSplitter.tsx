@@ -98,7 +98,7 @@ interface PanelData
   /** Animate the collapse/expand */
   collapseAnimation?:
     | CollapseAnimation
-    | { duration: number; easing: CollapseAnimation };
+    | { duration: number; easing: CollapseAnimation | ((t: number) => number) };
 }
 
 function getCollapseAnimation(panel: PanelData) {
@@ -109,8 +109,13 @@ function getCollapseAnimation(panel: PanelData) {
     if (typeof panel.collapseAnimation === "string") {
       easeFn = collapseAnimations[panel.collapseAnimation];
     } else if ("duration" in panel.collapseAnimation) {
-      easeFn = collapseAnimations[panel.collapseAnimation.easing];
       duration = panel.collapseAnimation.duration ?? duration;
+
+      if (typeof panel.collapseAnimation.easing === "function") {
+        easeFn = panel.collapseAnimation.easing;
+      } else {
+        easeFn = collapseAnimations[panel.collapseAnimation.easing];
+      }
     }
   }
 
