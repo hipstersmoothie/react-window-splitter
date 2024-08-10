@@ -339,6 +339,7 @@ function isPanelHandle(value: unknown): value is PanelHandleData {
 interface InitializePanelOptions {
   min?: Unit;
   max?: Unit;
+  default?: Unit;
   collapsible?: boolean;
   collapsed?: boolean;
   collapsedSize?: Unit;
@@ -373,7 +374,8 @@ export function initializePanel(
     sizeBeforeCollapse: undefined,
     id: item.id,
     collapseAnimation: item.collapseAnimation,
-  };
+    default: item.default,
+  } satisfies Omit<PanelData, "id" | "currentValue"> & { id?: string };
 
   return { ...data, currentValue: getInitialSize(data) } satisfies Omit<
     PanelData,
@@ -679,15 +681,11 @@ function getInitialSize(data: Omit<RegisterPanelEvent["data"], "id">) {
   let currentValue = "1fr";
 
   if (data.collapsible && data.collapsed) {
-    currentValue = data.collapsedSize || "0px";
+    currentValue = data.collapsedSize;
   } else if (data.default) {
     currentValue = data.default;
   } else if (data.min && data.max) {
     currentValue = `minmax(${data.min}, ${data.max})`;
-  } else if (data.max) {
-    currentValue = `minmax(0, ${data.max})`;
-  } else if (data.min) {
-    currentValue = `minmax(${data.min}, 1fr)`;
   }
 
   return currentValue;
@@ -2051,6 +2049,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       defaultCollapsed,
       min,
       max,
+      default: defaultSize,
       collapsedSize,
       onCollapseChange,
       collapseAnimation,
@@ -2072,6 +2071,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         collapseAnimation: collapseAnimation,
         id: props.id,
         defaultCollapsed,
+        default: defaultSize,
       });
     }, [
       collapseAnimation,
@@ -2082,6 +2082,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       max,
       min,
       props.id,
+      defaultSize,
     ]);
 
     const { id: panelId } = useGroupItem(panelDataRef);

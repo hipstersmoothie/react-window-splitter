@@ -7,4 +7,4 @@ export {
   PanelProps,
   PanelResizer,
   PanelResizerProps,
-} from "./ReactWindowSplitter";
+} from "./ReactWindowSplitter.js";

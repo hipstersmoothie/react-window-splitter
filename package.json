@@ -17,6 +17,7 @@
     "build-storybook": "storybook build",
     "lint": "turbo run lint lint-root",
     "lint-root": "eslint .",
+    "test": "turbo run test",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },

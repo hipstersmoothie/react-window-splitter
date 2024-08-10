@@ -150,6 +150,33 @@ test("panel can have a max", () => {
   expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
 });
 
+test("panel can have a default size", () => {
+  const actor = createActor(groupMachine, {
+    input: {
+      groupId: "group",
+      orientation: "horizontal",
+      initialItems: [],
+    },
+  }).start();
+
+  sendAll(actor, [
+    { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+    { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
+    {
+      type: "registerPanel",
+      data: initializePanel({ id: "panel-2", default: "300px" }),
+    },
+    { type: "setSize", size: { width: 500, height: 200 } },
+  ]);
+
+  expect(getTemplate(actor)).toMatchInlineSnapshot(
+    `"minmax(0px, 100%) 10px 300px"`
+  );
+
+  actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
+  expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 300px"`);
+});
+
 test("panel can be collapsible", () => {
   const actor = createActor(groupMachine, {
     input: {
