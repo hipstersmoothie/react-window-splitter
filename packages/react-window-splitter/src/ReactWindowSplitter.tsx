@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { raf } from "@react-spring/rafz";
 import Cookies from "universal-cookie";
 import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
 import {
@@ -21,6 +22,7 @@ import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
 import { useIndex, useIndexedChildren } from "reforest";
+import * as easings from "d3-ease";
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -1184,7 +1186,7 @@ const groupMachine = createMachine(
             }
 
             let fps = 1000 / 30;
-            let duration = 300;
+            let duration = 150;
             let frames = duration / fps;
 
             // const subDelta = duration > 0 ? delta / frames : delta;
@@ -1202,12 +1204,13 @@ const groupMachine = createMachine(
 
               if (frames <= 0) {
                 resolve();
-              } else {
-                requestAnimationFrame(renderFrame);
+                return false;
               }
+
+              return true;
             }
 
-            requestAnimationFrame(renderFrame);
+            raf(renderFrame);
           })
       ),
     },

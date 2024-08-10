@@ -169,6 +169,9 @@ importers:
       '@radix-ui/react-compose-refs':
         specifier: ^1.1.0
         version: 1.1.0(@types/react@18.3.3)(react@18.3.1)
+      '@react-spring/rafz':
+        specifier: ^9.7.4
+        version: 9.7.4
       '@types/invariant':
         specifier: ^2.2.37
         version: 2.2.37
@@ -197,6 +200,9 @@ importers:
       '@internal/eslint-config':
         specifier: workspace:*
         version: link:../config-eslint
+      '@types/d3-ease':
+        specifier: ^3.0.2
+        version: 3.0.2
       '@types/node':
         specifier: ^20.14.10
         version: 20.14.14
@@ -1818,6 +1824,9 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0
 
+  '@react-spring/rafz@9.7.4':
+    resolution: {integrity: sha512-mqDI6rW0Ca8IdryOMiXRhMtVGiEGLIO89vIOyFQXRIwwIMX30HLya24g9z4olDvFyeDW3+kibiKwtZnA4xhldA==}
+
   '@react-stately/calendar@3.5.3':
     resolution: {integrity: sha512-SRwsgszyc9FNcvkjqBe81e/tnjKpRqH+yTYpG0uI9NR1HfyddmhR3Y7QilWPcqQkq4SQb7pL68SkTPH2dX2dng==}
     peerDependencies:
@@ -2520,6 +2529,9 @@ packages:
 
   '@types/cross-spawn@6.0.6':
     resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
+
+  '@types/d3-ease@3.0.2':
+    resolution: {integrity: sha512-NcV1JjO5oDzoK26oMzbILE6HW7uVXOHLQvHshBUW4UMdZGfiY6v5BeQwh9a9tCzv+CeefZQHJt5SRgK154RtiA==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -10280,6 +10292,8 @@ snapshots:
       '@swc/helpers': 0.5.12
       react: 18.3.1
 
+  '@react-spring/rafz@9.7.4': {}
+
   '@react-stately/calendar@3.5.3(react@18.3.1)':
     dependencies:
       '@internationalized/date': 3.5.5
@@ -11207,6 +11221,8 @@ snapshots:
   '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 20.14.14
+
+  '@types/d3-ease@3.0.2': {}
 
   '@types/debug@4.1.12':
     dependencies:

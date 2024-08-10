@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@radix-ui/react-compose-refs": "^1.1.0",
+    "@react-spring/rafz": "^9.7.4",
     "@types/invariant": "^2.2.37",
     "@xstate/react": "^4.1.1",
     "invariant": "^2.2.4",
