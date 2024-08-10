@@ -100,6 +100,9 @@ interface PanelData
 }
 
 const collapseAnimations = {
+  "back-in": easings.easeBackIn,
+  "back-out": easings.easeBackOut,
+  "back-in-out": easings.easeBackInOut,
   "sin-in": easings.easeSinIn,
   "sin-out": easings.easeSinOut,
   "sin-in-out": easings.easeSinInOut,
@@ -534,7 +537,8 @@ function findPanelWithSpace(
   context: GroupMachineContextValue,
   items: Array<Item>,
   start: number,
-  direction: number
+  direction: number,
+  disregardCollapseBuffer?: boolean
 ) {
   for (
     let i = start;
@@ -547,7 +551,15 @@ function findPanelWithSpace(
       return;
     }
 
-    if (isPanelData(panel) && panelHasSpace(context, panel)) {
+    if (!isPanelData(panel)) {
+      continue;
+    }
+
+    const targetPanel = disregardCollapseBuffer
+      ? createUnrestrainedPanel(context, panel)
+      : panel;
+
+    if (panelHasSpace(context, targetPanel)) {
       return panel;
     }
   }
@@ -621,6 +633,17 @@ function getInitialSize(data: Omit<RegisterPanelEvent["data"], "id">) {
   }
 
   return currentValue;
+}
+
+function createUnrestrainedPanel(
+  context: GroupMachineContextValue,
+  data: PanelData
+) {
+  return {
+    ...data,
+    min: "0px" as const,
+    max: `${context.size}px` as const,
+  };
 }
 
 // #endregion
@@ -804,7 +827,8 @@ function updateLayout(
     context,
     newItems,
     handleIndex + moveDirection,
-    moveDirection
+    moveDirection,
+    dragEvent.disregardCollapseBuffer
   );
 
   // No panel with space, just record the drag overshoot
@@ -869,47 +893,27 @@ function updateLayout(
   }
 
   // Apply the move amount to the panel before the slider
+  const unrestrainedPanelBefore = createUnrestrainedPanel(context, panelBefore);
   const panelBeforePreviousValue = panelBefore.currentValue as number;
-  let panelBeforeNewValue = clampUnit(
-    context,
-    panelBefore,
-    (panelBefore.currentValue as number) - moveAmount * moveDirection
-  );
-
-  if (dragEvent.disregardCollapseBuffer) {
-    panelBeforeNewValue = clampUnit(
-      context,
-      { ...panelBefore, min: panelBefore.collapsedSize },
-      (panelBefore.currentValue as number) - moveAmount * moveDirection
-    );
-
-    if (
-      panelBeforeNewValue <=
-      getUnitPixelValue(context, panelBefore.collapsedSize)
-    ) {
-      panelBefore.collapsed = true;
-    }
-  }
+  const panelBeforeNewValueRaw =
+    (panelBefore.currentValue as number) - moveAmount * moveDirection;
+  let panelBeforeNewValue = dragEvent.disregardCollapseBuffer
+    ? clampUnit(context, unrestrainedPanelBefore, panelBeforeNewValueRaw)
+    : clampUnit(context, panelBefore, panelBeforeNewValueRaw);
 
   // Also apply the move amount the panel after the slider
+  const unrestrainedPanelAfter = createUnrestrainedPanel(context, panelAfter);
   const panelAfterPreviousValue = panelAfter.currentValue as number;
   const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  let panelAfterNewValue = clampUnit(
-    context,
-    panelAfter,
-    (panelAfter.currentValue as number) + applied
-  );
+  const panelAfterNewValueRaw = (panelAfter.currentValue as number) + applied;
+  let panelAfterNewValue = dragEvent.disregardCollapseBuffer
+    ? clampUnit(context, unrestrainedPanelAfter, panelAfterNewValueRaw)
+    : clampUnit(context, panelAfter, panelAfterNewValueRaw);
 
   if (dragEvent.disregardCollapseBuffer) {
     if (panelAfter.collapsible && panelAfter.collapsed) {
       panelAfter.collapsed = false;
     }
-
-    panelAfterNewValue = clampUnit(
-      context,
-      { ...panelAfter, min: panelAfter.collapsedSize },
-      (panelAfter.currentValue as number) + applied
-    );
   }
   // If the panel was collapsed, expand it
   // We need to re-apply the move amount since the the expansion of the
@@ -1137,7 +1141,7 @@ const animationActor = fromPromise<
       }
 
       const fps = 60;
-      const duration = 300;
+      const duration = 2000;
       const totalFrames = Math.ceil(
         panel.collapseAnimation ? duration / (1000 / fps) : 1
       );
@@ -1152,7 +1156,11 @@ const animationActor = fromPromise<
         const delta = (e * fullDelta - appliedDelta) * direction;
 
         send({ type: "applyDelta", handleId: handle.item.id, delta });
-        appliedDelta += Math.abs(delta);
+        appliedDelta +=
+          Math.abs(delta) *
+          ((delta > 0 && direction === -1) || (delta < 0 && direction === 1)
+            ? -1
+            : 1);
 
         if (++frame === totalFrames) {
           const action = event.type === "expandPanel" ? "expand" : "collapse";
@@ -1261,6 +1269,13 @@ const groupMachine = createMachine(
               panel.collapsedSize
             );
           }
+
+          console.log(
+            "TOGGLE",
+            context.items.map((item) =>
+              isPanelData(item) ? item.currentValue : item.size
+            )
+          );
 
           return context.items;
         },
@@ -1439,7 +1454,7 @@ const groupMachine = createMachine(
       }),
       onApplyDelta: assign(({ context, event }) => {
         isEvent(event, ["applyDelta"]);
-        return updateLayout(context, {
+        const r = updateLayout(context, {
           handleId: event.handleId,
           type: "collapsePanel",
           controlled: false,
@@ -1449,6 +1464,15 @@ const groupMachine = createMachine(
             orientation: context.orientation,
           }),
         });
+
+        console.log(
+          "UPDATE LAYOUT",
+          r.items?.map((item) =>
+            isPanelData(item) ? item.currentValue : item.size
+          )
+        );
+
+        return r;
       }),
       onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["setPanelPixelSize"]);
@@ -1493,10 +1517,10 @@ const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-// function useDebugGroupMachineContext({ id }: { id: string }) {
-//   const context = GroupMachineContext.useSelector((state) => state.context);
-//   console.log("GROUP CONTEXT", id, context);
-// }
+function useDebugGroupMachineContext({ id }: { id: string }) {
+  const context = GroupMachineContext.useSelector((state) => state.context);
+  console.log("GROUP CONTEXT", id, context);
+}
 
 export interface PanelGroupHandle {
   /** The id of the group */
