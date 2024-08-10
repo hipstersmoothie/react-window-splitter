@@ -345,17 +345,15 @@ export function Collapsible() {
 }
 
 export function CustomCollapseAnimation() {
-  const springFn = useMemo(
-    () =>
-      spring({
-        keyframes: [0, 1],
-        velocity: 0.0,
-        stiffness: 100,
-        damping: 10,
-        mass: 1.0,
-      }),
-    []
-  );
+  const springFn = useMemo(() => {
+    return spring({
+      keyframes: [0, 1],
+      velocity: 0.0,
+      stiffness: 100,
+      damping: 10,
+      mass: 1.0,
+    });
+  }, []);
 
   return (
     <StyledPanelGroup>

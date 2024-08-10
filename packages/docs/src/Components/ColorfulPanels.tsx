@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFocusVisible } from "react-aria";
 import {
   PanelGroup as PanelGroupPrimitive,
   PanelGroupProps,
@@ -107,23 +108,31 @@ export function ColorfulPanel({
 }
 
 export function ColorfulPanelResizer(props: PanelResizerProps) {
+  const { isFocusVisible } = useFocusVisible();
   return (
     <PanelResizerPrimitive
       {...props}
       size="20px"
-      className="h-full relative group"
+      className={`h-full relative group ${isFocusVisible ? "" : "focus:outline-none"}`}
     >
       <div
-        className="
+        className={`
           absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full
           group-data-[handle-orientation='horizontal']:w-2 group-data-[handle-orientation='horizontal']:h-8
           group-data-[handle-orientation='vertical']:w-8 group-data-[handle-orientation='vertical']:h-2
           bg-gray-action border border-gray-normal 
           group-data-[state='dragging']:bg-blue-6 group-data-[state='dragging']:border-blue-10
           dark:group-data-[state='dragging']:bg-bluedark-6 dark:group-data-[state='dragging']:border-bluedark-10
-          group-focus:bg-blue-9 group-focus:border-blue-10
-          dark:group-focus:bg-bluedark-9 dark:group-focus:border-bluedark-10
-        "
+
+          ${
+            isFocusVisible
+              ? `
+              group-focus-visible:bg-blue-9 group-focus-visible:border-blue-10
+              dark:group-focus-visible:bg-bluedark-9 dark:group-focus-visible:border-bluedark-10
+              `
+              : ""
+          }
+        `}
       />
     </PanelResizerPrimitive>
   );

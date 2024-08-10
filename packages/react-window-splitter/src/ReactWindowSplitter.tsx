@@ -10,7 +10,13 @@ import React, {
 } from "react";
 import { raf } from "@react-spring/rafz";
 import Cookies from "universal-cookie";
-import { mergeProps, MoveMoveEvent, useId, useMove } from "react-aria";
+import {
+  mergeProps,
+  MoveMoveEvent,
+  useButton,
+  useId,
+  useMove,
+} from "react-aria";
 import {
   createMachine,
   assign,
@@ -1522,10 +1528,10 @@ const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-function useDebugGroupMachineContext({ id }: { id: string }) {
-  const context = GroupMachineContext.useSelector((state) => state.context);
-  console.log("GROUP CONTEXT", id, context);
-}
+// function useDebugGroupMachineContext({ id }: { id: string }) {
+//   const context = GroupMachineContext.useSelector((state) => state.context);
+//   console.log("GROUP CONTEXT", id, context);
+// }
 
 export interface PanelGroupHandle {
   /** The id of the group */
@@ -2108,43 +2114,46 @@ const PanelVisible = React.forwardRef<
 });
 
 export interface PanelResizerProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLButtonElement>,
     Partial<Pick<PanelHandleData, "size">> {
   /** If the handle is disabled */
   disabled?: boolean;
 }
 
 /** A resize handle to place between panels. */
-export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
-  function PanelResizer(props, ref) {
-    const { size = "0px" } = props;
-    const isPrerender = React.useContext(PreRenderContext);
-    const data = React.useMemo(
-      () => ({
-        type: "handle" as const,
-        size,
-        id: props.id,
-      }),
-      [size, props.id]
-    );
+export const PanelResizer = React.forwardRef<
+  HTMLButtonElement,
+  PanelResizerProps
+>(function PanelResizer(props, ref) {
+  const { size = "0px" } = props;
+  const isPrerender = React.useContext(PreRenderContext);
+  const data = React.useMemo(
+    () => ({
+      type: "handle" as const,
+      size,
+      id: props.id,
+    }),
+    [size, props.id]
+  );
 
-    const { id: handleId } = useGroupItem(data);
+  const { id: handleId } = useGroupItem(data);
 
-    if (isPrerender) {
-      return null;
-    }
-
-    return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
+  if (isPrerender) {
+    return null;
   }
-);
+
+  return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
+});
 
 const PanelResizerVisible = React.forwardRef<
-  HTMLDivElement,
+  HTMLButtonElement,
   PanelResizerProps & { handleId: string }
 >(function PanelResizerVisible(
   { size = "0px", disabled, handleId, ...props },
-  ref
+  outerRef
 ) {
+  const innerRef = React.useRef<HTMLButtonElement>(null);
+  const ref = useComposedRefs(outerRef, innerRef);
   const unit = parseUnit(size);
   const [isDragging, setIsDragging] = React.useState(false);
   const { send } = GroupMachineContext.useActorRef();
@@ -2162,6 +2171,7 @@ const PanelResizerVisible = React.forwardRef<
       return undefined;
     }
   });
+  const { buttonProps } = useButton({}, innerRef);
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
@@ -2236,10 +2246,9 @@ const PanelResizerVisible = React.forwardRef<
   }
 
   return (
-    <div
+    <button
       ref={ref}
       role="separator"
-      tabIndex={0}
       data-splitter-type="handle"
       data-splitter-id={handleId}
       data-handle-orientation={orientation}
@@ -2259,7 +2268,12 @@ const PanelResizerVisible = React.forwardRef<
               panelBeforeHandle.currentValue as Unit
             )
       }
-      {...mergeProps(props, disabled ? {} : moveProps, { onKeyDown })}
+      {...mergeProps(
+        props,
+        disabled ? {} : buttonProps,
+        disabled ? {} : moveProps,
+        { onKeyDown }
+      )}
       style={{
         cursor,
         ...props.style,
