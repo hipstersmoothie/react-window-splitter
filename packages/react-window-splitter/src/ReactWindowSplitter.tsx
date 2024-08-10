@@ -938,7 +938,7 @@ function updateLayout(
       !dragEvent.controlled
     ) {
       panelAfter.onCollapseChange.current(false);
-      return {};
+      return { dragOvershoot: newDragOvershoot };
     }
 
     // Calculate the amount "extra" after the minSize the panel should grow
@@ -985,7 +985,7 @@ function updateLayout(
       !dragEvent.controlled
     ) {
       panelBefore.onCollapseChange.current(true);
-      return {};
+      return { dragOvershoot: newDragOvershoot };
     }
 
     // Make it collapsed
@@ -1217,15 +1217,35 @@ const groupMachine = createMachine(
           setDynamicPanelInitialSize: {
             actions: ["prepare", "onSetDynamicPanelSize", "commit"],
           },
-          collapsePanel: { target: "togglingCollapse" },
-          expandPanel: { target: "togglingCollapse" },
+          collapsePanel: [
+            {
+              actions: "notifyCollapseToggle",
+              guard: "shouldNotifyCollapseToggle",
+            },
+            { target: "togglingCollapse" },
+          ],
+          expandPanel: [
+            {
+              actions: "notifyCollapseToggle",
+              guard: "shouldNotifyCollapseToggle",
+            },
+            { target: "togglingCollapse" },
+          ],
         },
       },
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["prepare", "onDragHandle"] },
+          dragHandle: { actions: ["onDragHandle"] },
           dragHandleEnd: { target: "idle" },
+          collapsePanel: {
+            guard: "shouldCollapseToggle",
+            actions: "runCollapseToggle",
+          },
+          expandPanel: {
+            guard: "shouldCollapseToggle",
+            actions: "runCollapseToggle",
+          },
         },
         exit: ["commit", "onAutosave"],
       },
@@ -1262,10 +1282,52 @@ const groupMachine = createMachine(
     },
   },
   {
+    guards: {
+      shouldNotifyCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+        const panel = getPanelWithId(context, event.panelId);
+        return !event.controlled && panel.collapseIsControlled === true;
+      },
+      shouldCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+        const panel = getPanelWithId(context, event.panelId);
+        return panel.collapseIsControlled === true;
+      },
+    },
     actors: {
       animation: animationActor,
     },
     actions: {
+      notifyCollapseToggle: ({ context, event }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+
+        const panel = getPanelWithId(context, event.panelId);
+
+        if (!panel.collapseIsControlled) {
+          throw new Error("Expected panel to be controlled");
+        }
+
+        panel.onCollapseChange?.current?.(!panel.collapsed);
+      },
+      runCollapseToggle: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["collapsePanel", "expandPanel"]);
+
+        const handle = getHandleForPanelId(context, event.panelId);
+        // When collapsing a panel it will be in the opposite direction
+        // that handle assumes
+        const delta =
+          event.type === "collapsePanel"
+            ? handle.direction * -1
+            : handle.direction;
+        const newContext = updateLayout(context, {
+          handleId: handle.item.id,
+          type: "dragHandle",
+          controlled: event.controlled,
+          value: fakeKeyboardEvent({ delta, orientation: context.orientation }),
+        });
+
+        enqueue.assign(newContext);
+      }),
       onToggleCollapseComplete: assign({
         items: ({ context, event: e }) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1466,25 +1528,15 @@ const groupMachine = createMachine(
       }),
       onApplyDelta: assign(({ context, event }) => {
         isEvent(event, ["applyDelta"]);
-        const r = updateLayout(context, {
+        return updateLayout(context, {
           handleId: event.handleId,
           type: "collapsePanel",
-          controlled: false,
           disregardCollapseBuffer: true,
           value: fakeKeyboardEvent({
             delta: event.delta,
             orientation: context.orientation,
           }),
         });
-
-        console.log(
-          "UPDATE LAYOUT",
-          r.items?.map((item) =>
-            isPanelData(item) ? item.currentValue : item.size
-          )
-        );
-
-        return r;
       }),
       onSetPanelSize: enqueueActions(({ context, event, enqueue }) => {
         isEvent(event, ["setPanelPixelSize"]);

@@ -22,7 +22,6 @@ export function CustomCollapseAnimation() {
     });
   }, []);
 
-  springFn.calculatedDuration;
   return (
     <div className="flex flex-col gap-6">
       <Button

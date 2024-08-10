@@ -310,9 +310,9 @@ export function Collapsible() {
         collapsible
         collapsedSize="60px"
         style={{ border: "10px solid green", boxSizing: "border-box" }}
-        // onCollapseChange={(isCollapsed) => {
-        //   console.log("COLLAPSE PASSIVE", isCollapsed);
-        // }}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE PASSIVE", isCollapsed);
+        }}
       >
         <div>1</div>
       </StyledPanel>
@@ -326,16 +326,13 @@ export function Collapsible() {
         collapsible
         collapsedSize="60px"
         defaultCollapsed
-        collapseAnimation={{
-          easing: "bounce",
-          duration: 1000,
-        }}
+        collapseAnimation={{ easing: "bounce", duration: 1000 }}
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
-        // collapsed={collapsed}
-        // onCollapseChange={(isCollapsed) => {
-        //   console.log("COLLAPSE CONTROLLED", isCollapsed);
-        //   setCollapsed(isCollapsed);
-        // }}
+        collapsed={collapsed}
+        onCollapseChange={(isCollapsed) => {
+          console.log("COLLAPSE CONTROLLED", isCollapsed);
+          setCollapsed(isCollapsed);
+        }}
         id="panel-3"
       >
         <div>3</div>
