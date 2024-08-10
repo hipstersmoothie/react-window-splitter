@@ -51,4 +51,10 @@ export default [
       ...eslintPluginReactHooks.configs.recommended.rules,
     },
   },
+  {
+    ignores: ["**/*.stories.tsx"],
+    rules: {
+      "no-console": "error",
+    },
+  },
 ];

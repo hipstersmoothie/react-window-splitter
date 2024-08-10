@@ -1344,13 +1344,6 @@ const groupMachine = createMachine(
             );
           }
 
-          console.log(
-            "TOGGLE",
-            context.items.map((item) =>
-              isPanelData(item) ? item.currentValue : item.size
-            )
-          );
-
           return context.items;
         },
       }),
