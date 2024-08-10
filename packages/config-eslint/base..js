@@ -13,7 +13,10 @@ export default [
   { languageOptions: { globals: globals.node } },
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    ...tseslint.configs.recommended,
+  },
   {
     files: ["**/*.{ts,tsx}"],
     ignores: ["**/.storybook/**"],

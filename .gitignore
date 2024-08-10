@@ -138,3 +138,4 @@ src/package.json
 .turbo
 
 packages/docs/analyze/** 
+.DS_Store

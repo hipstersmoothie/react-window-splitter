@@ -279,7 +279,7 @@ interface GroupMachineContextValue {
   groupId: string;
 }
 
-type GroupMachineEvent =
+export type GroupMachineEvent =
   | RegisterPanelEvent
   | RegisterDynamicPanelEvent
   | UnregisterPanelEvent
@@ -334,6 +334,51 @@ function isPanelHandle(value: unknown): value is PanelHandleData {
       "type" in value &&
       value.type === "handle"
   );
+}
+
+interface InitializePanelOptions {
+  min?: Unit;
+  max?: Unit;
+  collapsible?: boolean;
+  collapsed?: boolean;
+  collapsedSize?: Unit;
+  onCollapseChange?: {
+    current: ((isCollapsed: boolean) => void) | null | undefined;
+  };
+  collapseAnimation?: PanelData["collapseAnimation"];
+  defaultCollapsed?: boolean;
+  id?: string;
+}
+
+type InitializePanelOptionsWithId = InitializePanelOptions & { id: string };
+
+export function initializePanel(item: InitializePanelOptionsWithId): PanelData;
+export function initializePanel(
+  item: InitializePanelOptions
+): Omit<PanelData, "id">;
+export function initializePanel(
+  item: InitializePanelOptions | InitializePanelOptionsWithId
+): PanelData | Omit<PanelData, "id"> {
+  const data = {
+    type: "panel" as const,
+    min: item.min || "0px",
+    max: item.max || "100%",
+    collapsed: item.collapsible
+      ? (item.collapsed ?? item.defaultCollapsed ?? false)
+      : undefined,
+    collapsible: item.collapsible,
+    collapsedSize: item.collapsedSize ?? "0px",
+    onCollapseChange: item.onCollapseChange,
+    collapseIsControlled: typeof item.collapsed !== "undefined",
+    sizeBeforeCollapse: undefined,
+    id: item.id,
+    collapseAnimation: item.collapseAnimation,
+  };
+
+  return { ...data, currentValue: getInitialSize(data) } satisfies Omit<
+    PanelData,
+    "id"
+  >;
 }
 
 /** Parse the percentage value applied during the "commit" phase */
@@ -598,7 +643,7 @@ function getStaticWidth(context: GroupMachineContextValue) {
 }
 
 /** Build the grid template from the item values. */
-function buildTemplate(items: Array<Item>) {
+export function buildTemplate(items: Array<Item>) {
   return items
     .map((item) => {
       if (item.type === "panel") {
@@ -953,7 +998,9 @@ function updateLayout(
       Math.abs(moveAmount);
 
     panelAfter.collapsed = false;
-    panelAfterNewValue += extra;
+    if (extra > 0) {
+      panelAfterNewValue += extra;
+    }
     panelBeforeNewValue -=
       // Subtract the delta of the after panel's size
       panelAfterNewValue -
@@ -1052,7 +1099,7 @@ function commitLayout(context: GroupMachineContextValue) {
   return newItems;
 }
 
-function fakeKeyboardEvent({
+export function dragHandlePayload({
   delta,
   orientation,
 }: {
@@ -1100,7 +1147,7 @@ function iterativelyUpdateLayout({
         type: "collapsePanel",
         controlled,
         disregardCollapseBuffer,
-        value: fakeKeyboardEvent({
+        value: dragHandlePayload({
           delta: direction,
           orientation: context.orientation,
         }),
@@ -1186,7 +1233,7 @@ const animationActor = fromPromise<
     })
 );
 
-const groupMachine = createMachine(
+export const groupMachine = createMachine(
   {
     initial: "idle",
     types: {
@@ -1323,7 +1370,7 @@ const groupMachine = createMachine(
           handleId: handle.item.id,
           type: "dragHandle",
           controlled: event.controlled,
-          value: fakeKeyboardEvent({ delta, orientation: context.orientation }),
+          value: dragHandlePayload({ delta, orientation: context.orientation }),
         });
 
         enqueue.assign(newContext);
@@ -1525,7 +1572,7 @@ const groupMachine = createMachine(
           handleId: event.handleId,
           type: "collapsePanel",
           disregardCollapseBuffer: true,
-          value: fakeKeyboardEvent({
+          value: dragHandlePayload({
             delta: event.delta,
             orientation: context.orientation,
           }),
@@ -2007,26 +2054,17 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     const isPrerender = React.useContext(PreRenderContext);
     const onCollapseChangeRef = React.useRef(onCollapseChange);
     const panelDataRef = React.useMemo(() => {
-      const data = {
-        type: "panel" as const,
-        min: min || "0px",
-        max: max || "100%",
-        collapsed: collapsible
-          ? (collapsed ?? defaultCollapsed ?? false)
-          : undefined,
-        collapsible,
-        collapsedSize: collapsedSize ?? "0px",
+      return initializePanel({
+        min: min,
+        max: max,
+        collapsible: collapsible,
+        collapsed: collapsed,
+        collapsedSize: collapsedSize,
         onCollapseChange: onCollapseChangeRef,
-        collapseIsControlled: typeof collapsed !== "undefined",
-        sizeBeforeCollapse: undefined,
+        collapseAnimation: collapseAnimation,
         id: props.id,
-        collapseAnimation,
-      };
-
-      return { ...data, currentValue: getInitialSize(data) } satisfies Omit<
-        PanelData,
-        "id"
-      >;
+        defaultCollapsed,
+      });
     }, [
       collapseAnimation,
       collapsed,
