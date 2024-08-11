@@ -75,8 +75,9 @@ interface Order {
 
 interface PanelData
   extends Omit<Constraints, "min" | "max" | "collapsedSize">,
-    Required<Pick<Constraints, "min" | "max" | "collapsedSize">>,
+    Required<Pick<Constraints, "min" | "collapsedSize">>,
     Order {
+  max: Unit | "1fr";
   type: "panel";
   id: string;
   /** Whether the collapsed state is controlled by the consumer or not */
@@ -366,7 +367,7 @@ export function initializePanel(
   const data = {
     type: "panel" as const,
     min: item.min || "0px",
-    max: item.max || "100%",
+    max: item.max || "1fr",
     collapsed: item.collapsible
       ? (item.collapsed ?? item.defaultCollapsed ?? false)
       : undefined,
@@ -396,10 +397,19 @@ function parseClamp(groupsSize: number, unit: string) {
       value: (groupsSize - parseFloat(staticSize)) * parseFloat(percent),
     };
   }
+
+  return parseUnit(unit as Unit);
 }
 
 /** Parse a `Unit` string or `clamp` value */
-function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
+function parseUnit(unit: Unit | "1fr"): {
+  type: "pixel" | "percent";
+  value: number;
+} {
+  if (unit === "1fr") {
+    unit = "100%";
+  }
+
   if (unit.endsWith("px")) {
     return { type: "pixel", value: parseFloat(unit) };
   }
@@ -412,7 +422,10 @@ function parseUnit(unit: Unit): { type: "pixel" | "percent"; value: number } {
 }
 
 /** Convert a `Unit` to a percentage of the group size */
-function getUnitPercentageValue(groupsSize: number, unit: Unit | number) {
+function getUnitPercentageValue(
+  groupsSize: number,
+  unit: Unit | "1fr" | number
+) {
   if (typeof unit === "string") {
     const clampValue = parseClamp(groupsSize, unit);
 
@@ -435,7 +448,10 @@ function getUnitPercentageValue(groupsSize: number, unit: Unit | number) {
 }
 
 /** Get the size of a panel in pixels */
-function getUnitPixelValue(context: GroupMachineContextValue, unit: Unit) {
+function getUnitPixelValue(
+  context: GroupMachineContextValue,
+  unit: Unit | "1fr"
+) {
   const parsed = parseUnit(unit);
 
   if (parsed.type === "pixel") {
@@ -672,17 +688,13 @@ function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
 }
 
 function getInitialSize(data: Omit<RegisterPanelEvent["data"], "id">) {
-  let currentValue = "1fr";
-
   if (data.collapsible && data.collapsed) {
-    currentValue = data.collapsedSize;
+    return data.collapsedSize;
   } else if (data.default) {
-    currentValue = data.default;
-  } else if (data.min && data.max) {
-    currentValue = `minmax(${data.min}, ${data.max})`;
+    return data.default;
   }
 
-  return currentValue;
+  return `minmax(${data.min}, ${data.max})`;
 }
 
 function createUnrestrainedPanel(
@@ -753,39 +765,19 @@ function createUnrestrainedPanel(
 function prepareItems(context: GroupMachineContextValue) {
   const newItems = [...context.items];
 
-  const itemsWithClamps = newItems
-    .map((i, index) =>
-      isPanelData(i) &&
-      typeof i.currentValue === "string" &&
-      i.currentValue.includes("minmax")
-        ? index
-        : -1
-    )
-    .filter((i) => i !== -1);
-
-  if (itemsWithClamps.length > 0) {
-    for (const index of itemsWithClamps) {
-      const item = newItems[index];
-
-      if (
-        !item ||
-        !isPanelData(item) ||
-        typeof item.currentValue !== "string"
-      ) {
-        continue;
-      }
-      const unit = parseClamp(context.size, item.currentValue);
-
-      if (!unit) {
-        continue;
-      }
-
-      newItems[index] = {
-        ...item,
-        // TODO: maybe only round if it's really close?
-        currentValue: Math.round(unit.value),
-      };
+  for (const item of newItems) {
+    if (!item || !isPanelData(item) || typeof item.currentValue !== "string") {
+      continue;
     }
+
+    const unit = parseClamp(context.size, item.currentValue);
+
+    if (!unit) {
+      continue;
+    }
+
+    // TODO: maybe only round if it's really close?
+    item.currentValue = Math.round(unit.value);
   }
 
   return newItems;
@@ -1893,12 +1885,12 @@ const PanelGroupImplementation = React.forwardRef<
           for (const childEntry of childrenEntries) {
             const child = childEntry.target as HTMLElement;
             const childId = child.getAttribute("data-splitter-id");
-            const childSize = childEntry.contentRect;
+            const childSize = childEntry.borderBoxSize[0];
 
-            if (childId) {
+            if (childId && childSize) {
               childrenSizes[childId] = {
-                width: childSize.width,
-                height: childSize.height,
+                width: childSize.inlineSize,
+                height: childSize.blockSize,
               };
             }
           }

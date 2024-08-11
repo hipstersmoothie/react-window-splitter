@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { expect, test, vi } from "vitest";
+import { expect, test, describe, vi } from "vitest";
 import {
   buildTemplate,
   dragHandlePayload,
@@ -12,7 +12,6 @@ import {
   isPanelHandle,
 } from "./ReactWindowSplitter.js";
 import { Actor, createActor } from "xstate";
-import { describe } from "node:test";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
   return buildTemplate(actor.getSnapshot().context.items);
@@ -75,6 +74,57 @@ function waitForIdle(actor: Actor<typeof groupMachine>) {
   });
 }
 
+function initializeSizes(
+  actor: Actor<typeof groupMachine>,
+  options: {
+    width: number;
+    height: number;
+  }
+) {
+  const orientation = actor.getSnapshot().context.orientation;
+  const items = actor.getSnapshot().context.items;
+  const template = buildTemplate(items);
+  const div = document.createElement("div");
+
+  div.style.width = `${options.width}px`;
+  div.style.height = `${options.height}px`;
+  div.style.display = "grid";
+  div.id = "group";
+
+  if (orientation === "horizontal") {
+    div.style.gridTemplateColumns = template;
+  } else {
+    div.style.gridTemplateRows = template;
+  }
+
+  for (let i = 0; i < items.length; i++) {
+    div.appendChild(document.createElement("div"));
+  }
+
+  document.body.appendChild(div);
+
+  const childrenSizes: Record<string, { width: number; height: number }> = {};
+
+  div.childNodes.forEach((node, index) => {
+    const item = items[index];
+
+    if (node instanceof HTMLElement && item) {
+      const rect = node.getBoundingClientRect();
+
+      childrenSizes[item.id] = {
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+  });
+
+  actor.send({
+    type: "setSize",
+    size: { width: options.width, height: options.height },
+    childrenSizes,
+  });
+}
+
 describe("constraints", () => {
   test("works with 2 simple panels - horizontal", () => {
     const actor = createActor(groupMachine, {
@@ -85,12 +135,12 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(0px, 100%)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     // Drag the resizer to the right
     capturePixelValues(actor, () => {
@@ -100,7 +150,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr))"`
     );
 
     // Drag the resizer to the left
@@ -111,7 +161,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr))"`
     );
   });
 
@@ -124,12 +174,12 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
-      { type: "setSize", size: { width: 200, height: 500 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(0px, 100%)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
     );
+    initializeSizes(actor, { width: 200, height: 500 });
 
     // Drag the resizer down
     capturePixelValues(actor, () => {
@@ -143,7 +193,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr))"`
     );
 
     // Drag the resizer to the up
@@ -158,7 +208,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr))"`
     );
   });
 
@@ -174,14 +224,13 @@ describe("constraints", () => {
       },
     }).start();
 
-    sendAll(actor, [{ type: "setSize", size: { width: 200, height: 500 } }]);
-
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(0px, 100%)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"95px 10px 95px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 
@@ -197,12 +246,12 @@ describe("constraints", () => {
         type: "registerPanel",
         data: initializePanel({ id: "panel-2", min: "100px" }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
@@ -223,17 +272,17 @@ describe("constraints", () => {
         type: "registerPanel",
         data: initializePanel({ id: "panel-2", max: "300px" }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(0px, 300px)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 300px)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     // Drag the resizer to the right
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
       dragHandle(actor, { id: "resizer-1", delta: -200 });
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
     });
@@ -251,11 +300,11 @@ describe("constraints", () => {
         type: "registerPanel",
         data: initializePanel({ id: "panel-2", default: "300px" }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
+    initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px 300px"`
+      `"minmax(0px, min(calc(1 * (100% - 310px)), 1fr)) 10px minmax(0px, min(calc(1.5789473684210527 * (100% - 310px)), 1fr))"`
     );
 
     capturePixelValues(actor, () => {
@@ -283,11 +332,11 @@ describe("collapsible panel", () => {
           min: "100px",
         }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
+    initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
+      `"minmax(0px, min(calc(0.5 * (100% - 10px)), 1fr)) 10px minmax(100px, min(calc(0.5 * (100% - 10px)), 1fr))"`
     );
 
     capturePixelValues(actor, () => {
@@ -303,7 +352,7 @@ describe("collapsible panel", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"`
+      `"minmax(0px, min(calc(1 * (100% - 10px)), 1fr)) 10px 0px"`
     );
 
     capturePixelValues(actor, () => {
@@ -337,12 +386,12 @@ describe("collapsible panel", () => {
           collapsedSize: "60px",
         }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px 60px"`
+      `"minmax(0px, 1fr) 10px 60px"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
@@ -383,12 +432,12 @@ describe("collapsible panel", () => {
       },
       { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"60px 10px minmax(0px, 100%)"`
+      `"60px 10px minmax(0px, 1fr)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
@@ -432,12 +481,12 @@ describe("collapsible panel", () => {
           },
         }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
@@ -473,12 +522,12 @@ describe("collapsible panel", () => {
           default: "100px",
         }),
       },
-      { type: "setSize", size: { width: 500, height: 200 } },
     ]);
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 100%) 10px 100px"`
+      `"minmax(0px, 1fr) 10px 100px"`
     );
+    initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);

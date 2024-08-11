@@ -63,7 +63,7 @@ export function Simple() {
         <div>Panel 1</div>
       </StyledPanel>
       <StyledResizer />
-      <StyledPanel>
+      <StyledPanel min="100px">
         <div>Panel 2</div>
       </StyledPanel>
     </StyledPanelGroup>
@@ -359,12 +359,10 @@ export function CustomCollapseAnimation() {
         collapsedSize="60px"
         style={{ border: "10px solid green", boxSizing: "border-box" }}
       >
-        <div>1</div>
+        1
       </StyledPanel>
       <StyledResizer />
-      <StyledPanel min="100px">
-        <div>2</div>
-      </StyledPanel>
+      <StyledPanel min="100px">2</StyledPanel>
       <StyledResizer />
       <StyledPanel
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
@@ -377,7 +375,7 @@ export function CustomCollapseAnimation() {
           easing: "ease-in-out",
         }}
       >
-        <div>3</div>
+        3
       </StyledPanel>
     </StyledPanelGroup>
   );
