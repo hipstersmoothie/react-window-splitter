@@ -1741,6 +1741,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     const [hasPreRendered, setHasPreRendered] = useState(false);
     const initialMap = useRef<Record<string, Item>>({});
     const indexedChildren = useIndexedChildren(
+      // eslint-disable-next-line @eslint-react/no-children-to-array
       flattenChildren(React.Children.toArray(children))
     );
 
