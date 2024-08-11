@@ -600,17 +600,10 @@ function findPanelWithSpace(
   direction: number,
   disregardCollapseBuffer?: boolean
 ) {
-  for (
-    let i = start;
-    direction === -1 ? i >= 0 : i < items.length;
-    i += direction
-  ) {
-    const panel = items[i];
+  const slice =
+    direction === -1 ? items.slice(0, start + 1).reverse() : items.slice(start);
 
-    if (!panel) {
-      return;
-    }
-
+  for (const panel of slice) {
     if (!isPanelData(panel)) {
       continue;
     }
@@ -1778,6 +1771,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     const [hasPreRendered, setHasPreRendered] = useState(false);
     const initialMap = useRef<Record<string, Item>>({});
     const indexedChildren = useIndexedChildren(
+      // eslint-disable-next-line @eslint-react/no-children-to-array
       flattenChildren(React.Children.toArray(children))
     );
 
