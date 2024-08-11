@@ -9,6 +9,7 @@ import {
   groupMachine,
   GroupMachineEvent,
   initializePanel,
+  isPanelHandle,
 } from "./ReactWindowSplitter.js";
 import { Actor, createActor } from "xstate";
 import { describe } from "node:test";
@@ -46,6 +47,22 @@ function sendAll(
   }
 }
 
+function capturePixelValues(actor: Actor<typeof groupMachine>, cb: () => void) {
+  const firstHandle = actor
+    .getSnapshot()
+    .context.items.find((i) => isPanelHandle(i));
+
+  if (firstHandle) {
+    actor.send({ type: "dragHandleStart", handleId: firstHandle.id });
+  }
+
+  cb();
+
+  if (firstHandle) {
+    actor.send({ type: "dragHandleEnd", handleId: firstHandle.id });
+  }
+}
+
 function waitForIdle(actor: Actor<typeof groupMachine>) {
   return new Promise<void>((resolve) => {
     setInterval(() => {
@@ -76,27 +93,23 @@ describe("constraints", () => {
     );
 
     // Drag the resizer to the right
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, { id: "resizer-1", delta: 10 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
+    });
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: 10 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
-
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the left
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
+      dragHandle(actor, { id: "resizer-1", delta: -20 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"235px 10px 255px"`);
+    });
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: -20 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"235px 10px 255px"`);
-
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
     );
@@ -119,27 +132,31 @@ describe("constraints", () => {
     );
 
     // Drag the resizer down
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, {
+        id: "resizer-1",
+        delta: 10,
+        orientation: "vertical",
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
+    });
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: 10, orientation: "vertical" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
-
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the up
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
+      dragHandle(actor, {
+        id: "resizer-1",
+        delta: -20,
+        orientation: "vertical",
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"235px 10px 255px"`);
+    });
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"255px 10px 235px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: -20, orientation: "vertical" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"235px 10px 255px"`);
-
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
     );
@@ -163,8 +180,9 @@ describe("constraints", () => {
       `"minmax(0px, 100%) 10px minmax(0px, 100%)"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"95px 10px 95px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"95px 10px 95px"`);
+    });
   });
 
   test("panel can have a min", () => {
@@ -186,11 +204,11 @@ describe("constraints", () => {
       `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: 200 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, { id: "resizer-1", delta: 200 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    });
   });
 
   test("panel can have a max", () => {
@@ -214,11 +232,11 @@ describe("constraints", () => {
 
     // Drag the resizer to the right
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
-
-    dragHandle(actor, { id: "resizer-1", delta: -200 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, { id: "resizer-1", delta: -200 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
+    });
   });
 
   test("panel can have a default size", () => {
@@ -240,8 +258,9 @@ describe("constraints", () => {
       `"minmax(0px, 100%) 10px 300px"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
+    });
   });
 });
 
@@ -269,32 +288,33 @@ describe("collapsible panel", () => {
       `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
 
-    // Drag into the drag buffer but not past it
-    dragHandle(actor, { id: "resizer-1", delta: 160 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: 160 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
 
-    // Drag past the drag buffer and collapse the panel
-    dragHandle(actor, { id: "resizer-1", delta: 100 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      // Drag past the drag buffer and collapse the panel
+      dragHandle(actor, { id: "resizer-1", delta: 100 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+    });
 
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
 
-    // Stays oollapsed in the buffer
-    dragHandle(actor, { id: "resizer-1", delta: -30 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      // Stays oollapsed in the buffer
+      dragHandle(actor, { id: "resizer-1", delta: -30 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
 
-    // Opens once the buffer is cleared
-    dragHandle(actor, { id: "resizer-1", delta: -20 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+      // Opens once the buffer is cleared
+      dragHandle(actor, { id: "resizer-1", delta: -20 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    });
   });
 
   test("collapsible panel can have collapsed size - right", async () => {
@@ -322,24 +342,25 @@ describe("collapsible panel", () => {
       `"minmax(0px, 100%) 10px 60px"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
 
-    // Drag into the the panel
-    dragHandle(actor, { id: "resizer-1", delta: 50 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
+      // Drag into the the panel
+      dragHandle(actor, { id: "resizer-1", delta: 50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
 
-    // Drag into the start
-    dragHandle(actor, { id: "resizer-1", delta: -50 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
+      // Drag into the start
+      dragHandle(actor, { id: "resizer-1", delta: -50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
 
-    // Drag into the drag buffer but not past it
-    dragHandle(actor, { id: "resizer-1", delta: -25 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: -25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
 
-    // Drag past the buffer
-    dragHandle(actor, { id: "resizer-1", delta: -25 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+      // Drag past the buffer
+      dragHandle(actor, { id: "resizer-1", delta: -25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+    });
   });
 
   test("collapsible panel can have collapsed size - left", async () => {
@@ -367,24 +388,25 @@ describe("collapsible panel", () => {
       `"60px 10px minmax(0px, 100%)"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
 
-    // Drag into the the panel
-    dragHandle(actor, { id: "resizer-1", delta: -50 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
+      // Drag into the the panel
+      dragHandle(actor, { id: "resizer-1", delta: -50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
 
-    // Drag to the start
-    dragHandle(actor, { id: "resizer-1", delta: 50 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
+      // Drag to the start
+      dragHandle(actor, { id: "resizer-1", delta: 50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
 
-    // Drag into the drag buffer but not past it
-    dragHandle(actor, { id: "resizer-1", delta: 25 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: 25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"60px 10px 430px"`);
 
-    // Drag past the buffer
-    dragHandle(actor, { id: "resizer-1", delta: 25 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"200px 10px 290px"`);
+      // Drag past the buffer
+      dragHandle(actor, { id: "resizer-1", delta: 25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"200px 10px 290px"`);
+    });
   });
 
   test("panel can collapse can subscribe to collapsed state", () => {
@@ -415,17 +437,18 @@ describe("collapsible panel", () => {
       `"minmax(0px, 100%) 10px minmax(100px, 100%)"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
 
-    // Drag into the drag buffer but not past it
-    dragHandle(actor, { id: "resizer-1", delta: 160 });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: 160 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
 
-    // Drag past the drag buffer and collapse the panel
-    dragHandle(actor, { id: "resizer-1", delta: 100 });
-    expect(spy).toHaveBeenCalledWith(true);
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      // Drag past the drag buffer and collapse the panel
+      dragHandle(actor, { id: "resizer-1", delta: 100 });
+      expect(spy).toHaveBeenCalledWith(true);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+    });
   });
 
   test("should be able to trigger collapse/expand via event", async () => {
@@ -455,20 +478,22 @@ describe("collapsible panel", () => {
       `"minmax(0px, 100%) 10px 100px"`
     );
 
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    });
 
     actor.send({ type: "collapsePanel", panelId: "panel-2" });
     await waitForIdle(actor);
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
-    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+    });
 
     actor.send({ type: "expandPanel", panelId: "panel-2" });
     await waitForIdle(actor);
-    // TODO this is wrong it should be 100px
-    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    });
   });
 });

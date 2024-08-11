@@ -317,7 +317,7 @@ function isEvent<T extends GroupMachineEvent["type"]>(
 }
 
 /** Determine if an item is a panel */
-function isPanelData(value: unknown): value is PanelData {
+export function isPanelData(value: unknown): value is PanelData {
   return Boolean(
     value &&
       typeof value === "object" &&
@@ -327,7 +327,7 @@ function isPanelData(value: unknown): value is PanelData {
 }
 
 /** Determine if an item is a panel handle */
-function isPanelHandle(value: unknown): value is PanelHandleData {
+export function isPanelHandle(value: unknown): value is PanelHandleData {
   return Boolean(
     value &&
       typeof value === "object" &&
