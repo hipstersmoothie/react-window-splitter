@@ -262,6 +262,8 @@ describe("constraints", () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
     });
   });
+
+  test("can update orientation at runtime", () => {});
 });
 
 describe("collapsible panel", () => {
@@ -496,4 +498,20 @@ describe("collapsible panel", () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
     });
   });
+
+  test("panel collapse can be controlled", () => {});
+  test("panel collapse can be animated - string", () => {});
+  test("panel collapse can be animated - function", () => {});
+});
+
+describe("conditional panel", () => {
+  test("panel can be conditionally rendered", () => {});
+});
+
+describe("nested panels", () => {
+  test("panel can be nested", () => {});
+});
+
+describe("nested panels", () => {
+  test("panel can be nested", () => {});
 });
