@@ -315,6 +315,42 @@ describe("constraints", () => {
     });
   });
 
+  test("dragging eats space from multiple panels in front of it", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          min: "200px",
+          default: "300px",
+        }),
+      },
+      { type: "registerPanelHandle", data: { id: "resizer-2", size: "10px" } },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-3", min: "100px" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"80px 10px 300px 10px 100px"`
+      );
+      dragHandle(actor, { id: "resizer-1", delta: 160 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"180px 10px 200px 10px 100px"`
+      );
+    });
+  });
+
   test("can update orientation at runtime", () => {});
 });
 
