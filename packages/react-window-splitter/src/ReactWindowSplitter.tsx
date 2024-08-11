@@ -1064,11 +1064,8 @@ function updateLayout(
     newItems.reduce(
       (acc, b) =>
         acc +
-        (b.type === "panel"
-          ? typeof b.currentValue === "number"
-            ? b.currentValue
-            : parseUnit(b.currentValue as Unit).value
-          : parseUnit(b.size).value),
+        // in updateLayout the panel units will always be numbers
+        (isPanelData(b) ? (b.currentValue as number) : parseUnit(b.size).value),
       0
     );
 
@@ -1249,7 +1246,7 @@ export const groupMachine = createMachine(
         autosaveId?: string;
         orientation?: Orientation;
         groupId: string;
-        initialItems: Item[];
+        initialItems?: Item[];
       },
     },
     context: ({ input }) => ({

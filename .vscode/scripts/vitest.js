@@ -10,6 +10,6 @@ const relativeFile = path.relative(dir, file);
 
 process.chdir(dir);
 
-spawnSync("pnpm", ["test", relativeFile], {
+spawnSync("pnpm", ["run", "test", "--testTimeout", "50000000", relativeFile], {
   stdio: "inherit",
 });
