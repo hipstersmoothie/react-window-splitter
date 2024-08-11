@@ -456,28 +456,13 @@ function clampUnit(
 
 /** Get a panel with a particular ID. */
 function getPanelWithId(context: GroupMachineContextValue, panelId: string) {
-  const item = context.items.find((item) => item.id === panelId);
+  const item = context.items.find((i) => i.id === panelId);
 
   if (item && isPanelData(item)) {
     return item;
   }
 
   throw new Error(`Expected panel with id: ${panelId}`);
-}
-
-/** Get the panel before a handle */
-function getPanelBeforeHandleId(
-  context: GroupMachineContextValue,
-  handleId: string
-) {
-  const handleIndex = context.items.findIndex((item) => item.id === handleId);
-  const item = context.items[handleIndex - 1];
-
-  if (item && isPanelData(item)) {
-    return item;
-  }
-
-  throw new Error(`Expected panel before: ${handleId}`);
 }
 
 /**
@@ -1520,7 +1505,7 @@ export const groupMachine = createMachine(
             return context.items;
           }
 
-          const newItems = context.items.filter((item) => item.id !== event.id);
+          const newItems = context.items.filter((i) => i.id !== event.id);
           let removedSize = isPanelData(item)
             ? typeof item.currentValue === "number"
               ? item.currentValue
@@ -1744,21 +1729,21 @@ function useGroupItem<T extends Item>(
       contextItem = items[index];
     }
 
-    const id = contextItem?.id || itemArg.id;
+    const unmountId = contextItem?.id || itemArg.id;
 
     return () => {
       const el = document.querySelector(
-        `[data-splitter-id="${id}"]`
+        `[data-splitter-id="${unmountId}"]`
       ) as HTMLElement;
 
-      if (el || !id) {
+      if (el || !unmountId) {
         return;
       }
 
       if (isPanelData(itemArg)) {
-        send({ type: "unregisterPanel", id });
+        send({ type: "unregisterPanel", id: unmountId });
       } else if (isPanelHandle(itemArg)) {
-        send({ type: "unregisterPanelHandle", id });
+        send({ type: "unregisterPanelHandle", id: unmountId });
       }
     };
   }, [index, itemArg, machineRef, send]);
@@ -1792,20 +1777,20 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
           </PrerenderTree>
         )}
 
-        <PanelGroupMachine ref={ref} initialItems={initialMap} {...props}>
+        <PanelGroupImpl ref={ref} initialItems={initialMap} {...props}>
           {indexedChildren}
-        </PanelGroupMachine>
+        </PanelGroupImpl>
       </InitialMapContext.Provider>
     );
   }
 );
 
-const PanelGroupMachine = React.forwardRef<
+const PanelGroupImpl = React.forwardRef<
   HTMLDivElement,
   PanelGroupProps & {
     initialItems: React.MutableRefObject<Record<string, Item>>;
   }
->(function PanelGroup(
+>(function PanelGroupImpl(
   {
     autosaveId,
     autosaveStrategy = "localStorage",
@@ -2142,11 +2127,11 @@ const PanelVisible = React.forwardRef<
         return;
       }
 
-      const panel = getPanelWithId(context, panelId);
+      const p = getPanelWithId(context, panelId);
 
-      if (collapsed === true && !panel.collapsed) {
+      if (collapsed === true && !p.collapsed) {
         send({ type: "collapsePanel", panelId, controlled: true });
-      } else if (collapsed === false && panel.collapsed) {
+      } else if (collapsed === false && p.collapsed) {
         send({ type: "expandPanel", panelId, controlled: true });
       }
     }
@@ -2172,16 +2157,16 @@ const PanelVisible = React.forwardRef<
       isExpanded: () => Boolean(collapsible && !panel?.collapsed),
       getPixelSize: () => {
         const context = machineRef.getSnapshot().context;
-        const panel = getPanelWithId(
+        const p = getPanelWithId(
           { ...context, items: prepareItems(context) },
           panelId
         );
 
-        if (typeof panel.currentValue === "string") {
-          return getUnitPixelValue(context, panel.currentValue as Unit);
+        if (typeof p.currentValue === "string") {
+          return getUnitPixelValue(context, p.currentValue as Unit);
         }
 
-        return panel.currentValue;
+        return p.currentValue;
       },
       setSize: (size) => {
         send({ type: "setPanelPixelSize", panelId, size });
@@ -2189,10 +2174,10 @@ const PanelVisible = React.forwardRef<
       getPercentageSize: () => {
         const context = machineRef.getSnapshot().context;
         const items = prepareItems(context);
-        const panel = getPanelWithId({ ...context, items }, panelId);
+        const p = getPanelWithId({ ...context, items }, panelId);
         return getUnitPercentageValue(
           context.size,
-          panel.currentValue as Unit | number
+          p.currentValue as Unit | number
         );
       },
     };

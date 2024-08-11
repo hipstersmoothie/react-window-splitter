@@ -7,15 +7,21 @@ import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import * as tsParser from "@typescript-eslint/parser";
 
 export default [
-  { ignores: ["**/dist/**", "**/.next/**"] },
+  { ignores: ["**/dist/**", "**/.next/**", "**/coverage/**"] },
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
   { languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } } },
   { languageOptions: { globals: globals.node } },
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx}"],
-    ...tseslint.configs.recommended,
+    ignores: ["**/.storybook/**"],
+    ...react.configs["dom"],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: { project: "./tsconfig.json" },
+    },
   },
   {
     files: ["**/*.{ts,tsx}"],
@@ -38,20 +44,17 @@ export default [
     },
   },
   {
-    files: ["**/*.{ts,tsx}"],
-    ignores: ["**/.storybook/**"],
-    ...react.configs["dom"],
-    languageOptions: {
-      parser: tsParser,
-      parserOptions: { project: "./tsconfig.json" },
-    },
-  },
-  {
     plugins: {
       "react-hooks": fixupPluginRules(eslintPluginReactHooks),
     },
     rules: {
       ...eslintPluginReactHooks.configs.recommended.rules,
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx,js,jsx}"],
+    rules: {
+      "no-shadow": "error",
     },
   },
   {
