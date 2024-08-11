@@ -30,6 +30,7 @@ export default [
       parserOptions: { project: "./tsconfig.json" },
     },
     rules: {
+      ...react.configs["recommended-type-checked"].rules,
       "@eslint-react/prefer-shorthand-boolean": "error",
       "@eslint-react/naming-convention/filename-extension": "error",
     },
