@@ -199,13 +199,16 @@ interface DragHandleEndEvent {
   handleId: string;
 }
 
+interface Rect {
+  width: number;
+  height: number;
+}
+
 interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
-  size: {
-    width: number;
-    height: number;
-  };
+  size: Rect;
+  childrenSizes?: Record<string, Rect>;
 }
 
 interface ApplyDeltaEvent {
@@ -749,50 +752,6 @@ function createUnrestrainedPanel(
 /** Converts the items to pixels */
 function prepareItems(context: GroupMachineContextValue) {
   const newItems = [...context.items];
-
-  for (const item of newItems) {
-    if (
-      isPanelData(item) &&
-      typeof item.currentValue === "string" &&
-      item.currentValue.match(/^\d+px$/)
-    ) {
-      item.currentValue = parseUnit(item.currentValue as Unit).value;
-    }
-  }
-
-  const itemsWithFractions = newItems
-    .map((i, index) =>
-      isPanelData(i) &&
-      typeof i.currentValue === "string" &&
-      (i.currentValue.includes("fr") ||
-        (i.currentValue.includes("minmax") && !i.currentValue.includes("calc")))
-        ? index
-        : -1
-    )
-    .filter((i) => i !== -1);
-
-  // If there are any items with fractions, distribute them evenly
-  if (itemsWithFractions.length > 0) {
-    let fractionSpace = context.size - getStaticWidth(context);
-    let remaining = itemsWithFractions.length;
-
-    for (const index of itemsWithFractions) {
-      const item = newItems[index];
-
-      if (!item || !isPanelData(item)) {
-        continue;
-      }
-
-      const fractionUnit = clampUnit(context, item, fractionSpace / remaining);
-
-      newItems[index] = {
-        ...item,
-        currentValue: fractionUnit,
-      };
-      fractionSpace -= fractionUnit;
-      remaining--;
-    }
-  }
 
   const itemsWithClamps = newItems
     .map((i, index) =>
@@ -1389,14 +1348,38 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: assign({
-        size: ({ context, event }) => {
-          isEvent(event, ["setSize"]);
+      updateSize: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["setSize"]);
 
-          return context.orientation === "horizontal"
+        const size =
+          context.orientation === "horizontal"
             ? event.size.width
             : event.size.height;
-        },
+
+        if (event.childrenSizes) {
+          const itemsWithSizes = context.items.map((i) => {
+            const childSize = event.childrenSizes?.[i.id];
+
+            if (typeof childSize !== "undefined") {
+              return {
+                ...i,
+                currentValue:
+                  context.orientation === "horizontal"
+                    ? childSize.width
+                    : childSize.height,
+              };
+            }
+
+            return i;
+          });
+
+          enqueue.assign({
+            size,
+            items: commitLayout({ ...context, size, items: itemsWithSizes }),
+          });
+        } else {
+          enqueue.assign({ size });
+        }
       }),
       updateOrientation: assign({
         orientation: ({ event }) => {
@@ -1693,8 +1676,8 @@ function useGroupItem<T extends Item>(
 
   // The way this hooks is called is never conditional so the usage here is fine
   /* eslint-disable react-hooks/rules-of-hooks */
-  const currentItem = GroupMachineContext.useSelector(({ context }) =>
-    context.items.find((i) => i.id === id)
+  const currentItem = GroupMachineContext.useSelector(
+    ({ context }) => context.items[index]
   ) as T;
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
 
@@ -1888,9 +1871,13 @@ const PanelGroupImplementation = React.forwardRef<
 
   // Track the size of the group
   useIsomorphicLayoutEffect(() => {
-    if (!innerRef.current) {
+    const { current: el } = innerRef;
+
+    if (!el) {
       return;
     }
+
+    let hasMeasuredChildren = false;
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -1899,15 +1886,46 @@ const PanelGroupImplementation = React.forwardRef<
         return;
       }
 
-      send({ type: "setSize", size: entry.contentRect });
+      if (!hasMeasuredChildren) {
+        const childrenObserver = new ResizeObserver((childrenEntries) => {
+          const childrenSizes: Record<string, Rect> = {};
+
+          for (const childEntry of childrenEntries) {
+            const child = childEntry.target as HTMLElement;
+            const childId = child.getAttribute("data-splitter-id");
+            const childSize = childEntry.contentRect;
+
+            if (childId) {
+              childrenSizes[childId] = {
+                width: childSize.width,
+                height: childSize.height,
+              };
+            }
+          }
+
+          send({ type: "setSize", size: entry.contentRect, childrenSizes });
+          childrenObserver.disconnect();
+          hasMeasuredChildren = true;
+        });
+
+        const children = el.querySelectorAll(
+          `[data-splitter-group-id="${groupId}"]`
+        );
+
+        for (const child of children) {
+          childrenObserver.observe(child);
+        }
+      } else {
+        send({ type: "setSize", size: entry.contentRect });
+      }
     });
 
-    observer.observe(innerRef.current);
+    observer.observe(el);
 
     return () => {
       observer.disconnect();
     };
-  }, [send, innerRef]);
+  }, [send, innerRef, groupId]);
 
   // useDebugGroupMachineContext({ id: groupId });
 
@@ -2109,6 +2127,9 @@ const PanelVisible = React.forwardRef<
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
+  const groupId = GroupMachineContext.useSelector(
+    (state) => state.context.groupId
+  );
   const panel = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getPanelWithId(context, panelId);
@@ -2186,6 +2207,7 @@ const PanelVisible = React.forwardRef<
   return (
     <div
       ref={ref}
+      data-splitter-group-id={groupId}
       data-splitter-type="panel"
       data-splitter-id={panelId}
       data-collapsed={collapsible && panel?.collapsed}
