@@ -557,7 +557,93 @@ describe("collapsible panel", () => {
 });
 
 describe("conditional panel", () => {
-  test("panel can be conditionally rendered", () => {});
+  test("panel can be conditionally rendered", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+
+    sendAll(actor, [
+      { type: "registerPanelHandle", data: { id: "resizer-2", size: "10px" } },
+      {
+        type: "registerDynamicPanel",
+        data: initializePanel({ id: "panel-3", min: "100px" }),
+      },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"245px 10px 135px 10px 100px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+  });
+
+  test("panel can be conditionally rendered w/order", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      { type: "registerPanelHandle", data: { id: "resizer-1", size: "10px" } },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+
+    sendAll(actor, [
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-2", size: "10px", order: 1 },
+      },
+      {
+        type: "registerDynamicPanel",
+        data: {
+          ...initializePanel({ id: "panel-3", min: "100px" }),
+          order: 2,
+        },
+      },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"135px 10px 100px 10px 245px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"135px 10px 355px"`);
+    });
+  });
 });
 
 describe("nested panels", () => {
