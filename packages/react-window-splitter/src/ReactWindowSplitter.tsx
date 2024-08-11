@@ -638,6 +638,12 @@ function getStaticWidth(context: GroupMachineContextValue) {
       } else if (item.currentValue.endsWith("px")) {
         width += parseUnit(item.currentValue as Unit).value;
       }
+    } else if (isPanelData(item) && item.default) {
+      const unit = parseUnit(item.default);
+
+      if (unit.type === "pixel") {
+        width += unit.value;
+      }
     }
   }
 
