@@ -1714,32 +1714,37 @@ function useGroupItem<T extends Item>(
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
 
   React.useEffect(() => {
-    const item = machineRef
-      .getSnapshot()
-      .context.items.find((i) => i.id === itemArg.id);
+    const items = machineRef.getSnapshot().context.items;
+    let contextItem: Item | undefined;
 
-    if (!item) {
-      invariant(
-        itemArg.id,
-        "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well."
-      );
+    if (itemArg.id) {
+      contextItem = items.find((i) => i.id === itemArg.id);
 
-      if (isPanelData(itemArg)) {
-        send({
-          type: "registerDynamicPanel",
-          data: { ...itemArg, order: index },
-        });
-      } else if (isPanelHandle(itemArg)) {
-        send({
-          type: "registerPanelHandle",
-          data: { ...itemArg, order: index },
-        });
+      if (!contextItem) {
+        invariant(
+          itemArg.id,
+          "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well."
+        );
+
+        if (isPanelData(itemArg)) {
+          send({
+            type: "registerDynamicPanel",
+            data: { ...itemArg, order: index },
+          });
+        } else if (isPanelHandle(itemArg)) {
+          send({
+            type: "registerPanelHandle",
+            data: { ...itemArg, order: index },
+          });
+        }
+      } else {
+        // TODO
       }
     } else {
-      // TODO
+      contextItem = items[index];
     }
 
-    const id = item?.id || itemArg.id;
+    const id = contextItem?.id || itemArg.id;
 
     return () => {
       const el = document.querySelector(
@@ -2233,34 +2238,31 @@ export const PanelResizer = React.forwardRef<
     [size, props.id]
   );
 
-  const { id: handleId } = useGroupItem(data);
+  useGroupItem(data);
 
   if (isPrerender) {
     return null;
   }
 
-  return <PanelResizerVisible ref={ref} {...props} handleId={handleId} />;
+  return <PanelResizerVisible ref={ref} {...props} />;
 });
 
 const PanelResizerVisible = React.forwardRef<
   HTMLButtonElement,
-  PanelResizerProps & { handleId: string }
->(function PanelResizerVisible(
-  { size = "0px", disabled, handleId, ...props },
-  outerRef
-) {
+  PanelResizerProps
+>(function PanelResizerVisible({ size = "0px", disabled, ...props }, outerRef) {
   const innerRef = React.useRef<HTMLButtonElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
   const unit = parseUnit(size);
   const [isDragging, setIsDragging] = React.useState(false);
   const { send } = GroupMachineContext.useActorRef();
-  const panelBeforeHandle = GroupMachineContext.useSelector(({ context }) => {
-    try {
-      return getPanelBeforeHandleId(context, handleId);
-    } catch {
-      return undefined;
-    }
-  });
+  const { index } = useIndex()!;
+  const handleId = GroupMachineContext.useSelector(
+    ({ context }) => context.items[index]?.id || ""
+  );
+  const panelBeforeHandle = GroupMachineContext.useSelector(
+    ({ context }) => context.items[index - 1]
+  );
   const collapsiblePanel = GroupMachineContext.useSelector(({ context }) => {
     try {
       return getCollapsiblePanelForHandleId(context, handleId);

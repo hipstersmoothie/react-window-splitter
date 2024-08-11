@@ -305,7 +305,6 @@ export function Collapsible() {
   return (
     <StyledPanelGroup>
       <StyledPanel
-        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -316,11 +315,11 @@ export function Collapsible() {
       >
         <div>1</div>
       </StyledPanel>
-      <StyledResizer id="resizer-1" />
-      <StyledPanel id="panel-2" min="100px">
+      <StyledResizer />
+      <StyledPanel min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer id="resizer-2" />
+      <StyledResizer />
       <StyledPanel
         min="100px"
         collapsible
@@ -333,7 +332,6 @@ export function Collapsible() {
           console.log("COLLAPSE CONTROLLED", isCollapsed);
           setCollapsed(isCollapsed);
         }}
-        id="panel-3"
       >
         <div>3</div>
       </StyledPanel>
@@ -349,13 +347,13 @@ export function CustomCollapseAnimation() {
       stiffness: 100,
       damping: 10,
       mass: 1.0,
+      duration: 1000,
     });
   }, []);
 
   return (
     <StyledPanelGroup>
       <StyledPanel
-        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -363,21 +361,20 @@ export function CustomCollapseAnimation() {
       >
         <div>1</div>
       </StyledPanel>
-      <StyledResizer id="resizer-1" />
-      <StyledPanel id="panel-2" min="100px">
+      <StyledResizer />
+      <StyledPanel min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer id="resizer-2" />
+      <StyledResizer />
       <StyledPanel
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
-        id="panel-3"
         min="100px"
         collapsible
         collapsedSize="60px"
         defaultCollapsed
         collapseAnimation={{
-          duration: 1000,
-          easing: (t) => springFn.next(t * 1000).value,
+          duration: 300,
+          easing: "ease-in-out",
         }}
       >
         <div>3</div>
@@ -398,23 +395,19 @@ export function ImperativePanel() {
           min="100px"
           collapsible
           collapsedSize="60px"
-          id="panel-1"
         >
-          <div>1</div>
+          1
         </StyledPanel>
-        <StyledResizer id="resizer-1" />
-        <StyledPanel id="panel-2" min="100px">
-          <div>2</div>
-        </StyledPanel>
+        <StyledResizer />
+        <StyledPanel min="100px">2</StyledPanel>
         <StyledResizer />
         <StyledPanel
           min="100px"
           collapsible
           collapsedSize="60px"
           defaultCollapsed
-          id="panel-3"
         >
-          <div>3</div>
+          3
         </StyledPanel>
       </StyledPanelGroup>
 
