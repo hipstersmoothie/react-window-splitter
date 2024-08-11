@@ -121,6 +121,9 @@ function initializeSizes(
   actor.send({
     type: "setSize",
     size: { width: options.width, height: options.height },
+  });
+  actor.send({
+    type: "setActualItemsSize",
     childrenSizes,
   });
 }
@@ -150,7 +153,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr))"`
+      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the left
@@ -161,7 +164,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr))"`
+      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -193,7 +196,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr))"`
+      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the up
@@ -208,7 +211,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 1fr)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 1fr))"`
+      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -304,7 +307,7 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 310px)), 1fr)) 10px minmax(0px, min(calc(1.5789473684210527 * (100% - 310px)), 1fr))"`
+      `"minmax(0px, min(calc(1 * (100% - 310px)), 100%)) 10px minmax(0px, min(calc(1.5789473684210527 * (100% - 310px)), 100%))"`
     );
 
     capturePixelValues(actor, () => {
@@ -336,7 +339,7 @@ describe("collapsible panel", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5 * (100% - 10px)), 1fr)) 10px minmax(100px, min(calc(0.5 * (100% - 10px)), 1fr))"`
+      `"minmax(0px, min(calc(0.5 * (100% - 10px)), 100%)) 10px minmax(100px, min(calc(0.5 * (100% - 10px)), 100%))"`
     );
 
     capturePixelValues(actor, () => {
@@ -352,7 +355,7 @@ describe("collapsible panel", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 10px)), 1fr)) 10px 0px"`
+      `"minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"`
     );
 
     capturePixelValues(actor, () => {

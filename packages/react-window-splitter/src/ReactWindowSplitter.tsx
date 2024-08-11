@@ -1035,9 +1035,10 @@ function commitLayout(context: GroupMachineContextValue) {
       };
     } else {
       const fraction = item.currentValue / (context.size - staticWidth);
+      const max = item.max === "1fr" ? "100%" : item.max;
       newItems[index] = {
         ...item,
-        currentValue: `minmax(${item.min}, min(calc(${fraction} * (100% - ${staticWidth}px)), ${item.max}))`,
+        currentValue: `minmax(${item.min}, min(calc(${fraction} * (100% - ${staticWidth}px)), ${max}))`,
       };
     }
   });
