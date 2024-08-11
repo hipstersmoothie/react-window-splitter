@@ -209,6 +209,11 @@ interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
+}
+
+interface SetActualItemsSizeEvent {
+  /** Set the size of the whole group */
+  type: "setActualItemsSize";
   childrenSizes?: Record<string, Rect>;
 }
 
@@ -298,7 +303,8 @@ export type GroupMachineEvent =
   | ExpandPanelEvent
   | SetPanelPixelSizeEvent
   | SetDynamicPanelPixelSizeEvent
-  | ApplyDeltaEvent;
+  | ApplyDeltaEvent
+  | SetActualItemsSizeEvent;
 
 type EventForType<T extends GroupMachineEvent["type"]> = Extract<
   GroupMachineEvent,
@@ -706,6 +712,39 @@ function createUnrestrainedPanel(
     min: "0px" as const,
     max: `${context.size}px` as const,
   };
+}
+
+function measureGroupChildren(
+  groupId: string,
+  cb: (childrenSizes: Record<string, Rect>) => void
+) {
+  const childrenObserver = new ResizeObserver((childrenEntries) => {
+    const childrenSizes: Record<string, { width: number; height: number }> = {};
+
+    for (const childEntry of childrenEntries) {
+      const child = childEntry.target as HTMLElement;
+      const childId = child.getAttribute("data-splitter-id");
+      const childSize = childEntry.borderBoxSize[0];
+
+      if (childId && childSize) {
+        childrenSizes[childId] = {
+          width: childSize.inlineSize,
+          height: childSize.blockSize,
+        };
+      }
+    }
+
+    cb(childrenSizes);
+    childrenObserver.disconnect();
+  });
+
+  const children = document.querySelectorAll(
+    `[data-splitter-group-id="${groupId}"]`
+  );
+
+  for (const child of children) {
+    childrenObserver.observe(child);
+  }
 }
 
 // #endregion
@@ -1204,6 +1243,7 @@ export const groupMachine = createMachine(
     states: {
       idle: {
         on: {
+          setActualItemsSize: { actions: ["recordActualItemSize"] },
           dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
             actions: ["prepare", "onSetPanelSize", "commit"],
@@ -1341,38 +1381,38 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["setSize"]);
+      updateSize: assign({
+        size: ({ context, event }) => {
+          isEvent(event, ["setSize"]);
 
-        const size =
-          context.orientation === "horizontal"
+          return context.orientation === "horizontal"
             ? event.size.width
             : event.size.height;
+        },
+      }),
+      recordActualItemSize: assign({
+        items: ({ context, event }) => {
+          isEvent(event, ["setActualItemsSize"]);
 
-        if (event.childrenSizes) {
           const itemsWithSizes = context.items.map((i) => {
             const childSize = event.childrenSizes?.[i.id];
+            const orientation = context.orientation;
 
-            if (typeof childSize !== "undefined") {
-              return {
-                ...i,
-                currentValue:
-                  context.orientation === "horizontal"
-                    ? childSize.width
-                    : childSize.height,
-              };
+            if (typeof childSize === "undefined") {
+              return i;
             }
 
-            return i;
+            return {
+              ...i,
+              currentValue:
+                orientation === "horizontal"
+                  ? childSize.width
+                  : childSize.height,
+            };
           });
 
-          enqueue.assign({
-            size,
-            items: commitLayout({ ...context, size, items: itemsWithSizes }),
-          });
-        } else {
-          enqueue.assign({ size });
-        }
+          return commitLayout({ ...context, items: itemsWithSizes });
+        },
       }),
       updateOrientation: assign({
         orientation: ({ event }) => {
@@ -1592,10 +1632,10 @@ export const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-// function useDebugGroupMachineContext({ id }: { id: string }) {
-//   const context = GroupMachineContext.useSelector((state) => state.context);
-//   console.log("GROUP CONTEXT", id, context);
-// }
+function useDebugGroupMachineContext({ id }: { id: string }) {
+  const context = GroupMachineContext.useSelector((state) => state.context);
+  console.log("GROUP CONTEXT", id, context);
+}
 
 export interface PanelGroupHandle {
   /** The id of the group */
@@ -1675,11 +1715,11 @@ function useGroupItem<T extends Item>(
   const { send, ref: machineRef } = GroupMachineContext.useActorRef();
 
   React.useEffect(() => {
-    const items = machineRef.getSnapshot().context.items;
+    const context = machineRef.getSnapshot().context;
     let contextItem: Item | undefined;
 
     if (itemArg.id) {
-      contextItem = items.find((i) => i.id === itemArg.id);
+      contextItem = context.items.find((i) => i.id === itemArg.id);
 
       if (!contextItem) {
         invariant(
@@ -1692,6 +1732,12 @@ function useGroupItem<T extends Item>(
             type: "registerDynamicPanel",
             data: { ...itemArg, order: index },
           });
+
+          requestAnimationFrame(() => {
+            measureGroupChildren(context.groupId, (childrenSizes) => {
+              send({ type: "setActualItemsSize", childrenSizes });
+            });
+          });
         } else if (isPanelHandle(itemArg)) {
           send({
             type: "registerPanelHandle",
@@ -1702,7 +1748,7 @@ function useGroupItem<T extends Item>(
         // TODO
       }
     } else {
-      contextItem = items[index];
+      contextItem = context.items[index];
     }
 
     const unmountId = contextItem?.id || itemArg.id;
@@ -1742,7 +1788,6 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
     const [hasPreRendered, setHasPreRendered] = useState(false);
     const initialMap = useRef<Record<string, Item>>({});
     const indexedChildren = useIndexedChildren(
-      // eslint-disable-next-line @eslint-react/no-children-to-array
       flattenChildren(React.Children.toArray(children))
     );
 
@@ -1881,34 +1926,11 @@ const PanelGroupImplementation = React.forwardRef<
       }
 
       if (!hasMeasuredChildren) {
-        const childrenObserver = new ResizeObserver((childrenEntries) => {
-          const childrenSizes: Record<string, Rect> = {};
-
-          for (const childEntry of childrenEntries) {
-            const child = childEntry.target as HTMLElement;
-            const childId = child.getAttribute("data-splitter-id");
-            const childSize = childEntry.borderBoxSize[0];
-
-            if (childId && childSize) {
-              childrenSizes[childId] = {
-                width: childSize.inlineSize,
-                height: childSize.blockSize,
-              };
-            }
-          }
-
-          send({ type: "setSize", size: entry.contentRect, childrenSizes });
-          childrenObserver.disconnect();
+        measureGroupChildren(groupId, (childrenSizes) => {
+          send({ type: "setSize", size: entry.contentRect });
+          send({ type: "setActualItemsSize", childrenSizes });
           hasMeasuredChildren = true;
         });
-
-        const children = el.querySelectorAll(
-          `[data-splitter-group-id="${groupId}"]`
-        );
-
-        for (const child of children) {
-          childrenObserver.observe(child);
-        }
       } else {
         send({ type: "setSize", size: entry.contentRect });
       }
@@ -1921,7 +1943,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef, groupId]);
 
-  // useDebugGroupMachineContext({ id: groupId });
+  useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 
