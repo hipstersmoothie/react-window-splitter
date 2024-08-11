@@ -265,15 +265,6 @@ interface SetPanelPixelSizeEvent {
   size: Unit;
 }
 
-interface SetDynamicPanelPixelSizeEvent {
-  /** This event is used to sync dynamic panels to their actual pixel size so drags work */
-  type: "setDynamicPanelInitialSize";
-  /** The panel to apply the size to */
-  panelId: string;
-  /** The initial measured size of the panel */
-  size: number;
-}
-
 interface GroupMachineContextValue {
   /** The items in the group */
   items: Array<Item>;
@@ -302,7 +293,6 @@ export type GroupMachineEvent =
   | CollapsePanelEvent
   | ExpandPanelEvent
   | SetPanelPixelSizeEvent
-  | SetDynamicPanelPixelSizeEvent
   | ApplyDeltaEvent
   | SetActualItemsSizeEvent;
 
@@ -1248,9 +1238,6 @@ export const groupMachine = createMachine(
           setPanelPixelSize: {
             actions: ["prepare", "onSetPanelSize", "commit"],
           },
-          setDynamicPanelInitialSize: {
-            actions: ["prepare", "onSetDynamicPanelSize", "commit"],
-          },
           collapsePanel: [
             {
               actions: "notifyCollapseToggle",
@@ -1455,7 +1442,15 @@ export const groupMachine = createMachine(
             (item) => item.id === event.data.id
           );
           const newContext = { ...context, items: newItems };
-          let leftToApply = currentValue;
+          const overflowDueToHandles =
+            context.items.reduce((acc, i) => {
+              if (isPanelHandle(i)) {
+                return acc + getUnitPixelValue(context, i.size);
+              }
+
+              return acc + (i.currentValue as number);
+            }, 0) - context.size;
+          let leftToApply = currentValue + overflowDueToHandles;
 
           // TODO: could look in both directions
           while (leftToApply > 0) {
@@ -1617,11 +1612,6 @@ export const groupMachine = createMachine(
           })
         );
       }),
-      onSetDynamicPanelSize: ({ context, event }) => {
-        isEvent(event, ["setDynamicPanelInitialSize"]);
-        const panel = getPanelWithId(context, event.panelId);
-        panel.currentValue = event.size;
-      },
     },
   }
 );
