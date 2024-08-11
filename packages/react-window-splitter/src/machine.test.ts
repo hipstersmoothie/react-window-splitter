@@ -241,7 +241,7 @@ describe("constraints", () => {
     );
 
     actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 300px"`);
+    expect(getTemplate(actor)).toMatchInlineSnapshot(`"190px 10px 300px"`);
   });
 });
 
@@ -445,15 +445,22 @@ describe("collapsible panel", () => {
           id: "panel-2",
           collapsible: true,
           min: "100px",
-          // collapseAnimation: "bounce",
+          default: "100px",
         }),
       },
       { type: "setSize", size: { width: 500, height: 200 } },
-      { type: "collapsePanel", panelId: "panel-2" },
     ]);
 
-    await waitForIdle(actor);
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 100%) 10px 100px"`
+    );
 
+    actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
+    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+    actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
+
+    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    await waitForIdle(actor);
     actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
     expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
     actor.send({ type: "dragHandleEnd", handleId: "resizer-1" });
@@ -462,6 +469,6 @@ describe("collapsible panel", () => {
     await waitForIdle(actor);
     // TODO this is wrong it should be 100px
     actor.send({ type: "dragHandleStart", handleId: "resizer-1" });
-    expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 100px"`);
+    expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
   });
 });

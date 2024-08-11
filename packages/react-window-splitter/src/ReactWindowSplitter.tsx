@@ -838,7 +838,8 @@ function prepareItems(context: GroupMachineContextValue) {
 
       newItems[index] = {
         ...item,
-        currentValue: unit.value,
+        // TODO: maybe only round if it's really close?
+        currentValue: Math.round(unit.value),
       };
     }
   }
