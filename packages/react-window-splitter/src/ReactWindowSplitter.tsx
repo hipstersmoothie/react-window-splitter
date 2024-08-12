@@ -70,19 +70,19 @@ function makePixelUnit(value: number): ParsedPixelUnit {
   return { type: "pixel", value };
 }
 
-interface Constraints {
+interface Constraints<T extends ParsedUnit | Unit = ParsedUnit> {
   /** The minimum size of the panel */
-  min?: Unit;
+  min?: T;
   /** The maximum size of the panel */
-  max?: Unit;
+  max?: T;
   /** The default size of the panel */
-  default?: Unit;
+  default?: T;
   /** Whether the panel is collapsible */
   collapsible?: boolean;
   /** Whether the panel should initially render as collapsed */
   defaultCollapsed?: boolean;
   /** The size of the panel once collapsed */
-  collapsedSize?: Unit;
+  collapsedSize?: T;
 }
 
 interface Order {
@@ -97,7 +97,7 @@ interface PanelData
   extends Omit<Constraints, "min" | "max" | "collapsedSize">,
     Required<Pick<Constraints, "min" | "collapsedSize">>,
     Order {
-  max: Unit | "1fr";
+  max: ParsedUnit | "1fr";
   type: "panel";
   id: string;
   /** Whether the collapsed state is controlled by the consumer or not */
@@ -133,12 +133,10 @@ function getCollapseAnimation(panel: PanelData) {
       easeFn = collapseAnimations[panel.collapseAnimation];
     } else if ("duration" in panel.collapseAnimation) {
       duration = panel.collapseAnimation.duration ?? duration;
-
-      if (typeof panel.collapseAnimation.easing === "function") {
-        easeFn = panel.collapseAnimation.easing;
-      } else {
-        easeFn = collapseAnimations[panel.collapseAnimation.easing];
-      }
+      easeFn =
+        typeof panel.collapseAnimation.easing === "function"
+          ? panel.collapseAnimation.easing
+          : collapseAnimations[panel.collapseAnimation.easing];
     }
   }
 
@@ -160,7 +158,7 @@ interface PanelHandleData extends Order {
    * The size of the panel handle.
    * Needed to correctly calculate the percentage of modified panels.
    */
-  size: PixelUnit;
+  size: ParsedPixelUnit;
 }
 
 type Item = PanelData | PanelHandleData;
@@ -182,10 +180,12 @@ interface UnregisterPanelEvent {
   id: string;
 }
 
+type InitializePanelHandleData = Omit<PanelHandleData, "type">;
+
 interface RegisterPanelHandleEvent {
   /** Register a new panel handle with the state machine */
   type: "registerPanelHandle";
-  data: Omit<PanelHandleData, "type">;
+  data: InitializePanelHandleData;
 }
 
 interface UnregisterPanelHandleEvent {
@@ -378,19 +378,19 @@ export function initializePanel(
 ): PanelData | Omit<PanelData, "id"> {
   const data = {
     type: "panel" as const,
-    min: item.min || "0px",
-    max: item.max || "1fr",
+    min: parseUnit(item.min || "0px"),
+    max: item.max ? parseUnit(item.max) : "1fr",
     collapsed: item.collapsible
       ? (item.collapsed ?? item.defaultCollapsed ?? false)
       : undefined,
     collapsible: item.collapsible,
-    collapsedSize: item.collapsedSize ?? "0px",
+    collapsedSize: parseUnit(item.collapsedSize ?? "0px"),
     onCollapseChange: item.onCollapseChange,
     collapseIsControlled: typeof item.collapsed !== "undefined",
     sizeBeforeCollapse: undefined,
     id: item.id,
     collapseAnimation: item.collapseAnimation,
-    default: item.default,
+    default: item.default ? parseUnit(item.default) : undefined,
   } satisfies Omit<PanelData, "id" | "currentValue"> & { id?: string };
 
   return { ...data, currentValue: makePixelUnit(-1) } satisfies Omit<
@@ -432,7 +432,7 @@ function parseUnit(unit: Unit | "1fr"): ParsedUnit {
 /** Convert a `Unit` to a percentage of the group size */
 function getUnitPercentageValue(
   groupsSize: number,
-  unit: Unit | "1fr" | number
+  unit: ParsedUnit | "1fr" | number
 ) {
   if (typeof unit === "string") {
     const clampValue = parseClamp(groupsSize, unit);
@@ -440,33 +440,30 @@ function getUnitPercentageValue(
     if (clampValue) {
       return clampValue.value / groupsSize;
     }
+
+    throw new Error(`Invalid unit: ${unit}`);
   }
 
   if (typeof unit === "number") {
     return unit / groupsSize;
   }
 
-  const parsed = parseUnit(unit);
-
-  if (parsed.type === "pixel") {
-    return parsed.value / groupsSize;
+  if (unit.type === "pixel") {
+    return unit.value / groupsSize;
   }
 
-  return parsed.value;
+  return unit.value;
 }
 
 /** Get the size of a panel in pixels */
 function getUnitPixelValue(
   context: GroupMachineContextValue,
-  unit: Unit | "1fr"
+  unit: ParsedUnit | "1fr"
 ) {
-  const parsed = parseUnit(unit);
-
-  if (parsed.type === "pixel") {
-    return parsed.value;
-  }
-
-  return (parsed.value / 100) * context.size;
+  const parsed = unit === "1fr" ? parseUnit(unit) : unit;
+  return parsed.type === "pixel"
+    ? parsed.value
+    : (parsed.value / 100) * context.size;
 }
 
 /** Clamp a new `currentValue` given the panel's constraints. */
@@ -633,21 +630,27 @@ function getStaticWidth(context: GroupMachineContextValue) {
 
   for (const item of context.items) {
     if (isPanelHandle(item)) {
-      width += parseUnit(item.size).value;
+      width += item.size.value;
     } else if (isPanelData(item) && item.collapsed) {
       if (item.currentValue.type === "pixel") {
         width += item.currentValue.value;
       }
     } else if (isPanelData(item) && item.default) {
-      const unit = parseUnit(item.default);
-
-      if (unit.type === "pixel") {
-        width += unit.value;
+      if (item.default.type === "pixel") {
+        width += item.default.value;
       }
     }
   }
 
   return width;
+}
+
+function formatUnit(unit: ParsedUnit): Unit {
+  if (unit.type === "pixel") {
+    return `${unit.value}px`;
+  }
+
+  return `${unit.value}%`;
 }
 
 /** Build the grid template from the item values. */
@@ -657,25 +660,27 @@ export function buildTemplate(context: GroupMachineContextValue) {
   return context.items
     .map((item) => {
       if (item.type === "panel") {
+        const min = formatUnit(item.min);
+
         if (
           item.currentValue.type === "pixel" &&
           item.currentValue.value !== -1
         ) {
-          return `${item.currentValue.value}px`;
+          return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
-          const max = item.max === "1fr" ? "100%" : item.max;
-
-          return `minmax(${item.min}, min(calc(${item.currentValue.value} * (100% - ${staticWidth}px)), ${max}))`;
+          const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
+          return `minmax(${min}, min(calc(${item.currentValue.value} * (100% - ${staticWidth}px)), ${max}))`;
         } else if (item.collapsible && item.collapsed) {
-          return item.collapsedSize;
+          return formatUnit(item.collapsedSize);
         } else if (item.default) {
-          return item.default;
+          return formatUnit(item.default);
         }
 
-        return `minmax(${item.min}, ${item.max})`;
+        const max = item.max === "1fr" ? "1fr" : formatUnit(item.max);
+        return `minmax(${min}, ${max})`;
       }
 
-      return item.size;
+      return formatUnit(item.size);
     })
     .join(" ");
 }
@@ -702,8 +707,8 @@ function createUnrestrainedPanel(
 ) {
   return {
     ...data,
-    min: "0px" as const,
-    max: `${context.size}px` as const,
+    min: makePixelUnit(0),
+    max: makePixelUnit(context.size),
   };
 }
 
@@ -1047,7 +1052,7 @@ function updateLayout(
       (acc, b) =>
         acc +
         // in updateLayout the panel units will always be numbers
-        (isPanelData(b) ? b.currentValue.value : parseUnit(b.size).value),
+        (isPanelData(b) ? b.currentValue.value : b.size.value),
       0
     );
 
@@ -1070,7 +1075,7 @@ function commitLayout(context: GroupMachineContextValue) {
     if (item.collapsed) {
       newItems[index] = {
         ...item,
-        currentValue: parseUnit(item.collapsedSize),
+        currentValue: item.collapsedSize,
       };
     }
   });
@@ -1376,7 +1381,7 @@ export const groupMachine = createMachine(
           panel.collapsed = output.action === "collapse";
 
           if (panel.collapsed) {
-            panel.currentValue = parseUnit(panel.collapsedSize);
+            panel.currentValue = panel.collapsedSize;
           }
 
           return context.items;
@@ -1437,17 +1442,16 @@ export const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["registerDynamicPanel"]);
 
-          let currentUnit = "0px";
+          let currentValue: ParsedUnit = makePixelUnit(0);
 
           if (event.data.collapsible && event.data.collapsed) {
-            currentUnit = event.data.collapsedSize || "0px";
+            currentValue = event.data.collapsedSize || currentValue;
           } else if (event.data.default) {
-            currentUnit = event.data.default;
+            currentValue = event.data.default;
           } else if (event.data.min) {
-            currentUnit = event.data.min;
+            currentValue = event.data.min;
           }
 
-          const currentValue = parseUnit(currentUnit as Unit);
           const newItems = addDeDuplicatedItems(context.items, {
             type: "panel",
             ...event.data,
@@ -1511,6 +1515,7 @@ export const groupMachine = createMachine(
           return addDeDuplicatedItems(context.items, {
             type: "handle",
             ...event.data,
+            size: event.data.size as ParsedPixelUnit,
           });
         },
       }),
@@ -1613,7 +1618,7 @@ export const groupMachine = createMachine(
         const newSize = clampUnit(
           context,
           panel,
-          getUnitPixelValue(context, event.size)
+          getUnitPixelValue(context, parseUnit(event.size))
         );
         const isBigger = newSize > current;
         const delta = isBigger ? newSize - current : current - newSize;
@@ -1746,7 +1751,10 @@ function useGroupItem<T extends Item>(
         } else if (isPanelHandle(itemArg)) {
           send({
             type: "registerPanelHandle",
-            data: { ...itemArg, order: index },
+            data: {
+              ...(itemArg as unknown as InitializePanelHandleData),
+              order: index,
+            },
           });
         }
       } else {
@@ -2048,7 +2056,7 @@ export interface PanelHandle {
 }
 
 export interface PanelProps
-  extends Constraints,
+  extends Constraints<Unit>,
     Pick<PanelData, "collapseAnimation">,
     React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -2206,7 +2214,7 @@ const PanelVisible = React.forwardRef<
         );
 
         if (typeof p.currentValue === "string") {
-          return getUnitPixelValue(context, p.currentValue as Unit);
+          return getUnitPixelValue(context, p.currentValue);
         }
 
         return p.currentValue.value;
@@ -2242,10 +2250,10 @@ const PanelVisible = React.forwardRef<
 });
 
 export interface PanelResizerProps
-  extends React.HTMLAttributes<HTMLButtonElement>,
-    Partial<Pick<PanelHandleData, "size">> {
+  extends React.HTMLAttributes<HTMLButtonElement> {
   /** If the handle is disabled */
   disabled?: boolean;
+  size?: Unit;
 }
 
 /** A resize handle to place between panels. */
@@ -2258,7 +2266,7 @@ export const PanelResizer = React.forwardRef<
   const data = React.useMemo(
     () => ({
       type: "handle" as const,
-      size,
+      size: parseUnit(size),
       id: props.id,
     }),
     [size, props.id]
