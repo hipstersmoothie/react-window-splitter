@@ -14,7 +14,7 @@ import {
 import { Actor, createActor } from "xstate";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
-  return buildTemplate(actor.getSnapshot().context.items);
+  return buildTemplate(actor.getSnapshot().context);
 }
 
 function dragHandle(
@@ -81,9 +81,9 @@ function initializeSizes(
     height: number;
   }
 ) {
-  const orientation = actor.getSnapshot().context.orientation;
-  const items = actor.getSnapshot().context.items;
-  const template = buildTemplate(items);
+  const context = actor.getSnapshot().context;
+  const { orientation, items } = context;
+  const template = buildTemplate(context);
   const div = document.createElement("div");
 
   div.style.width = `${options.width}px`;
@@ -620,7 +620,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"245px 10px 135px 10px 100px"`
+        `"240px 10px 140px 10px 100px"`
       );
     });
 
@@ -630,7 +630,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
     });
   });
 
@@ -667,7 +667,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"135px 10px 100px 10px 245px"`
+        `"140px 10px 100px 10px 240px"`
       );
     });
 
@@ -677,7 +677,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"135px 10px 355px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"140px 10px 350px"`);
     });
   });
 });
