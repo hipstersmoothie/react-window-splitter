@@ -1678,7 +1678,7 @@ export interface PanelGroupProps
   autosaveStrategy?: "localStorage" | "cookie";
 }
 
-const InitialMapContext = createContext<Record<string, Item>>({});
+const InitialMapContext = createContext<Item[]>([]);
 const PreRenderContext = createContext(false);
 
 function PrerenderTree({
@@ -1713,7 +1713,9 @@ function useGroupItem<T extends Item>(
   const item = { ...itemArg, id } as T;
 
   if (isPrerender) {
-    initialMap[id] = item;
+    if (!initialMap.find((i) => i.id === item.id)) {
+      initialMap.push(item);
+    }
     return item;
   }
 
@@ -1799,7 +1801,7 @@ function flattenChildren(children: React.ReactNode[]): React.ReactNode[] {
 export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
   function PanelGroup({ children, ...props }, ref) {
     const [hasPreRendered, setHasPreRendered] = useState(false);
-    const initialMap = useRef<Record<string, Item>>({});
+    const initialMap = useRef<Item[]>([]);
     const indexedChildren = useIndexedChildren(
       // eslint-disable-next-line @eslint-react/no-children-to-array
       flattenChildren(React.Children.toArray(children))
@@ -1824,7 +1826,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
 const PanelGroupImpl = React.forwardRef<
   HTMLDivElement,
   PanelGroupProps & {
-    initialItems: React.MutableRefObject<Record<string, Item>>;
+    initialItems: { current: Item[] };
   }
 >(function PanelGroupImpl(
   {
@@ -1863,7 +1865,7 @@ const PanelGroupImpl = React.forwardRef<
           autosaveId,
           orientation: props.orientation,
           groupId,
-          initialItems: Object.values(initialItems.current),
+          initialItems: initialItems.current,
         },
         snapshot: typeof snapshot === "object" ? snapshot : undefined,
       }}

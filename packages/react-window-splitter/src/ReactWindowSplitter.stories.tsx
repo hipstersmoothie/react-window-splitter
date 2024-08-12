@@ -72,14 +72,10 @@ export function Simple() {
 
 export function Autosave() {
   return (
-    <StyledPanelGroup autosaveId="autosave" autosaveStrategy="cookie">
-      <StyledPanel id="1">
-        <div>Panel 1</div>
-      </StyledPanel>
+    <StyledPanelGroup autosaveId="autosave-example">
+      <StyledPanel id="1">Panel 1</StyledPanel>
       <StyledResizer id="resizer" />
-      <StyledPanel id="2">
-        <div>Panel 2</div>
-      </StyledPanel>
+      <StyledPanel id="2">Panel 2</StyledPanel>
     </StyledPanelGroup>
   );
 }
