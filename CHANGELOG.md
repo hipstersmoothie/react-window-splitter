@@ -1,3 +1,20 @@
+# v0.2.2 (Tue Aug 13 2024)
+
+#### 🐛 Bug Fix
+
+- `react-window-splitter`, `@window-splitter/state`
+  - Split out @window-splitter/state [#16](https://github.com/hipstersmoothie/react-window-splitter/pull/16) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### 📝 Documentation
+
+- add storybook link [#14](https://github.com/hipstersmoothie/react-window-splitter/pull/14) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.1 (Tue Aug 13 2024)
 
 #### 🐛 Bug Fix

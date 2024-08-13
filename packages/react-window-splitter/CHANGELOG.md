@@ -1,3 +1,18 @@
+# v0.2.2 (Tue Aug 13 2024)
+
+#### 🐛 Bug Fix
+
+- Split out @window-splitter/state [#16](https://github.com/hipstersmoothie/react-window-splitter/pull/16) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix path ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix lock ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- split into packages ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.1 (Tue Aug 13 2024)
 
 #### 🐛 Bug Fix
