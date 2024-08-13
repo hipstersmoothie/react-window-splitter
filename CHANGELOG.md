@@ -1,3 +1,18 @@
+# v0.2.1 (Tue Aug 13 2024)
+
+#### 🐛 Bug Fix
+
+- `react-window-splitter`
+  - Add tests, fix a bunch of bugs [#12](https://github.com/hipstersmoothie/react-window-splitter/pull/12) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - fix react preset in config-eslint package [#11](https://github.com/hipstersmoothie/react-window-splitter/pull/11) ([@Rel1cx](https://github.com/Rel1cx))
+
+#### Authors: 2
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Eva1ent ([@Rel1cx](https://github.com/Rel1cx))
+
+---
+
 # v0.2.0 (Sat Aug 10 2024)
 
 #### 🚀 Enhancement

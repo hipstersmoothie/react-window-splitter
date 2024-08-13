@@ -1,3 +1,44 @@
+# v0.2.1 (Tue Aug 13 2024)
+
+#### 🐛 Bug Fix
+
+- Add tests, fix a bunch of bugs [#12](https://github.com/hipstersmoothie/react-window-splitter/pull/12) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix lint ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- more tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix imperative api bugs ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix ordering being off ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- pre-parse units ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- stores actual values and don't convert between string and number, makes code more type safe ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- simpler ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add another collapse test ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add collapse tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix handles not being accounted for when adding dynamic panels ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix conditional panel rendering ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix commited layout ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Merge remote-tracking branch 'origin/main' into tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix react preset in config-eslint package [#11](https://github.com/hipstersmoothie/react-window-splitter/pull/11) ([@Rel1cx](https://github.com/Rel1cx))
+- switch to 1fr and fix measurement in tests (closes #3) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- set initial children sizes ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix react preset in config-eslint package ([@Rel1cx](https://github.com/Rel1cx))
+- add no-shadow ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix id-less renders ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add test plan ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- clean up test API ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- try rounding values during prepare phase ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix default sized panels not be properly accounted for in static widths ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- working ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix default size + remove some dead code ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix drag overshoot bugs ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- setup tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- remove console ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 2
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Eva1ent ([@Rel1cx](https://github.com/Rel1cx))
+
+---
+
 # v0.2.0 (Sat Aug 10 2024)
 
 #### 🚀 Enhancement
