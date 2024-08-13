@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { spring } from "framer-motion";
+import React from "react";
+// import { spring } from "framer-motion";
 import {
   PanelGroup,
   PanelGroupProps,
@@ -63,7 +63,7 @@ export function Simple() {
         <div>Panel 1</div>
       </StyledPanel>
       <StyledResizer />
-      <StyledPanel>
+      <StyledPanel min="100px">
         <div>Panel 2</div>
       </StyledPanel>
     </StyledPanelGroup>
@@ -72,14 +72,10 @@ export function Simple() {
 
 export function Autosave() {
   return (
-    <StyledPanelGroup autosaveId="autosave" autosaveStrategy="cookie">
-      <StyledPanel id="1">
-        <div>Panel 1</div>
-      </StyledPanel>
+    <StyledPanelGroup autosaveId="autosave-example">
+      <StyledPanel id="1">Panel 1</StyledPanel>
       <StyledResizer id="resizer" />
-      <StyledPanel id="2">
-        <div>Panel 2</div>
-      </StyledPanel>
+      <StyledPanel id="2">Panel 2</StyledPanel>
     </StyledPanelGroup>
   );
 }
@@ -305,7 +301,6 @@ export function Collapsible() {
   return (
     <StyledPanelGroup>
       <StyledPanel
-        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -316,11 +311,11 @@ export function Collapsible() {
       >
         <div>1</div>
       </StyledPanel>
-      <StyledResizer id="resizer-1" />
-      <StyledPanel id="panel-2" min="100px">
+      <StyledResizer />
+      <StyledPanel min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer id="resizer-2" />
+      <StyledResizer />
       <StyledPanel
         min="100px"
         collapsible
@@ -333,7 +328,6 @@ export function Collapsible() {
           console.log("COLLAPSE CONTROLLED", isCollapsed);
           setCollapsed(isCollapsed);
         }}
-        id="panel-3"
       >
         <div>3</div>
       </StyledPanel>
@@ -342,45 +336,42 @@ export function Collapsible() {
 }
 
 export function CustomCollapseAnimation() {
-  const springFn = useMemo(() => {
-    return spring({
-      keyframes: [0, 1],
-      velocity: 0.0,
-      stiffness: 100,
-      damping: 10,
-      mass: 1.0,
-    });
-  }, []);
+  // const springFn = useMemo(() => {
+  //   return spring({
+  //     keyframes: [0, 1],
+  //     velocity: 0.0,
+  //     stiffness: 100,
+  //     damping: 10,
+  //     mass: 1.0,
+  //     duration: 1000,
+  //   });
+  // }, []);
 
   return (
     <StyledPanelGroup>
       <StyledPanel
-        id="panel-1"
         min="100px"
         collapsible
         collapsedSize="60px"
         style={{ border: "10px solid green", boxSizing: "border-box" }}
       >
-        <div>1</div>
+        1
       </StyledPanel>
-      <StyledResizer id="resizer-1" />
-      <StyledPanel id="panel-2" min="100px">
-        <div>2</div>
-      </StyledPanel>
-      <StyledResizer id="resizer-2" />
+      <StyledResizer />
+      <StyledPanel min="100px">2</StyledPanel>
+      <StyledResizer />
       <StyledPanel
         style={{ border: "10px solid blue", boxSizing: "border-box" }}
-        id="panel-3"
         min="100px"
         collapsible
         collapsedSize="60px"
         defaultCollapsed
         collapseAnimation={{
-          duration: 1000,
-          easing: (t) => springFn.next(t * 1000).value,
+          duration: 300,
+          easing: "ease-in-out",
         }}
       >
-        <div>3</div>
+        3
       </StyledPanel>
     </StyledPanelGroup>
   );
@@ -398,23 +389,19 @@ export function ImperativePanel() {
           min="100px"
           collapsible
           collapsedSize="60px"
-          id="panel-1"
         >
-          <div>1</div>
+          1
         </StyledPanel>
-        <StyledResizer id="resizer-1" />
-        <StyledPanel id="panel-2" min="100px">
-          <div>2</div>
-        </StyledPanel>
+        <StyledResizer />
+        <StyledPanel min="100px">2</StyledPanel>
         <StyledResizer />
         <StyledPanel
           min="100px"
           collapsible
           collapsedSize="60px"
           defaultCollapsed
-          id="panel-3"
         >
-          <div>3</div>
+          3
         </StyledPanel>
       </StyledPanelGroup>
 
@@ -574,5 +561,21 @@ export function ConditionalPanelComplex() {
         Expand
       </button>
     </React.StrictMode>
+  );
+}
+
+export function WithDefaultWidth() {
+  return (
+    <PanelGroup style={{ height: "400px" }}>
+      <Panel id="left" style={{ backgroundColor: "#333366" }} />
+      <PanelResizer id="handle" size="3px" />
+      {/* I expected the right panel to be 100px wide */}
+      <Panel
+        id="right"
+        default="100px"
+        max="400px"
+        style={{ backgroundColor: "#ff3366" }}
+      />
+    </PanelGroup>
   );
 }

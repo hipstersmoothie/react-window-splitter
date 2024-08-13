@@ -2,7 +2,7 @@ import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
   stories: [
-    "../packages/**/*.mdx",
+    "../packages/react-window-splitter/**/*.mdx",
     "../packages/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [

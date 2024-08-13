@@ -10,6 +10,7 @@
       "cache": false,
       "persistent": true
     },
+    "test": { "outputs": [] },
     "lint": { "outputs": [] },
     "//#lint-root": { "outputs": [] }
   }
