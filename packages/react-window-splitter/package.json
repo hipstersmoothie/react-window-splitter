@@ -58,25 +58,25 @@
       "**/*stories.*"
     ],
     "exports": {
-      ".": "./src/ReactWindowSplitter.tsx"
+      ".": "./src/index.tsx"
     }
   },
   "type": "module",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/esm/ReactWindowSplitter.d.ts",
-        "default": "./dist/esm/ReactWindowSplitter.js"
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
       },
       "require": {
-        "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
-        "default": "./dist/commonjs/ReactWindowSplitter.js"
+        "types": "./dist/commonjs/index.d.ts",
+        "default": "./dist/commonjs/index.js"
       }
     }
   },
-  "main": "./dist/commonjs/ReactWindowSplitter.js",
-  "types": "./dist/commonjs/ReactWindowSplitter.d.ts",
-  "module": "./dist/esm/ReactWindowSplitter.js",
+  "main": "./dist/commonjs/index.js",
+  "types": "./dist/commonjs/index.d.ts",
+  "module": "./dist/esm/index.js",
   "keywords": [
     "react",
     "panel",
