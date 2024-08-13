@@ -27,11 +27,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright Browsers
+        working-directory: packages/react-window-splitter
+        run: pnpm exec playwright install
+
       - name: Lint
         run: pnpm lint
 
       - name: Build
         run: pnpm build
 
-      - name: Build
+      - name: Test
         run: pnpm test

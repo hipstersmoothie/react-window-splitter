@@ -1532,10 +1532,10 @@ export const groupMachine = createMachine(
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-function useDebugGroupMachineContext({ id }: { id: string }) {
-  const context = GroupMachineContext.useSelector((state) => state.context);
-  console.log("GROUP CONTEXT", id, context);
-}
+// function useDebugGroupMachineContext({ id }: { id: string }) {
+//   const context = GroupMachineContext.useSelector((state) => state.context);
+//   console.log("GROUP CONTEXT", id, context);
+// }
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -1885,7 +1885,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef, groupId]);
 
-  useDebugGroupMachineContext({ id: groupId });
+  // useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 

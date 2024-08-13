@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { spring } from "framer-motion";
+import React from "react";
+// import { spring } from "framer-motion";
 import {
   PanelGroup,
   PanelGroupProps,
@@ -336,16 +336,16 @@ export function Collapsible() {
 }
 
 export function CustomCollapseAnimation() {
-  const springFn = useMemo(() => {
-    return spring({
-      keyframes: [0, 1],
-      velocity: 0.0,
-      stiffness: 100,
-      damping: 10,
-      mass: 1.0,
-      duration: 1000,
-    });
-  }, []);
+  // const springFn = useMemo(() => {
+  //   return spring({
+  //     keyframes: [0, 1],
+  //     velocity: 0.0,
+  //     stiffness: 100,
+  //     damping: 10,
+  //     mass: 1.0,
+  //     duration: 1000,
+  //   });
+  // }, []);
 
   return (
     <StyledPanelGroup>
@@ -561,5 +561,21 @@ export function ConditionalPanelComplex() {
         Expand
       </button>
     </React.StrictMode>
+  );
+}
+
+export function WithDefaultWidth() {
+  return (
+    <PanelGroup style={{ height: "400px" }}>
+      <Panel id="left" style={{ backgroundColor: "#333366" }} />
+      <PanelResizer id="handle" size="3px" />
+      {/* I expected the right panel to be 100px wide */}
+      <Panel
+        id="right"
+        default="100px"
+        max="400px"
+        style={{ backgroundColor: "#ff3366" }}
+      />
+    </PanelGroup>
   );
 }
