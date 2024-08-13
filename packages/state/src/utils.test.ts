@@ -5,7 +5,7 @@ import {
   getCollapsiblePanelForHandleId,
   groupMachine,
   initializePanel,
-} from "./ReactWindowSplitter.js";
+} from "./index.js";
 import { createActor } from "xstate";
 
 describe("getUnitPercentageValue", () => {

@@ -10,7 +10,7 @@ import {
   GroupMachineEvent,
   initializePanel,
   isPanelHandle,
-} from "./ReactWindowSplitter.js";
+} from "./index.js";
 import { Actor, createActor } from "xstate";
 // import { spring } from "framer-motion";
 
@@ -579,15 +579,12 @@ describe("constraints", () => {
 describe("collapsible panel", () => {
   // const springAnimation = spring({
   //   keyframes: [0, 1],
-  //   velocity: 0.0,
+  //   velocity: 1,
   //   stiffness: 100,
   //   damping: 10,
   //   mass: 1.0,
-  //   duration: 1000,
   // });
-  // const springEasing = (t: number) => {
-  //   return springAnimation.next(t * 1000).value;
-  // };
+  // const springEasing = (t: number) => springAnimation.next(t * 1000).value;
 
   test.each([
     undefined,

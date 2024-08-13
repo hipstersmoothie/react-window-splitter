@@ -1,11 +1,14 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "react-window-splitter",
+  "name": "@window-splitter/state",
   "sideEffects": false,
   "version": "0.2.1",
   "description": "A WAI-ARIA compliant window splitter for React.",
   "homepage": "https://react-window-splitter-six.vercel.app",
   "repository": "https://github.com/hipstersmoothie/react-window-splitter",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": {
     "name": "Andrew Lisowski",
     "email": "lisowski54@gmail.com"
@@ -16,49 +19,38 @@
   "scripts": {
     "build": "tshy",
     "dev": "tshy -w",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:browser": "vitest"
   },
   "license": "MIT",
-  "peerDependencies": {
-    "react": ">=16",
-    "react-dom": ">=16"
-  },
   "devDependencies": {
     "@internal/eslint-config": "workspace:*",
     "@testing-library/react": "^16.0.0",
-    "@types/invariant": "^2.2.37",
-    "@types/node": "^20.14.10",
-    "@types/react": "^18",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@types/d3-ease": "^3.0.2",
     "@vitest/browser": "^2.0.5",
     "@vitest/coverage-istanbul": "^2.0.5",
     "eslint": "^9.8.0",
     "framer-motion": "^11.3.24",
     "jsdom": "^24.1.1",
     "playwright": "^1.46.0",
-    "react": "^18",
-    "react-dom": "^18",
     "tshy": "^3.0.2",
     "typescript": "^5.5.3",
     "vitest": "^2.0.5"
   },
   "dependencies": {
-    "@radix-ui/react-compose-refs": "^1.1.0",
-    "@window-splitter/state": "workspace:*",
-    "@xstate/react": "^4.1.1",
+    "@react-spring/rafz": "^9.7.4",
+    "@types/invariant": "^2.2.37",
+    "d3-ease": "^3.0.1",
     "invariant": "^2.2.4",
-    "react-aria": "^3.33.1",
-    "reforest": "^0.13.0",
-    "universal-cookie": "^7.2.0",
     "xstate": "^5.14.0"
   },
   "tshy": {
     "exclude": [
-      "node_modules",
-      "**/*stories.*"
+      "node_modules"
     ],
     "exports": {
-      ".": "./src/index.tsx"
+      ".": "./src/index.ts"
     }
   },
   "type": "module",
@@ -75,13 +67,12 @@
     }
   },
   "main": "./dist/commonjs/index.js",
-  "types": "./dist/commonjs/index.d.ts",
   "module": "./dist/esm/index.js",
   "keywords": [
-    "react",
     "panel",
     "splitter",
     "resizable",
     "window"
-  ]
+  ],
+  "types": "./dist/commonjs/index.d.ts"
 }

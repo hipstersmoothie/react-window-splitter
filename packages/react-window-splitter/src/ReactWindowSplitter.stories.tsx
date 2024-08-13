@@ -1,5 +1,5 @@
-import React from "react";
-// import { spring } from "framer-motion";
+import React, { useMemo } from "react";
+import { spring } from "framer-motion";
 import {
   PanelGroup,
   PanelGroupProps,
@@ -9,7 +9,7 @@ import {
   PanelHandle,
   PanelGroupHandle,
   PanelResizerProps,
-} from "./ReactWindowSplitter.js";
+} from "./index.js";
 
 export default {
   title: "Components/ResizeableGridPanels",
@@ -336,17 +336,17 @@ export function Collapsible() {
 }
 
 export function CustomCollapseAnimation() {
-  // const springFn = useMemo(() => {
-  //   return spring({
-  //     keyframes: [0, 1],
-  //     velocity: 0.0,
-  //     stiffness: 100,
-  //     damping: 10,
-  //     mass: 1.0,
-  //     duration: 1000,
-  //   });
-  // }, []);
+  const springFn = useMemo(() => {
+    return spring({
+      keyframes: [0, 1],
+      velocity: 1,
+      stiffness: 100,
+      damping: 10,
+      mass: 1.0,
+    });
+  }, []);
 
+  console.log(springFn);
   return (
     <StyledPanelGroup>
       <StyledPanel
@@ -367,8 +367,8 @@ export function CustomCollapseAnimation() {
         collapsedSize="60px"
         defaultCollapsed
         collapseAnimation={{
-          duration: 300,
-          easing: "ease-in-out",
+          easing: (t) => springFn.next(t * 1000).value,
+          duration: 1000,
         }}
       >
         3
