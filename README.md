@@ -44,7 +44,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="http://hipstersmoothie.com/"><img src="https://avatars.githubusercontent.com/u/1192452?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Andrew Lisowski</b></sub></a><br /><a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=hipstersmoothie" title="Code">💻</a> <a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=hipstersmoothie" title="Documentation">📖</a> <a href="#example-hipstersmoothie" title="Examples">💡</a></td>
+    <td align="center"><a href="http://hipstersmoothie.com/"><img src="https://avatars.githubusercontent.com/u/1192452?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Andrew Lisowski</b></sub></a><br /><a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=hipstersmoothie" title="Code">💻</a> <a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=hipstersmoothie" title="Documentation">📖</a> <a href="#example-hipstersmoothie" title="Examples">💡</a> <a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=hipstersmoothie" title="Tests">⚠️</a></td>
     <td align="center"><a href="https://github.com/Rel1cx"><img src="https://avatars.githubusercontent.com/u/24217275?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Eva1ent</b></sub></a><br /><a href="https://github.com/hipstersmoothie/react-window-splitter/commits?author=Rel1cx" title="Code">💻</a></td>
   </tr>
 </table>
