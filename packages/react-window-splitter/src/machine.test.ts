@@ -12,6 +12,7 @@ import {
   isPanelHandle,
 } from "./ReactWindowSplitter.js";
 import { Actor, createActor } from "xstate";
+import { spring } from "framer-motion";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
   return buildTemplate(actor.getSnapshot().context);
@@ -28,6 +29,7 @@ function dragHandle(
     delta: number;
     orientation?: "horizontal" | "vertical";
     id: string;
+    shiftKey?: boolean;
   }
 ) {
   for (let i = 0; i < Math.abs(options.delta); i++) {
@@ -37,6 +39,7 @@ function dragHandle(
       value: dragHandlePayload({
         orientation: options.orientation || "horizontal",
         delta: options.delta > 0 ? 1 : -1,
+        shiftKey: options.shiftKey,
       }),
     });
   }
@@ -75,7 +78,7 @@ function waitForIdle(actor: Actor<typeof groupMachine>) {
       if (snapshot.value === "idle") {
         resolve();
       }
-    }, 1000);
+    }, 100);
   });
 }
 
@@ -226,6 +229,22 @@ describe("constraints", () => {
     );
   });
 
+  test("doesn't register a panel with the same id twice", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [initializePanel({ id: "panel-1" })],
+      },
+    }).start();
+
+    actor.send({
+      type: "registerPanel",
+      data: initializePanel({ id: "panel-1" }),
+    });
+
+    expect(actor.getSnapshot().context.items).toHaveLength(1);
+  });
+
   test("works with 2 simple panels as input", () => {
     const actor = createActor(groupMachine, {
       input: {
@@ -250,6 +269,116 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
+  });
+
+  test("no delta does nothing", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1" }),
+          {
+            type: "handle",
+            id: "resizer-1",
+            size: { type: "pixel", value: 10 },
+          },
+          initializePanel({ id: "panel-2" }),
+        ],
+      },
+    }).start();
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      actor.send({
+        type: "dragHandle",
+        handleId: "resizer-1",
+        value: dragHandlePayload({ delta: 0, orientation: "horizontal" }),
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+  });
+
+  test("shift key makes it drag more", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1" }),
+          {
+            type: "handle",
+            id: "resizer-1",
+            size: { type: "pixel", value: 10 },
+          },
+          initializePanel({ id: "panel-2" }),
+        ],
+      },
+    }).start();
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, { id: "resizer-1", delta: -1, shiftKey: true });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"230px 10px 260px"`);
+    });
+  });
+
+  test("works with percentages", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1", min: "40%" }),
+          {
+            type: "handle",
+            id: "resizer-1",
+            size: { type: "pixel", value: 10 },
+          },
+          initializePanel({ id: "panel-2", min: "10%", default: "30%" }),
+        ],
+      },
+    }).start();
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(40%, 1fr) 10px 30%"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"340px 10px 150px"`);
+      dragHandle(actor, { id: "resizer-1", delta: -200 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"200px 10px 290px"`);
+    });
+  });
+
+  test("supports max", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1", max: "90%" }),
+          {
+            type: "handle",
+            id: "resizer-1",
+            size: { type: "pixel", value: 10 },
+          },
+          initializePanel({ id: "panel-2", default: "30%" }),
+        ],
+      },
+    }).start();
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 90%) 10px 30%"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: 400 });
+    });
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, min(calc(0.9183673469387755 * (100% - 10px)), 90%)) 10px minmax(0px, min(calc(0.08163265306122448 * (100% - 10px)), 100%))"`
+    );
   });
 
   test("panel can have a min", () => {
@@ -381,11 +510,91 @@ describe("constraints", () => {
     });
   });
 
-  test("can update orientation at runtime", () => {});
+  test("can set a panel's size", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1" }),
+          {
+            type: "handle",
+            id: "resizer-1",
+            size: { type: "pixel", value: 10 },
+          },
+          initializePanel({ id: "panel-2" }),
+        ],
+      },
+    }).start();
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    actor.send({
+      type: "setPanelPixelSize",
+      panelId: "panel-1",
+      size: "100px",
+    });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"100px 10px 390px"`);
+    });
+
+    actor.send({
+      type: "setPanelPixelSize",
+      panelId: "panel-1",
+      size: "25%",
+    });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"125px 10px 365px"`);
+    });
+  });
+
+  test("can update orientation at runtime", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+
+    actor.send({ type: "setOrientation", orientation: "vertical" });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"95px 10px 95px"`);
+    });
+  });
 });
 
 describe("collapsible panel", () => {
-  test("panel can be collapsible", () => {
+  const springAnimation = spring({
+    keyframes: [0, 1],
+    velocity: 0.0,
+    stiffness: 100,
+    damping: 10,
+    mass: 1.0,
+    duration: 1000,
+  });
+  const springEasing = (t: number) => {
+    return springAnimation.next(t * 1000).value;
+  };
+
+  test.each([
+    undefined,
+    "ease-in-out" as const,
+    // The math is wrong, enable after Decimal128
+    // { duration: 1000, easing: springEasing },
+  ])("panel can be collapsible: %s", async (animation) => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
     }).start();
@@ -402,41 +611,49 @@ describe("collapsible panel", () => {
           id: "panel-2",
           collapsible: true,
           min: "100px",
+          collapseAnimation: animation,
         }),
       },
     ]);
+
+    expect(getTemplate(actor)).toBe("minmax(0px, 1fr) 10px minmax(100px, 1fr)");
     initializeSizes(actor, { width: 500, height: 200 });
 
-    expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5 * (100% - 10px)), 100%)) 10px minmax(100px, min(calc(0.5 * (100% - 10px)), 100%))"`
-    );
-
+    // Test dragging to collapse the panel
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      expect(getTemplate(actor)).toBe("245px 10px 245px");
 
       // Drag into the drag buffer but not past it
       dragHandle(actor, { id: "resizer-1", delta: 160 });
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+      expect(getTemplate(actor)).toBe("390px 10px 100px");
 
       // Drag past the drag buffer and collapse the panel
       dragHandle(actor, { id: "resizer-1", delta: 100 });
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      expect(getTemplate(actor)).toBe("490px 10px 0px");
     });
 
-    expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"`
+    expect(getTemplate(actor)).toBe(
+      "minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"
     );
 
+    // Test dragging to expand the panel
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      expect(getTemplate(actor)).toBe("490px 10px 0px");
 
       // Stays oollapsed in the buffer
       dragHandle(actor, { id: "resizer-1", delta: -30 });
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+      expect(getTemplate(actor)).toBe("490px 10px 0px");
 
       // Opens once the buffer is cleared
       dragHandle(actor, { id: "resizer-1", delta: -20 });
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+      expect(getTemplate(actor)).toBe("390px 10px 100px");
+    });
+
+    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toBe("490px 10px 0px");
     });
   });
 
@@ -485,6 +702,38 @@ describe("collapsible panel", () => {
 
       // Drag past the buffer
       dragHandle(actor, { id: "resizer-1", delta: -25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+    });
+  });
+
+  test("can expand default collapsed panel via event", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          collapsible: true,
+          defaultCollapsed: true,
+          min: "200px",
+          collapsedSize: "60px",
+        }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+    actor.send({ type: "expandPanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
     });
   });
@@ -538,6 +787,51 @@ describe("collapsible panel", () => {
     });
   });
 
+  test("collapsible remembers last position", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          collapsible: true,
+          min: "200px",
+          collapsedSize: "60px",
+        }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+      dragHandle(actor, { id: "resizer-1", delta: -50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"195px 10px 295px"`);
+    });
+
+    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"430px 10px 60px"`);
+    });
+
+    actor.send({ type: "expandPanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"195px 10px 295px"`);
+    });
+  });
+
   test("panel can collapse can subscribe to collapsed state", () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
@@ -569,6 +863,7 @@ describe("collapsible panel", () => {
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
+    // collapse the panel
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
 
@@ -580,6 +875,26 @@ describe("collapsible panel", () => {
       dragHandle(actor, { id: "resizer-1", delta: 100 });
       expect(spy).toHaveBeenCalledWith(true);
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"490px 10px 0px"`);
+    });
+
+    spy.mockReset();
+
+    // expand the panel
+    capturePixelValues(actor, () => {
+      // The panel doesn't actually expand yet
+      dragHandle(actor, { id: "resizer-1", delta: -150 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      expect(spy).toHaveBeenCalledWith(false);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Actually collapse the panel
+      actor.send({
+        type: "expandPanel",
+        panelId: "panel-2",
+        controlled: true,
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
     });
   });
 
@@ -629,9 +944,99 @@ describe("collapsible panel", () => {
     });
   });
 
-  test("panel collapse can be controlled", () => {});
-  test("panel collapse can be animated - string", () => {});
-  test("panel collapse can be animated - function", () => {});
+  test("panel collapse can be controlled", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    const spy = vi.fn();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          collapsible: true,
+          min: "100px",
+          // This marks the collapse as controlled
+          collapsed: false,
+          collapsedSize: "20px",
+          onCollapseChange: {
+            current: spy,
+          },
+        }),
+      },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    // collapse the panel via drag
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+
+      dragHandle(actor, { id: "resizer-1", delta: 160 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+
+      // The panel doesn't actually collapse yet
+      dragHandle(actor, { id: "resizer-1", delta: 100 });
+      expect(spy).toHaveBeenCalledWith(true);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"390px 10px 100px"`);
+
+      // Actually collapse the panel
+      actor.send({
+        type: "collapsePanel",
+        panelId: "panel-2",
+        controlled: true,
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
+    });
+
+    spy.mockReset();
+
+    // expand the panel via drag
+    capturePixelValues(actor, () => {
+      // The panel doesn't actually expand yet
+      dragHandle(actor, { id: "resizer-1", delta: -150 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
+
+      expect(spy).toHaveBeenCalledWith(false);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
+
+      // Actually collapse the panel
+      actor.send({
+        type: "expandPanel",
+        panelId: "panel-2",
+        controlled: true,
+      });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+    });
+
+    spy.mockReset();
+
+    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    // collapse the panel via drag
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+    });
+
+    actor.send({ type: "expandPanel", panelId: "panel-2" });
+    await waitForIdle(actor);
+
+    // collapse the panel via drag
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+    });
+  });
 });
 
 describe("conditional panel", () => {
@@ -682,6 +1087,114 @@ describe("conditional panel", () => {
     });
   });
 
+  test("collapsed panel can be conditionally rendered", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+
+    sendAll(actor, [
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-2", size: handleSize },
+      },
+      {
+        type: "registerDynamicPanel",
+        data: initializePanel({
+          id: "panel-3",
+          min: "100px",
+          collapsible: true,
+          defaultCollapsed: true,
+        }),
+      },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"240px 10px 240px 10px 0px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+    });
+  });
+
+  test("panel can be conditionally rendered at default width", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: handleSize },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+
+    sendAll(actor, [
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-2", size: handleSize },
+      },
+      {
+        type: "registerDynamicPanel",
+        data: initializePanel({
+          id: "panel-3",
+          default: "125px",
+        }),
+      },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"240px 10px 115px 10px 125px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+    });
+  });
+
   test("panel can be conditionally rendered w/order", () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
@@ -718,7 +1231,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"140px 10px 100px 10px 240px"`
+        `"240px 10px 100px 10px 140px"`
       );
     });
 
@@ -728,15 +1241,79 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"140px 10px 350px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
     });
   });
 });
 
-describe("nested panels", () => {
-  test("panel can be nested", () => {});
-});
+describe("errors", () => {
+  test("throws for invalid units", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
 
-describe("nested panels", () => {
-  test("panel can be nested", () => {});
+    expect(() =>
+      actor.send({
+        type: "registerPanel",
+        // @ts-expect-error Testing the error
+        data: initializePanel({ id: "panel-1", min: "40fr" }),
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`[Error: Invalid unit: 40fr]`);
+  });
+
+  test("throws when using invalid panel IDs", () => {
+    const spy = vi.fn();
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    actor.subscribe({ error: spy });
+
+    actor.send({
+      type: "registerPanel",
+      data: initializePanel({ id: "panel-1" }),
+    });
+
+    actor.send({
+      type: "setPanelPixelSize",
+      panelId: "panel-2",
+      size: "100px",
+    });
+
+    expect(spy).toHaveBeenCalledWith(
+      new Error("Expected panel with id: panel-2")
+    );
+  });
+
+  test("throws when using invalid handle IDs", () => {
+    const spy = vi.fn();
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    actor.subscribe({ error: spy });
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "handle-2" }) },
+      { type: "dragHandleStart", handleId: "handle-2" },
+      {
+        type: "dragHandle",
+        handleId: "handle-2",
+        value: dragHandlePayload({ delta: 100, orientation: "horizontal" }),
+      },
+    ]);
+
+    expect(spy).toHaveBeenCalledWith(
+      new Error("Expected panel handle with id: handle-2")
+    );
+  });
 });

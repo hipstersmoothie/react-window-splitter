@@ -30,16 +30,10 @@ import { useComposedRefs } from "@radix-ui/react-compose-refs";
 import { useIndex, useIndexedChildren } from "reforest";
 import * as easings from "d3-ease";
 
-const useIsomorphicLayoutEffect =
-  typeof document !== "undefined" ? useLayoutEffect : useEffect;
-
 // #region Constants
 
 /** The default amount a user can `dragOvershoot` before the panel collapses */
 const COLLAPSE_THRESHOLD = 50;
-
-/** This parses the percentage value from the "clamp" we do after the "commit" */
-const CLAMP_REGEX = /min\(calc\((.*) \* \(100% - (.*)\)\), .*\)\)/;
 
 // #endregion
 
@@ -230,7 +224,7 @@ interface SetSizeEvent {
 interface SetActualItemsSizeEvent {
   /** Set the size of the whole group */
   type: "setActualItemsSize";
-  childrenSizes?: Record<string, Rect>;
+  childrenSizes: Record<string, Rect>;
 }
 
 interface ApplyDeltaEvent {
@@ -285,7 +279,7 @@ interface GroupMachineContextValue {
   /** The items in the group */
   items: Array<Item>;
   /** The available space in the group */
-  size: number;
+  size: Rect;
   /** The orientation of the grid */
   orientation: Orientation;
   /** How much the drag has overshot the handle */
@@ -399,19 +393,6 @@ export function initializePanel(
   >;
 }
 
-/** Parse the percentage value applied during the "commit" phase */
-function parseClamp(groupsSize: number, unit: string) {
-  const [, percent, staticSize = "0"] = unit.match(CLAMP_REGEX) || [];
-
-  if (percent) {
-    return makePercentUnit(
-      (groupsSize - parseFloat(staticSize)) * parseFloat(percent)
-    );
-  }
-
-  return parseUnit(unit as Unit);
-}
-
 /** Parse a `Unit` string or `clamp` value */
 function parseUnit(unit: Unit | "1fr"): ParsedUnit {
   if (unit === "1fr") {
@@ -430,29 +411,18 @@ function parseUnit(unit: Unit | "1fr"): ParsedUnit {
 }
 
 /** Convert a `Unit` to a percentage of the group size */
-function getUnitPercentageValue(
-  groupsSize: number,
-  unit: ParsedUnit | "1fr" | number
-) {
-  if (typeof unit === "string") {
-    const clampValue = parseClamp(groupsSize, unit);
-
-    if (clampValue) {
-      return clampValue.value / groupsSize;
-    }
-
-    throw new Error(`Invalid unit: ${unit}`);
-  }
-
-  if (typeof unit === "number") {
-    return unit / groupsSize;
-  }
-
+export function getUnitPercentageValue(groupsSize: number, unit: ParsedUnit) {
   if (unit.type === "pixel") {
     return unit.value / groupsSize;
   }
 
   return unit.value;
+}
+
+function getGroupSize(context: GroupMachineContextValue) {
+  return context.orientation === "horizontal"
+    ? context.size.width
+    : context.size.height;
 }
 
 /** Get the size of a panel in pixels */
@@ -463,7 +433,7 @@ function getUnitPixelValue(
   const parsed = unit === "1fr" ? parseUnit(unit) : unit;
   return parsed.type === "pixel"
     ? parsed.value
-    : (parsed.value / 100) * context.size;
+    : (parsed.value / 100) * getGroupSize(context);
 }
 
 /** Clamp a new `currentValue` given the panel's constraints. */
@@ -489,24 +459,33 @@ function getPanelWithId(context: GroupMachineContextValue, panelId: string) {
   throw new Error(`Expected panel with id: ${panelId}`);
 }
 
+/** Get a panel with a particular ID. */
+function getPanelHandleIndex(
+  context: GroupMachineContextValue,
+  handleId: string
+) {
+  const item = context.items.findIndex((i) => i.id === handleId);
+
+  if (item !== -1 && isPanelHandle(context.items[item])) {
+    return item;
+  }
+
+  throw new Error(`Expected panel handle with id: ${handleId}`);
+}
+
 /**
  * Get the panel that's collapsible next to a resize handle.
  * Will first check the left panel then the right.
  */
-function getCollapsiblePanelForHandleId(
+export function getCollapsiblePanelForHandleId(
   context: GroupMachineContextValue,
   handleId: string
 ) {
   if (!context.items.length) {
-    return undefined;
+    throw new Error("No items in group");
   }
 
-  const handleIndex = context.items.findIndex((item) => item.id === handleId);
-
-  if (handleIndex === -1) {
-    return undefined;
-  }
-
+  const handleIndex = getPanelHandleIndex(context, handleId);
   const panelBefore = context.items[handleIndex - 1];
   const panelAfter = context.items[handleIndex + 1];
 
@@ -518,7 +497,7 @@ function getCollapsiblePanelForHandleId(
     return panelAfter;
   }
 
-  return undefined;
+  throw new Error(`No collapsible panel found for handle: ${handleId}`);
 }
 
 /**
@@ -631,14 +610,18 @@ function getStaticWidth(context: GroupMachineContextValue) {
   for (const item of context.items) {
     if (isPanelHandle(item)) {
       width += item.size.value;
-    } else if (isPanelData(item) && item.collapsed) {
-      if (item.currentValue.type === "pixel") {
-        width += item.currentValue.value;
-      }
-    } else if (isPanelData(item) && item.default) {
-      if (item.default.type === "pixel") {
-        width += item.default.value;
-      }
+    } else if (
+      isPanelData(item) &&
+      item.collapsed &&
+      item.currentValue.type === "pixel"
+    ) {
+      width += item.currentValue.value;
+    } else if (
+      isPanelData(item) &&
+      item.default &&
+      item.default.type === "pixel"
+    ) {
+      width += item.default.value;
     }
   }
 
@@ -708,41 +691,8 @@ function createUnrestrainedPanel(
   return {
     ...data,
     min: makePixelUnit(0),
-    max: makePixelUnit(context.size),
+    max: makePixelUnit(getGroupSize(context)),
   };
-}
-
-function measureGroupChildren(
-  groupId: string,
-  cb: (childrenSizes: Record<string, Rect>) => void
-) {
-  const childrenObserver = new ResizeObserver((childrenEntries) => {
-    const childrenSizes: Record<string, { width: number; height: number }> = {};
-
-    for (const childEntry of childrenEntries) {
-      const child = childEntry.target as HTMLElement;
-      const childId = child.getAttribute("data-splitter-id");
-      const childSize = childEntry.borderBoxSize[0];
-
-      if (childId && childSize) {
-        childrenSizes[childId] = {
-          width: childSize.inlineSize,
-          height: childSize.blockSize,
-        };
-      }
-    }
-
-    cb(childrenSizes);
-    childrenObserver.disconnect();
-  });
-
-  const children = document.querySelectorAll(
-    `[data-splitter-group-id="${groupId}"]`
-  );
-
-  for (const child of children) {
-    childrenObserver.observe(child);
-  }
 }
 
 // #endregion
@@ -814,7 +764,9 @@ function prepareItems(context: GroupMachineContextValue) {
 
     // TODO: Decimal proposal
     item.currentValue = makePixelUnit(
-      Math.round((context.size - staticWidth) * item.currentValue.value)
+      Math.round(
+        (getGroupSize(context) - staticWidth) * item.currentValue.value
+      )
     );
   }
 
@@ -837,14 +789,7 @@ function updateLayout(
         disregardCollapseBuffer?: boolean;
       }
 ): Partial<GroupMachineContextValue> {
-  const handleIndex = context.items.findIndex(
-    (item) => item.id === dragEvent.handleId
-  );
-
-  if (handleIndex === -1) {
-    return {};
-  }
-
+  const handleIndex = getPanelHandleIndex(context, dragEvent.handleId);
   const handle = context.items[handleIndex] as PanelHandleData;
   const newItems = [...context.items];
 
@@ -927,16 +872,6 @@ function updateLayout(
         potentialNewValue >
           getUnitPixelValue(context, panelBefore.collapsedSize)
       ) {
-        return { dragOvershoot: newDragOvershoot };
-      }
-    }
-    // If we're already overshooting just keep adding to the overshoot
-    else {
-      if (context.dragOvershoot > 0 && newDragOvershoot >= 0) {
-        return { dragOvershoot: newDragOvershoot };
-      }
-
-      if (context.dragOvershoot < 0 && newDragOvershoot <= 0) {
         return { dragOvershoot: newDragOvershoot };
       }
     }
@@ -1047,7 +982,7 @@ function updateLayout(
   panelAfter.currentValue = makePixelUnit(panelAfterNewValue);
 
   const leftoverSpace =
-    context.size -
+    getGroupSize(context) -
     newItems.reduce(
       (acc, b) =>
         acc +
@@ -1090,7 +1025,7 @@ function commitLayout(context: GroupMachineContextValue) {
     newItems[index] = {
       ...item,
       currentValue: makePercentUnit(
-        item.currentValue.value / (context.size - staticWidth)
+        item.currentValue.value / (getGroupSize(context) - staticWidth)
       ),
     };
   });
@@ -1101,14 +1036,16 @@ function commitLayout(context: GroupMachineContextValue) {
 export function dragHandlePayload({
   delta,
   orientation,
+  shiftKey = false,
 }: {
   delta: number;
   orientation: Orientation;
+  shiftKey?: boolean;
 }) {
   return {
     type: "move",
     pointerType: "keyboard",
-    shiftKey: false,
+    shiftKey,
     ctrlKey: false,
     altKey: false,
     metaKey: false,
@@ -1157,6 +1094,44 @@ function iterativelyUpdateLayout({
   return newContext;
 }
 
+function applyDeltaInBothDirections(
+  context: GroupMachineContextValue,
+  newItems: Array<Item>,
+  itemIndex: number,
+  delta: number
+) {
+  let hasTriedBothDirections = false;
+  let direction = 1;
+
+  // Starting from where the items was removed add space to the panels around it.
+  // This is only needed for conditional rendering.
+  while (delta !== 0) {
+    const targetPanel = findPanelWithSpace(
+      context,
+      newItems,
+      itemIndex + direction,
+      direction
+    );
+
+    if (!targetPanel) {
+      if (hasTriedBothDirections) {
+        break;
+      } else {
+        direction = direction === 1 ? -1 : 1;
+        hasTriedBothDirections = true;
+        continue;
+      }
+    }
+
+    const oldValue = targetPanel.currentValue.value;
+    const newValue = clampUnit(context, targetPanel, oldValue + delta);
+
+    targetPanel.currentValue.value = newValue;
+    delta -= newValue - oldValue;
+    direction = direction === 1 ? -1 : 1;
+  }
+}
+
 // #endregion
 
 // #region Machine
@@ -1191,10 +1166,7 @@ const animationActor = fromPromise<
       } else {
         const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
 
-        if (panel.currentValue.value !== collapsedSize && !event.controlled) {
-          panel.sizeBeforeCollapse = panel.currentValue.value;
-        }
-
+        panel.sizeBeforeCollapse = panel.currentValue.value;
         direction *= -1 as -1 | 1;
         fullDelta = panel.currentValue.value - collapsedSize;
       }
@@ -1246,7 +1218,7 @@ export const groupMachine = createMachine(
       },
     },
     context: ({ input }) => ({
-      size: 0,
+      size: { width: 0, height: 0 },
       items: input.initialItems || [],
       orientation: input.orientation || "horizontal",
       dragOvershoot: 0,
@@ -1343,13 +1315,7 @@ export const groupMachine = createMachine(
     actions: {
       notifyCollapseToggle: ({ context, event }) => {
         isEvent(event, ["collapsePanel", "expandPanel"]);
-
         const panel = getPanelWithId(context, event.panelId);
-
-        if (!panel.collapseIsControlled) {
-          throw new Error("Expected panel to be controlled");
-        }
-
         panel.onCollapseChange?.current?.(!panel.collapsed);
       },
       runCollapseToggle: enqueueActions(({ context, event, enqueue }) => {
@@ -1388,37 +1354,30 @@ export const groupMachine = createMachine(
         },
       }),
       updateSize: assign({
-        size: ({ context, event }) => {
+        size: ({ event }) => {
           isEvent(event, ["setSize"]);
-
-          return context.orientation === "horizontal"
-            ? event.size.width
-            : event.size.height;
+          return event.size;
         },
       }),
       recordActualItemSize: assign({
         items: ({ context, event }) => {
           isEvent(event, ["setActualItemsSize"]);
 
-          const itemsWithSizes = context.items.map((i) => {
-            const childSize = event.childrenSizes?.[i.id];
-            const orientation = context.orientation;
+          const orientation = context.orientation;
 
-            if (typeof childSize === "undefined") {
-              return i;
+          for (const [id, size] of Object.entries(event.childrenSizes)) {
+            const item = context.items.find((i) => i.id === id);
+
+            if (!isPanelData(item)) {
+              continue;
             }
 
-            return {
-              ...i,
-              currentValue: makePixelUnit(
-                orientation === "horizontal"
-                  ? childSize.width
-                  : childSize.height
-              ),
-            };
-          });
+            item.currentValue = makePixelUnit(
+              orientation === "horizontal" ? size.width : size.height
+            );
+          }
 
-          return commitLayout({ ...context, items: itemsWithSizes });
+          return commitLayout(context);
         },
       }),
       updateOrientation: assign({
@@ -1444,11 +1403,15 @@ export const groupMachine = createMachine(
 
           let currentValue: ParsedUnit = makePixelUnit(0);
 
-          if (event.data.collapsible && event.data.collapsed) {
-            currentValue = event.data.collapsedSize || currentValue;
+          if (
+            event.data.collapsible &&
+            event.data.collapsed &&
+            event.data.collapsedSize
+          ) {
+            currentValue = event.data.collapsedSize;
           } else if (event.data.default) {
             currentValue = event.data.default;
-          } else if (event.data.min) {
+          } else {
             currentValue = event.data.min;
           }
 
@@ -1468,42 +1431,14 @@ export const groupMachine = createMachine(
               }
 
               return acc + i.currentValue.value;
-            }, 0) - context.size;
-          let leftToApply = currentValue.value + overflowDueToHandles;
+            }, 0) - getGroupSize(context);
 
-          // TODO: could look in both directions
-          while (leftToApply > 0) {
-            const panel = findPanelWithSpace(
-              newContext,
-              newItems,
-              itemIndex,
-              -1
-            );
-
-            if (!panel) {
-              break;
-            }
-
-            const panelIndex = newItems.findIndex(
-              (item) => item.id === panel.id
-            );
-
-            if (panelIndex === -1) {
-              break;
-            }
-
-            const newValue = clampUnit(
-              newContext,
-              panel,
-              panel.currentValue.value - leftToApply
-            );
-
-            leftToApply -= newValue;
-            newItems[panelIndex] = {
-              ...panel,
-              currentValue: makePixelUnit(newValue),
-            };
-          }
+          applyDeltaInBothDirections(
+            newContext,
+            newItems,
+            itemIndex,
+            -1 * (currentValue.value + overflowDueToHandles)
+          );
 
           return newItems;
         },
@@ -1525,11 +1460,6 @@ export const groupMachine = createMachine(
           const itemIndex = context.items.findIndex(
             (item) => item.id === event.id
           );
-
-          if (itemIndex === -1) {
-            return context.items;
-          }
-
           const item = context.items[itemIndex];
 
           if (!item) {
@@ -1537,46 +1467,11 @@ export const groupMachine = createMachine(
           }
 
           const newItems = context.items.filter((i) => i.id !== event.id);
-          let removedSize = isPanelData(item)
-            ? item.currentValue.type === "percent"
-              ? item.currentValue.value * context.size
-              : item.currentValue.value
-            : getUnitPixelValue(context, item.size);
+          const removedSize = isPanelData(item)
+            ? item.currentValue.value
+            : item.size.value;
 
-          let hasTriedBothDirections = false;
-          let direction = 1;
-
-          // Starting from where the items was removed add space to the panels around it.
-          // This is only needed for conditional rendering.
-          while (removedSize !== 0) {
-            const targetPanel = findPanelWithSpace(
-              context,
-              newItems,
-              itemIndex + direction,
-              direction
-            );
-
-            if (!targetPanel) {
-              if (hasTriedBothDirections) {
-                break;
-              } else {
-                direction = direction === 1 ? -1 : 1;
-                hasTriedBothDirections = true;
-                continue;
-              }
-            }
-
-            const oldValue = targetPanel.currentValue.value;
-            const newValue = clampUnit(
-              context,
-              targetPanel,
-              oldValue + removedSize
-            );
-
-            targetPanel.currentValue.value = newValue;
-            removedSize -= newValue - oldValue;
-            direction = direction === 1 ? -1 : 1;
-          }
+          applyDeltaInBothDirections(context, newItems, itemIndex, removedSize);
 
           return newItems;
         },
@@ -1609,11 +1504,6 @@ export const groupMachine = createMachine(
 
         const panel = getPanelWithId(context, event.panelId);
         const handle = getHandleForPanelId(context, event.panelId);
-
-        if (!panel) {
-          return;
-        }
-
         const current = panel.currentValue.value;
         const newSize = clampUnit(
           context,
@@ -1645,6 +1535,42 @@ const GroupMachineContext = createActorContext(groupMachine);
 function useDebugGroupMachineContext({ id }: { id: string }) {
   const context = GroupMachineContext.useSelector((state) => state.context);
   console.log("GROUP CONTEXT", id, context);
+}
+
+const useIsomorphicLayoutEffect =
+  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+
+function measureGroupChildren(
+  groupId: string,
+  cb: (childrenSizes: Record<string, Rect>) => void
+) {
+  const childrenObserver = new ResizeObserver((childrenEntries) => {
+    const childrenSizes: Record<string, { width: number; height: number }> = {};
+
+    for (const childEntry of childrenEntries) {
+      const child = childEntry.target as HTMLElement;
+      const childId = child.getAttribute("data-splitter-id");
+      const childSize = childEntry.borderBoxSize[0];
+
+      if (childId && childSize) {
+        childrenSizes[childId] = {
+          width: childSize.inlineSize,
+          height: childSize.blockSize,
+        };
+      }
+    }
+
+    cb(childrenSizes);
+    childrenObserver.disconnect();
+  });
+
+  const children = document.querySelectorAll(
+    `[data-splitter-group-id="${groupId}"]`
+  );
+
+  for (const child of children) {
+    childrenObserver.observe(child);
+  }
 }
 
 export interface PanelGroupHandle {
@@ -1984,14 +1910,10 @@ const PanelGroupImplementation = React.forwardRef<
 
         return clamped.map((i) => {
           if (isPanelHandle(i)) {
-            return getUnitPercentageValue(context.size, i.size);
+            return getUnitPercentageValue(getGroupSize(context), i.size);
           }
 
-          if (i.currentValue.type === "percent") {
-            return i.currentValue.value;
-          }
-
-          return getUnitPercentageValue(context.size, i.currentValue.value);
+          return getUnitPercentageValue(getGroupSize(context), i.currentValue);
         });
       },
       setSizes: (updates) => {
@@ -2219,7 +2141,7 @@ const PanelVisible = React.forwardRef<
           return p.currentValue.value;
         }
 
-        return p.currentValue.value * context.size;
+        return p.currentValue.value * getGroupSize(context);
       },
       setSize: (size) => {
         send({ type: "setPanelPixelSize", panelId, size });
@@ -2228,7 +2150,7 @@ const PanelVisible = React.forwardRef<
         const context = machineRef.getSnapshot().context;
         const items = prepareItems(context);
         const p = getPanelWithId({ ...context, items }, panelId);
-        return p.currentValue.value / context.size;
+        return getUnitPercentageValue(getGroupSize(context), p.currentValue);
       },
     };
   });
@@ -2310,8 +2232,8 @@ const PanelResizerVisible = React.forwardRef<
   const orientation = GroupMachineContext.useSelector(
     (state) => state.context.orientation
   );
-  const groupsSize = GroupMachineContext.useSelector(
-    (state) => state.context.size
+  const groupsSize = GroupMachineContext.useSelector((state) =>
+    getGroupSize(state.context)
   );
   const overshoot = GroupMachineContext.useSelector(
     (state) => state.context.dragOvershoot
@@ -2392,15 +2314,15 @@ const PanelResizerVisible = React.forwardRef<
       aria-disabled={disabled}
       aria-controls={panelBeforeHandle.id}
       aria-valuemin={getUnitPercentageValue(groupsSize, panelBeforeHandle.min)}
-      aria-valuemax={getUnitPercentageValue(groupsSize, panelBeforeHandle.max)}
-      aria-valuenow={
-        panelBeforeHandle.currentValue.type === "percent"
-          ? panelBeforeHandle.currentValue.value * 100
-          : getUnitPercentageValue(
-              groupsSize,
-              panelBeforeHandle.currentValue.value
-            )
+      aria-valuemax={
+        panelBeforeHandle.max === "1fr"
+          ? 100
+          : getUnitPercentageValue(groupsSize, panelBeforeHandle.max)
       }
+      aria-valuenow={getUnitPercentageValue(
+        groupsSize,
+        panelBeforeHandle.currentValue
+      )}
       {...mergeProps(
         props,
         disabled ? {} : buttonProps,
