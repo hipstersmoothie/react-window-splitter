@@ -1987,8 +1987,8 @@ const PanelGroupImplementation = React.forwardRef<
             return getUnitPercentageValue(context.size, i.size);
           }
 
-          if (typeof i.currentValue === "number") {
-            return i.currentValue / context.size;
+          if (i.currentValue.type === "percent") {
+            return i.currentValue.value;
           }
 
           return getUnitPercentageValue(context.size, i.currentValue.value);
@@ -2215,11 +2215,11 @@ const PanelVisible = React.forwardRef<
           panelId
         );
 
-        if (typeof p.currentValue === "string") {
-          return getUnitPixelValue(context, p.currentValue);
+        if (p.currentValue.type === "pixel") {
+          return p.currentValue.value;
         }
 
-        return p.currentValue.value;
+        return p.currentValue.value * context.size;
       },
       setSize: (size) => {
         send({ type: "setPanelPixelSize", panelId, size });
@@ -2228,7 +2228,7 @@ const PanelVisible = React.forwardRef<
         const context = machineRef.getSnapshot().context;
         const items = prepareItems(context);
         const p = getPanelWithId({ ...context, items }, panelId);
-        return p.currentValue.value * 100;
+        return p.currentValue.value / context.size;
       },
     };
   });
