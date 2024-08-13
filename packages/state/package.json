@@ -6,6 +6,9 @@
   "description": "A WAI-ARIA compliant window splitter for React.",
   "homepage": "https://react-window-splitter-six.vercel.app",
   "repository": "https://github.com/hipstersmoothie/react-window-splitter",
+  "publishConfig": {
+    "access": "public"
+  },
   "author": {
     "name": "Andrew Lisowski",
     "email": "lisowski54@gmail.com"
