@@ -9,6 +9,7 @@ A full featured window splitter for React.
 - Layout Persistance - LocalStorage and Cookie
 
 [Read the full docs](https://react-window-splitter-six.vercel.app)
+[View the storybook](https://react-window-splitter-six.vercel.app/docs/examples/simple)
 
 ## Install
 
