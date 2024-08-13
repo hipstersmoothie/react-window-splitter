@@ -16,9 +16,7 @@
   "scripts": {
     "build": "tshy",
     "dev": "tshy -w",
-    "lint": "eslint .",
-    "test": "vitest",
-    "test:browser": "vitest"
+    "lint": "eslint ."
   },
   "license": "MIT",
   "peerDependencies": {
