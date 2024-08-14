@@ -18,7 +18,7 @@ const splitterPackage = path.join(
   "../../../../../../../react-window-splitter"
 );
 const tsConfig = path.join(splitterPackage, "tsconfig.json");
-const targetFile = path.join(splitterPackage, "src/ReactWindowSplitter.tsx");
+const targetFile = path.join(splitterPackage, "src/index.tsx");
 
 const parser = docgen.withCustomConfig(tsConfig, {
   propFilter: (prop) => {
