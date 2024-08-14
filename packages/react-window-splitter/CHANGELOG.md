@@ -1,3 +1,19 @@
+# v0.2.3 (Wed Aug 14 2024)
+
+#### 🐛 Bug Fix
+
+- More Tests and Bug Fixes [#18](https://github.com/hipstersmoothie/react-window-splitter/pull/18) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- move prepareSnapshot ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix spring animations not quite working (for real) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix snapshots ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- switch to big number ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.2 (Tue Aug 13 2024)
 
 #### 🐛 Bug Fix

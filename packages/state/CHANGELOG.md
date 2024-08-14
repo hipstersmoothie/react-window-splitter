@@ -1,3 +1,24 @@
+# v0.2.3 (Wed Aug 14 2024)
+
+#### 🐛 Bug Fix
+
+- More Tests and Bug Fixes [#18](https://github.com/hipstersmoothie/react-window-splitter/pull/18) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix overshoot math for non-collapsible panels ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- remove unused deps ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- move prepareSnapshot ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix spring animations not quite working (for real) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- inline easings ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- no more bugs? ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- switch to big number ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Fix animation float math (closes #15) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- test space distribution and fix max panels used when they shouldn't ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.2 (Tue Aug 13 2024)
 
 #### 🐛 Bug Fix

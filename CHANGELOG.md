@@ -1,3 +1,16 @@
+# v0.2.3 (Wed Aug 14 2024)
+
+#### 🐛 Bug Fix
+
+- `react-window-splitter`, `@window-splitter/state`
+  - More Tests and Bug Fixes [#18](https://github.com/hipstersmoothie/react-window-splitter/pull/18) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.2 (Tue Aug 13 2024)
 
 #### 🐛 Bug Fix
