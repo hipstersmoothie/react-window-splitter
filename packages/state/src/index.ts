@@ -678,6 +678,10 @@ export function buildTemplate(context: GroupMachineContextValue) {
           item.currentValue.type === "pixel" &&
           item.currentValue.value.toNumber() !== -1
         ) {
+          if (item.currentValue.value.toNumber() < 0) {
+            return "0px";
+          }
+
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
           const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
@@ -713,14 +717,11 @@ function addDeDuplicatedItems(items: Array<Item>, newItem: Item) {
   return sortWithOrder([...restItems, newItem]);
 }
 
-function createUnrestrainedPanel(
-  context: GroupMachineContextValue,
-  data: PanelData
-) {
+function createUnrestrainedPanel(_: GroupMachineContextValue, data: PanelData) {
   return {
     ...data,
-    min: makePixelUnit(0),
-    max: makePixelUnit(getGroupSize(context)),
+    min: makePixelUnit(-100000),
+    max: makePixelUnit(100000),
   };
 }
 
@@ -1232,7 +1233,7 @@ const animationActor = fromPromise<
       let appliedDelta = new Big(0);
 
       function renderFrame() {
-        const progress = (frame++ + 1) / totalFrames;
+        const progress = ++frame / totalFrames;
         const e = new Big(panel.collapseAnimation ? ease(progress) : 1);
         const delta = e.mul(fullDelta).sub(appliedDelta).mul(direction);
 
@@ -1242,18 +1243,18 @@ const animationActor = fromPromise<
           delta: delta.toNumber(),
         });
 
-        appliedDelta = delta
-          .abs()
-          .mul(
-            new Big(
-              (delta.toNumber() > 0 && direction.toNumber() === -1) ||
-              (delta.toNumber() < 0 && direction.toNumber() === 1)
+        appliedDelta = appliedDelta.add(
+          delta
+            .abs()
+            .mul(
+              (delta.gt(0) && direction.lt(0)) ||
+                (delta.lt(0) && direction.gt(0))
                 ? -1
                 : 1
             )
-          );
+        );
 
-        if (e.toNumber() === 1) {
+        if (e.eq(1)) {
           const action = event.type === "expandPanel" ? "expand" : "collapse";
           resolve({ panelId: panel.id, action });
           return false;

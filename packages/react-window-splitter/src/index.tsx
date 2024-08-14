@@ -298,6 +298,7 @@ const PanelGroupImpl = React.forwardRef<
 
   const snapshotMemo = useMemo(() => {
     if (typeof snapshot === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const snapshotContext = (snapshot as any)
         .context as unknown as GroupMachineContextValue;
 
