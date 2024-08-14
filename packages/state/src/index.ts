@@ -20,22 +20,22 @@ type Orientation = "horizontal" | "vertical";
 
 interface ParsedPercentUnit {
   type: "percent";
-  value: number;
+  value: Big.Big;
 }
 
 interface ParsedPixelUnit {
   type: "pixel";
-  value: number;
+  value: Big.Big;
 }
 
 type ParsedUnit = ParsedPercentUnit | ParsedPixelUnit;
 
-function makePercentUnit(value: number): ParsedPercentUnit {
-  return { type: "percent", value };
+export function makePercentUnit(value: number): ParsedPercentUnit {
+  return { type: "percent", value: new Big(value) };
 }
 
-function makePixelUnit(value: number): ParsedPixelUnit {
-  return { type: "pixel", value };
+export function makePixelUnit(value: number): ParsedPixelUnit {
+  return { type: "pixel", value: new Big(value) };
 }
 
 interface MoveMoveEvent {
@@ -157,7 +157,12 @@ interface UnregisterPanelEvent {
   id: string;
 }
 
-export type InitializePanelHandleData = Omit<PanelHandleData, "type">;
+export type InitializePanelHandleData = Omit<
+  PanelHandleData,
+  "type" | "size"
+> & {
+  size: PixelUnit;
+};
 
 interface RegisterPanelHandleEvent {
   /** Register a new panel handle with the state machine */
@@ -266,7 +271,7 @@ export interface GroupMachineContextValue {
   /** The orientation of the grid */
   orientation: Orientation;
   /** How much the drag has overshot the handle */
-  dragOvershoot: number;
+  dragOvershoot: Big.Big;
   /** An id to use for autosaving the layout */
   autosaveId?: string;
   groupId: string;
@@ -376,6 +381,14 @@ export function initializePanel(
   >;
 }
 
+export function initializePanelHandleData(item: InitializePanelHandleData) {
+  return {
+    type: "handle" as const,
+    ...item,
+    size: parseUnit(item.size) as ParsedPixelUnit,
+  };
+}
+
 /** Parse a `Unit` string or `clamp` value */
 export function parseUnit(unit: Unit | "1fr"): ParsedUnit {
   if (unit === "1fr") {
@@ -396,10 +409,10 @@ export function parseUnit(unit: Unit | "1fr"): ParsedUnit {
 /** Convert a `Unit` to a percentage of the group size */
 export function getUnitPercentageValue(groupsSize: number, unit: ParsedUnit) {
   if (unit.type === "pixel") {
-    return unit.value / groupsSize;
+    return groupsSize === 0 ? 0 : unit.value.div(groupsSize).toNumber();
   }
 
-  return unit.value;
+  return unit.value.toNumber();
 }
 
 export function getGroupSize(context: GroupMachineContextValue) {
@@ -416,19 +429,23 @@ export function getUnitPixelValue(
   const parsed = unit === "1fr" ? parseUnit(unit) : unit;
   return parsed.type === "pixel"
     ? parsed.value
-    : (parsed.value / 100) * getGroupSize(context);
+    : new Big(parsed.value).div(100).mul(getGroupSize(context));
 }
 
 /** Clamp a new `currentValue` given the panel's constraints. */
 function clampUnit(
   context: GroupMachineContextValue,
   item: PanelData,
-  value: number
+  value: Big.Big
 ) {
-  return Math.min(
-    Math.max(value, getUnitPixelValue(context, item.min)),
-    getUnitPixelValue(context, item.max)
-  );
+  const min = getUnitPixelValue(context, item.min);
+  const max = getUnitPixelValue(context, item.max);
+
+  if (value.gte(min) && value.lte(max)) {
+    return value;
+  }
+
+  return value.lt(min) ? min : max;
 }
 
 /** Get a panel with a particular ID. */
@@ -561,8 +578,8 @@ function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
   }
 
   return (
-    item.currentValue.value > getUnitPixelValue(context, item.min) &&
-    item.currentValue.value < getUnitPixelValue(context, item.max)
+    item.currentValue.value.gt(getUnitPixelValue(context, item.min)) &&
+    item.currentValue.value.lt(getUnitPixelValue(context, item.max))
   );
 }
 
@@ -594,23 +611,23 @@ function findPanelWithSpace(
 
 /** Add up all the static values in the layout */
 function getStaticWidth(context: GroupMachineContextValue) {
-  let width = 0;
+  let width = new Big(0);
 
   for (const item of context.items) {
     if (isPanelHandle(item)) {
-      width += item.size.value;
+      width = width.add(item.size.value);
     } else if (
       isPanelData(item) &&
       item.collapsed &&
       item.currentValue.type === "pixel"
     ) {
-      width += item.currentValue.value;
+      width = width.add(item.currentValue.value);
     } else if (
       isPanelData(item) &&
       item.default &&
       item.default.type === "pixel"
     ) {
-      width += item.default.value;
+      width = width.add(item.default.value);
     }
   }
 
@@ -619,10 +636,10 @@ function getStaticWidth(context: GroupMachineContextValue) {
 
 function formatUnit(unit: ParsedUnit): Unit {
   if (unit.type === "pixel") {
-    return `${unit.value}px`;
+    return `${unit.value.toNumber()}px`;
   }
 
-  return `${unit.value}%`;
+  return `${unit.value.toNumber()}%`;
 }
 
 /** Build the grid template from the item values. */
@@ -636,7 +653,7 @@ export function buildTemplate(context: GroupMachineContextValue) {
 
         if (
           item.currentValue.type === "pixel" &&
-          item.currentValue.value !== -1
+          item.currentValue.value.toNumber() !== -1
         ) {
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
@@ -751,12 +768,11 @@ export function prepareItems(context: GroupMachineContextValue) {
       continue;
     }
 
-    // TODO: Decimal proposal
-    item.currentValue = makePixelUnit(
-      Math.round(
-        (getGroupSize(context) - staticWidth) * item.currentValue.value
-      )
-    );
+    const pixel = new Big(getGroupSize(context))
+      .minus(staticWidth)
+      .mul(item.currentValue.value);
+
+    item.currentValue = makePixelUnit(pixel.toNumber());
   }
 
   return newItems;
@@ -809,7 +825,7 @@ function updateLayout(
   // No panel with space, just record the drag overshoot
   if (!panelBefore) {
     return {
-      dragOvershoot: context.dragOvershoot + moveAmount,
+      dragOvershoot: context.dragOvershoot.add(moveAmount),
     };
   }
 
@@ -822,27 +838,36 @@ function updateLayout(
     `Expected panel after: ${handle.id}`
   );
 
-  const newDragOvershoot = context.dragOvershoot + moveAmount;
+  if (
+    !panelHasSpace(context, panelAfter) &&
+    (!panelAfter.collapsible || !panelAfter.collapsed)
+  ) {
+    return {
+      dragOvershoot: context.dragOvershoot.add(moveAmount),
+    };
+  }
+
+  const newDragOvershoot = context.dragOvershoot.add(moveAmount);
 
   // Don't let the panel expand until the threshold is reached
   if (!dragEvent.disregardCollapseBuffer) {
     if (panelAfter.collapsible && panelAfter.collapsed) {
-      const isInLeftBuffer = newDragOvershoot < 0 && moveDirection > 0;
-      const isInLeftOvershoot = newDragOvershoot > 0 && moveDirection > 0;
-      const isInRightBuffer = newDragOvershoot > 0 && moveDirection < 0;
-      const isInRightOvershoot = newDragOvershoot < 0 && moveDirection < 0;
-      const potentialNewValue =
-        panelAfter.currentValue.value +
-        newDragOvershoot * (isInRightBuffer ? moveDirection : 1);
+      const isInLeftBuffer = newDragOvershoot.lt(0) && moveDirection > 0;
+      const isInLeftOvershoot = newDragOvershoot.gt(0) && moveDirection > 0;
+      const isInRightBuffer = newDragOvershoot.gt(0) && moveDirection < 0;
+      const isInRightOvershoot = newDragOvershoot.lt(0) && moveDirection < 0;
+      const potentialNewValue = panelAfter.currentValue.value.add(
+        new Big(newDragOvershoot).mul(isInRightBuffer ? moveDirection : 1)
+      );
       const min = getUnitPixelValue(context, panelAfter.min);
 
       if (
-        (newDragOvershoot === 0 ||
+        (newDragOvershoot.eq(0) ||
           isInRightBuffer ||
           isInLeftBuffer ||
           ((isInLeftOvershoot || isInRightOvershoot) &&
-            Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD)) &&
-        potentialNewValue < min
+            newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD))) &&
+        potentialNewValue.lt(min)
       ) {
         return { dragOvershoot: newDragOvershoot };
       }
@@ -853,13 +878,15 @@ function updateLayout(
       panelBefore.currentValue.value ===
         getUnitPixelValue(context, panelBefore.min)
     ) {
-      const potentialNewValue =
-        panelBefore.currentValue.value - Math.abs(newDragOvershoot);
+      const potentialNewValue = panelBefore.currentValue.value.sub(
+        newDragOvershoot.abs()
+      );
 
       if (
-        Math.abs(newDragOvershoot) < COLLAPSE_THRESHOLD &&
-        potentialNewValue >
+        newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
+        potentialNewValue.gt(
           getUnitPixelValue(context, panelBefore.collapsedSize)
+        )
       ) {
         return { dragOvershoot: newDragOvershoot };
       }
@@ -869,8 +896,9 @@ function updateLayout(
   // Apply the move amount to the panel before the slider
   const unrestrainedPanelBefore = createUnrestrainedPanel(context, panelBefore);
   const panelBeforePreviousValue = panelBefore.currentValue.value;
-  const panelBeforeNewValueRaw =
-    panelBefore.currentValue.value - moveAmount * moveDirection;
+  const panelBeforeNewValueRaw = panelBefore.currentValue.value.minus(
+    new Big(moveAmount).mul(moveDirection)
+  );
   let panelBeforeNewValue = dragEvent.disregardCollapseBuffer
     ? clampUnit(context, unrestrainedPanelBefore, panelBeforeNewValueRaw)
     : clampUnit(context, panelBefore, panelBeforeNewValueRaw);
@@ -878,8 +906,8 @@ function updateLayout(
   // Also apply the move amount the panel after the slider
   const unrestrainedPanelAfter = createUnrestrainedPanel(context, panelAfter);
   const panelAfterPreviousValue = panelAfter.currentValue.value;
-  const applied = panelBeforePreviousValue - panelBeforeNewValue;
-  const panelAfterNewValueRaw = panelAfter.currentValue.value + applied;
+  const applied = panelBeforePreviousValue.minus(panelBeforeNewValue);
+  const panelAfterNewValueRaw = panelAfter.currentValue.value.add(applied);
   let panelAfterNewValue = dragEvent.disregardCollapseBuffer
     ? clampUnit(context, unrestrainedPanelAfter, panelAfterNewValueRaw)
     : clampUnit(context, panelAfter, panelAfterNewValueRaw);
@@ -905,24 +933,30 @@ function updateLayout(
     // Calculate the amount "extra" after the minSize the panel should grow
     const extra =
       // Take the size it was at
-      getUnitPixelValue(context, panelAfter.collapsedSize) +
-      // Add in the full overshoot so the cursor is near the slider
-      Math.abs(context.dragOvershoot) -
-      // Subtract the min size of the panel
-      panelAfterNewValue +
-      // Then re-add the move amount
-      Math.abs(moveAmount);
+      getUnitPixelValue(context, panelAfter.collapsedSize)
+        // Add in the full overshoot so the cursor is near the slider
+        .add(context.dragOvershoot.abs())
+        // Subtract the min size of the panel
+        .sub(
+          panelAfterNewValue
+            // Then re-add the move amount
+            .add(Math.abs(moveAmount))
+        );
 
     panelAfter.collapsed = false;
-    if (extra > 0) {
-      panelAfterNewValue += extra;
+
+    if (extra.gt(0)) {
+      panelAfterNewValue = panelAfterNewValue.add(extra);
     }
-    panelBeforeNewValue -=
+
+    panelBeforeNewValue = panelBeforeNewValue
       // Subtract the delta of the after panel's size
-      panelAfterNewValue -
-      panelAfterPreviousValue -
-      // And then re-apply the movement value
-      Math.abs(moveAmount);
+      .minus(
+        panelAfterNewValue
+          .minus(panelAfterPreviousValue)
+          // And then re-apply the movement value
+          .minus(Math.abs(moveAmount))
+      );
 
     if (
       panelAfter.onCollapseChange?.current &&
@@ -956,7 +990,9 @@ function updateLayout(
     panelBefore.collapsed = true;
     panelBeforeNewValue = getUnitPixelValue(context, panelBefore.collapsedSize);
     // Add the extra space created to the before panel
-    panelAfterNewValue += panelBeforePreviousValue - panelBeforeNewValue;
+    panelAfterNewValue = panelAfterNewValue.add(
+      panelBeforePreviousValue.minus(panelBeforeNewValue)
+    );
 
     if (
       panelBefore.onCollapseChange?.current &&
@@ -967,23 +1003,23 @@ function updateLayout(
     }
   }
 
-  panelBefore.currentValue = makePixelUnit(panelBeforeNewValue);
-  panelAfter.currentValue = makePixelUnit(panelAfterNewValue);
+  panelBefore.currentValue = { type: "pixel", value: panelBeforeNewValue };
+  panelAfter.currentValue = { type: "pixel", value: panelAfterNewValue };
 
-  const leftoverSpace =
-    getGroupSize(context) -
-    newItems.reduce(
-      (acc, b) =>
-        acc +
-        // in updateLayout the panel units will always be numbers
-        (isPanelData(b) ? b.currentValue.value : b.size.value),
-      0
-    );
+  // const leftoverSpace =
+  //   getGroupSize(context) -
+  //   newItems.reduce(
+  //     (acc, b) =>
+  //       acc +
+  //       // in updateLayout the panel units will always be numbers
+  //       (isPanelData(b) ? b.currentValue.value : b.size.value),
+  //     0
+  //   );
 
-  // TODO: this is wrong?
-  panelBefore.currentValue.value += leftoverSpace;
+  // // TODO: this is wrong?
+  // panelBefore.currentValue.value += leftoverSpace;
 
-  return { items: newItems, dragOvershoot: 0 };
+  return { items: newItems, dragOvershoot: new Big(0) };
 }
 
 /** Converts the items to percentages */
@@ -1013,9 +1049,12 @@ export function commitLayout(context: GroupMachineContextValue) {
 
     newItems[index] = {
       ...item,
-      currentValue: makePercentUnit(
-        item.currentValue.value / (getGroupSize(context) - staticWidth)
-      ),
+      currentValue: {
+        type: "percent",
+        value: item.currentValue.value.div(
+          new Big(getGroupSize(context)).sub(staticWidth)
+        ),
+      },
     };
   });
 
@@ -1054,14 +1093,14 @@ function iterativelyUpdateLayout({
 }: {
   context: GroupMachineContextValue;
   handleId: string;
-  delta: number;
+  delta: Big.Big;
   direction: -1 | 1;
   controlled?: boolean;
   disregardCollapseBuffer?: boolean;
 }) {
   let newContext: Partial<GroupMachineContextValue> = context;
 
-  for (let i = 0; i < Math.abs(delta); i++) {
+  for (let i = 0; i < delta.abs().toNumber(); i++) {
     newContext = updateLayout(
       {
         ...context,
@@ -1087,14 +1126,15 @@ function applyDeltaInBothDirections(
   context: GroupMachineContextValue,
   newItems: Array<Item>,
   itemIndex: number,
-  delta: number
+  delta: Big.Big
 ) {
   let hasTriedBothDirections = false;
   let direction = 1;
+  let deltaLeft = new Big(delta);
 
   // Starting from where the items was removed add space to the panels around it.
   // This is only needed for conditional rendering.
-  while (delta !== 0) {
+  while (deltaLeft.toNumber() !== 0) {
     const targetPanel = findPanelWithSpace(
       context,
       newItems,
@@ -1113,10 +1153,10 @@ function applyDeltaInBothDirections(
     }
 
     const oldValue = targetPanel.currentValue.value;
-    const newValue = clampUnit(context, targetPanel, oldValue + delta);
+    const newValue = clampUnit(context, targetPanel, oldValue.add(delta));
 
     targetPanel.currentValue.value = newValue;
-    delta -= newValue - oldValue;
+    deltaLeft = deltaLeft.sub(newValue.sub(oldValue));
     direction = direction === 1 ? -1 : 1;
   }
 }
@@ -1150,15 +1190,14 @@ const animationActor = fromPromise<
 
       if (event.type === "expandPanel") {
         fullDelta = new Big(
-          (panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)) -
-            panel.currentValue.value
-        );
+          panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)
+        ).minus(panel.currentValue.value);
       } else {
         const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
 
-        panel.sizeBeforeCollapse = panel.currentValue.value;
+        panel.sizeBeforeCollapse = panel.currentValue.value.toNumber();
         direction = direction.mul(new Big(-1));
-        fullDelta = new Big(panel.currentValue.value - collapsedSize);
+        fullDelta = panel.currentValue.value.minus(collapsedSize);
       }
 
       const fps = 60;
@@ -1221,7 +1260,7 @@ export const groupMachine = createMachine(
       size: { width: 0, height: 0 },
       items: input.initialItems || [],
       orientation: input.orientation || "horizontal",
-      dragOvershoot: 0,
+      dragOvershoot: new Big(0),
       autosaveId: input.autosaveId,
       groupId: input.groupId,
     }),
@@ -1424,20 +1463,21 @@ export const groupMachine = createMachine(
             (item) => item.id === event.data.id
           );
           const newContext = { ...context, items: newItems };
-          const overflowDueToHandles =
-            context.items.reduce((acc, i) => {
+          const overflowDueToHandles = context.items
+            .reduce((acc, i) => {
               if (isPanelHandle(i)) {
-                return acc + getUnitPixelValue(context, i.size);
+                return acc.add(getUnitPixelValue(context, i.size));
               }
 
-              return acc + i.currentValue.value;
-            }, 0) - getGroupSize(context);
+              return acc.add(i.currentValue.value);
+            }, new Big(0))
+            .minus(getGroupSize(context));
 
           applyDeltaInBothDirections(
             newContext,
             newItems,
             itemIndex,
-            -1 * (currentValue.value + overflowDueToHandles)
+            currentValue.value.add(overflowDueToHandles).neg()
           );
 
           return newItems;
@@ -1447,10 +1487,15 @@ export const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["registerPanelHandle"]);
 
+          const unit = parseUnit(event.data.size);
+
           return addDeDuplicatedItems(context.items, {
             type: "handle",
             ...event.data,
-            size: event.data.size as ParsedPixelUnit,
+            size: {
+              type: "pixel",
+              value: new Big(unit.value),
+            },
           });
         },
       }),
@@ -1484,7 +1529,7 @@ export const groupMachine = createMachine(
         enqueue.assign(updateLayout(context, event));
       }),
       commit: assign({
-        dragOvershoot: 0,
+        dragOvershoot: new Big(0),
         items: ({ context }) => commitLayout(context),
       }),
       onApplyDelta: assign(({ context, event }) => {
@@ -1511,7 +1556,9 @@ export const groupMachine = createMachine(
           getUnitPixelValue(context, parseUnit(event.size))
         );
         const isBigger = newSize > current;
-        const delta = isBigger ? newSize - current : current - newSize;
+        const delta = isBigger
+          ? newSize.minus(current)
+          : current.minus(newSize);
 
         enqueue.assign(
           iterativelyUpdateLayout({
