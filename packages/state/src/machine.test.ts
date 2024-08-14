@@ -711,6 +711,49 @@ describe("collapsible panel", () => {
     });
   });
 
+  test("non collapsible panels should have drag overflow too", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          default: "200px",
+          min: "200px",
+        }),
+      },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 1fr) 10px 200px"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the the panel
+      dragHandle(actor, { id: "resizer-1", delta: 50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the start
+      dragHandle(actor, { id: "resizer-1", delta: -50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: -25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"265px 10px 225px"`);
+    });
+  });
+
   test("can expand default collapsed panel via event", async () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },

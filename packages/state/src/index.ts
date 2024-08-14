@@ -911,45 +911,49 @@ function updateLayout(
 
   // Don't let the panel expand until the threshold is reached
   if (!dragEvent.disregardCollapseBuffer) {
-    if (panelAfter.collapsible && panelAfter.collapsed) {
-      const isInLeftBuffer = newDragOvershoot.lt(0) && moveDirection > 0;
-      const isInLeftOvershoot = newDragOvershoot.gt(0) && moveDirection > 0;
-      const isInRightBuffer = newDragOvershoot.gt(0) && moveDirection < 0;
-      const isInRightOvershoot = newDragOvershoot.lt(0) && moveDirection < 0;
-      const potentialNewValue = panelAfter.currentValue.value.add(
-        new Big(newDragOvershoot).mul(isInRightBuffer ? moveDirection : 1)
-      );
-      const min = getUnitPixelValue(context, panelAfter.min);
+    const isInLeftBuffer = newDragOvershoot.lt(0) && moveDirection > 0;
+    const isInLeftOvershoot = newDragOvershoot.gt(0) && moveDirection > 0;
+    const isInRightBuffer = newDragOvershoot.gt(0) && moveDirection < 0;
+    const isInRightOvershoot = newDragOvershoot.lt(0) && moveDirection < 0;
+    const potentialNewValue = panelAfter.currentValue.value.add(
+      new Big(newDragOvershoot).mul(isInRightBuffer ? moveDirection : 1)
+    );
+    const min = getUnitPixelValue(context, panelAfter.min);
 
-      if (
-        (newDragOvershoot.eq(0) ||
-          isInRightBuffer ||
-          isInLeftBuffer ||
-          ((isInLeftOvershoot || isInRightOvershoot) &&
-            newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD))) &&
-        potentialNewValue.lt(min)
-      ) {
-        return { dragOvershoot: newDragOvershoot };
-      }
-    }
-    // Don't let the panel collapse until the threshold is reached
-    else if (
-      panelBefore.collapsible &&
-      panelBefore.currentValue.value ===
-        getUnitPixelValue(context, panelBefore.min)
+    const isInDragBugger =
+      newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
+      panelAfter.collapsible &&
+      panelAfter.collapsed &&
+      (isInLeftOvershoot || isInRightOvershoot);
+
+    if (
+      potentialNewValue.lte(min) &&
+      (newDragOvershoot.eq(0) ||
+        isInRightBuffer ||
+        isInLeftBuffer ||
+        isInDragBugger)
     ) {
-      const potentialNewValue = panelBefore.currentValue.value.sub(
-        newDragOvershoot.abs()
-      );
+      return { dragOvershoot: newDragOvershoot };
+    }
+  }
 
-      if (
-        newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
-        potentialNewValue.gt(
-          getUnitPixelValue(context, panelBefore.collapsedSize)
-        )
-      ) {
-        return { dragOvershoot: newDragOvershoot };
-      }
+  // Don't let the panel collapse until the threshold is reached
+  if (
+    panelBefore.collapsible &&
+    panelBefore.currentValue.value ===
+      getUnitPixelValue(context, panelBefore.min)
+  ) {
+    const potentialNewValue = panelBefore.currentValue.value.sub(
+      newDragOvershoot.abs()
+    );
+
+    if (
+      newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
+      potentialNewValue.gt(
+        getUnitPixelValue(context, panelBefore.collapsedSize)
+      )
+    ) {
+      return { dragOvershoot: newDragOvershoot };
     }
   }
 
@@ -1078,7 +1082,7 @@ function updateLayout(
       panelBefore.currentValue.value.add(leftoverSpace);
   }
 
-  return { items: newItems, dragOvershoot: new Big(0) };
+  return { items: newItems };
 }
 
 /** Converts the items to percentages */
