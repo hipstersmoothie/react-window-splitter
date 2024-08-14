@@ -31,6 +31,7 @@
     "@types/d3-ease": "^3.0.2",
     "@vitest/browser": "^2.0.5",
     "@vitest/coverage-istanbul": "^2.0.5",
+    "d3-ease": "^3.0.1",
     "eslint": "^9.8.0",
     "framer-motion": "^11.3.24",
     "jsdom": "^24.1.1",
@@ -43,7 +44,6 @@
     "@react-spring/rafz": "^9.7.4",
     "@types/invariant": "^2.2.37",
     "big.js": "^6.2.1",
-    "d3-ease": "^3.0.1",
     "@alisowski/decimal128": "^16.0.0",
     "invariant": "^2.2.4",
     "xstate": "^5.14.0"

@@ -1,7 +1,6 @@
 import { raf } from "@react-spring/rafz";
 import { createMachine, assign, enqueueActions, fromPromise } from "xstate";
 import invariant from "invariant";
-import * as easings from "d3-ease";
 import Big from "big.js";
 
 // #region Constants
@@ -120,10 +119,22 @@ function getCollapseAnimation(panel: PanelData) {
   return { ease: easeFn, duration };
 }
 
+/** Copied from https://github.com/d3/d3-ease */
 const collapseAnimations = {
-  "ease-in-out": easings.easeQuadInOut,
-  bounce: easings.easeBackInOut,
-  linear: easings.easeLinear,
+  "ease-in-out": function quadInOut(t: number) {
+    return ((t *= 2) <= 1 ? t * t : --t * (2 - t) + 1) / 2;
+  },
+  bounce: function backInOut(t: number) {
+    const s = 1.70158;
+    return (
+      ((t *= 2) < 1
+        ? t * t * ((s + 1) * t - s)
+        : (t -= 2) * t * ((s + 1) * t + s) + 2) / 2
+    );
+  },
+  linear: function linear(t: number) {
+    return +t;
+  },
 };
 
 type CollapseAnimation = keyof typeof collapseAnimations;
