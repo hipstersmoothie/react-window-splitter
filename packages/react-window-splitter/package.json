@@ -26,6 +26,7 @@
   "devDependencies": {
     "@internal/eslint-config": "workspace:*",
     "@testing-library/react": "^16.0.0",
+    "@types/big.js": "^6.2.2",
     "@types/invariant": "^2.2.37",
     "@types/node": "^20.14.10",
     "@types/react": "^18",
@@ -46,6 +47,7 @@
     "@radix-ui/react-compose-refs": "^1.1.0",
     "@window-splitter/state": "workspace:*",
     "@xstate/react": "^4.1.1",
+    "big.js": "^6.2.1",
     "invariant": "^2.2.4",
     "react-aria": "^3.33.1",
     "reforest": "^0.13.0",
