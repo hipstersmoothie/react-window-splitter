@@ -9,7 +9,6 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import Big from "big.js";
 import Cookies from "universal-cookie";
 import { mergeProps, useButton, useId, useMove } from "react-aria";
 import { Snapshot } from "xstate";
@@ -38,6 +37,7 @@ import {
   prepareItems,
   Rect,
   Unit,
+  prepareSnapshot,
 } from "@window-splitter/state";
 
 // #region Components
@@ -297,35 +297,7 @@ const PanelGroupImpl = React.forwardRef<
   }
 
   const snapshotMemo = useMemo(() => {
-    if (typeof snapshot === "object") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const snapshotContext = (snapshot as any)
-        .context as unknown as GroupMachineContextValue;
-
-      snapshotContext.dragOvershoot = new Big(snapshotContext.dragOvershoot);
-
-      for (const item of snapshotContext.items) {
-        if (isPanelData(item)) {
-          item.currentValue.value = new Big(item.currentValue.value);
-
-          if (item.collapsedSize) {
-            item.collapsedSize.value = new Big(item.collapsedSize.value);
-          }
-
-          if (item.min) {
-            item.min.value = new Big(item.min.value);
-          }
-
-          if (item.max && item.max !== "1fr") {
-            item.max.value = new Big(item.max.value);
-          }
-        } else {
-          item.size.value = new Big(item.size.value);
-        }
-      }
-
-      return snapshot;
-    }
+    return typeof snapshot === "object" ? prepareSnapshot(snapshot) : undefined;
   }, [snapshot]);
 
   return (

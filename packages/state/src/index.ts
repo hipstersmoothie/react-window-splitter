@@ -1,5 +1,11 @@
 import { raf } from "@react-spring/rafz";
-import { createMachine, assign, enqueueActions, fromPromise } from "xstate";
+import {
+  createMachine,
+  assign,
+  enqueueActions,
+  fromPromise,
+  Snapshot,
+} from "xstate";
 import invariant from "invariant";
 import Big from "big.js";
 
@@ -313,6 +319,36 @@ type EventForType<T extends GroupMachineEvent["type"]> = Extract<
 // #endregion
 
 // #region Helpers
+
+export function prepareSnapshot(snapshot: Snapshot<unknown>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const snapshotContext = (snapshot as any)
+    .context as unknown as GroupMachineContextValue;
+
+  snapshotContext.dragOvershoot = new Big(snapshotContext.dragOvershoot);
+
+  for (const item of snapshotContext.items) {
+    if (isPanelData(item)) {
+      item.currentValue.value = new Big(item.currentValue.value);
+
+      if (item.collapsedSize) {
+        item.collapsedSize.value = new Big(item.collapsedSize.value);
+      }
+
+      if (item.min) {
+        item.min.value = new Big(item.min.value);
+      }
+
+      if (item.max && item.max !== "1fr") {
+        item.max.value = new Big(item.max.value);
+      }
+    } else {
+      item.size.value = new Big(item.size.value);
+    }
+  }
+
+  return snapshot;
+}
 
 /** Assert that the provided event is one of the accepted types */
 function isEvent<T extends GroupMachineEvent["type"]>(

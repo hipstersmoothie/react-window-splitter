@@ -187,9 +187,6 @@ importers:
       '@xstate/react':
         specifier: ^4.1.1
         version: 4.1.1(@types/react@18.3.3)(react@18.3.1)(xstate@5.17.1)
-      big.js:
-        specifier: ^6.2.1
-        version: 6.2.1
       invariant:
         specifier: ^2.2.4
         version: 2.2.4
@@ -212,9 +209,6 @@ importers:
       '@testing-library/react':
         specifier: ^16.0.0
         version: 16.0.0(@testing-library/dom@10.4.0)(@types/react-dom@18.3.0)(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/big.js':
-        specifier: ^6.2.2
-        version: 6.2.2
       '@types/invariant':
         specifier: ^2.2.37
         version: 2.2.37
