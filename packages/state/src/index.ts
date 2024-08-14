@@ -567,7 +567,11 @@ function sortWithOrder(items: Array<Item>) {
 }
 
 /** Check if the panel has space available to add to */
-function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
+function panelHasSpace(
+  context: GroupMachineContextValue,
+  item: PanelData,
+  adjustment: "add" | "subtract"
+) {
   invariant(
     item.currentValue.type === "pixel",
     `panelHasSpace only works with number values: ${item.id} ${item.currentValue}`
@@ -577,9 +581,16 @@ function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
     return true;
   }
 
+  if (adjustment === "add") {
+    return (
+      item.currentValue.value.gte(getUnitPixelValue(context, item.min)) &&
+      item.currentValue.value.lt(getUnitPixelValue(context, item.max))
+    );
+  }
+
   return (
     item.currentValue.value.gt(getUnitPixelValue(context, item.min)) &&
-    item.currentValue.value.lt(getUnitPixelValue(context, item.max))
+    item.currentValue.value.lte(getUnitPixelValue(context, item.max))
   );
 }
 
@@ -589,6 +600,7 @@ function findPanelWithSpace(
   items: Array<Item>,
   start: number,
   direction: number,
+  adjustment: "add" | "subtract",
   disregardCollapseBuffer?: boolean
 ) {
   const slice =
@@ -603,7 +615,7 @@ function findPanelWithSpace(
       ? createUnrestrainedPanel(context, panel)
       : panel;
 
-    if (panelHasSpace(context, targetPanel)) {
+    if (panelHasSpace(context, targetPanel, adjustment)) {
       return panel;
     }
   }
@@ -819,6 +831,7 @@ function updateLayout(
     newItems,
     handleIndex + moveDirection,
     moveDirection,
+    "subtract",
     dragEvent.disregardCollapseBuffer
   );
 
@@ -839,8 +852,7 @@ function updateLayout(
   );
 
   if (
-    !panelHasSpace(context, panelAfter) &&
-    (!panelAfter.collapsible || !panelAfter.collapsed)
+    panelAfter.currentValue.value.eq(getUnitPixelValue(context, panelAfter.max))
   ) {
     return {
       dragOvershoot: context.dragOvershoot.add(moveAmount),
@@ -1006,18 +1018,17 @@ function updateLayout(
   panelBefore.currentValue = { type: "pixel", value: panelBeforeNewValue };
   panelAfter.currentValue = { type: "pixel", value: panelAfterNewValue };
 
-  // const leftoverSpace =
-  //   getGroupSize(context) -
-  //   newItems.reduce(
-  //     (acc, b) =>
-  //       acc +
-  //       // in updateLayout the panel units will always be numbers
-  //       (isPanelData(b) ? b.currentValue.value : b.size.value),
-  //     0
-  //   );
+  const leftoverSpace = new Big(getGroupSize(context)).minus(
+    newItems.reduce(
+      (acc, b) => acc.add(isPanelData(b) ? b.currentValue.value : b.size.value),
+      new Big(0)
+    )
+  );
 
-  // // TODO: this is wrong?
-  // panelBefore.currentValue.value += leftoverSpace;
+  if (leftoverSpace.gt(0)) {
+    panelBefore.currentValue.value =
+      panelBefore.currentValue.value.add(leftoverSpace);
+  }
 
   return { items: newItems, dragOvershoot: new Big(0) };
 }
@@ -1139,7 +1150,8 @@ function applyDeltaInBothDirections(
       context,
       newItems,
       itemIndex + direction,
-      direction
+      direction,
+      delta.gt(0) ? "add" : "subtract"
     );
 
     if (!targetPanel) {
@@ -1153,7 +1165,7 @@ function applyDeltaInBothDirections(
     }
 
     const oldValue = targetPanel.currentValue.value;
-    const newValue = clampUnit(context, targetPanel, oldValue.add(delta));
+    const newValue = clampUnit(context, targetPanel, oldValue.add(deltaLeft));
 
     targetPanel.currentValue.value = newValue;
     deltaLeft = deltaLeft.sub(newValue.sub(oldValue));

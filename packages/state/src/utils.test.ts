@@ -27,6 +27,12 @@ describe("getUnitPercentageValue", () => {
       getUnitPercentageValue(100, { type: "percent", value: new Big(0.5) })
     ).toBe(0.5);
   });
+
+  test("works with 0", () => {
+    expect(
+      getUnitPercentageValue(0, { type: "pixel", value: new Big(1) })
+    ).toBe(0);
+  });
 });
 
 describe("getCollapsiblePanelForHandleId", () => {

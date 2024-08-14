@@ -1292,7 +1292,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"0px 10px 50px 10px 50px 10px 300px"`
+        `"70px 10px 50px 10px 50px 10px 300px"`
       );
     });
   });
