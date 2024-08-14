@@ -9,19 +9,15 @@ import {
   groupMachine,
   GroupMachineEvent,
   initializePanel,
+  initializePanelHandleData,
   isPanelHandle,
 } from "./index.js";
 import { Actor, createActor } from "xstate";
-// import { spring } from "framer-motion";
+import { spring } from "framer-motion";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
   return buildTemplate(actor.getSnapshot().context);
 }
-
-const handleSize = {
-  type: "pixel" as const,
-  value: 10,
-};
 
 function dragHandle(
   actor: Actor<typeof groupMachine>,
@@ -136,6 +132,17 @@ function initializeSizes(
   });
 }
 
+function waitForCondition(condition: () => boolean) {
+  return new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      if (condition()) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
 describe("constraints", () => {
   test("works with 2 simple panels - horizontal", () => {
     const actor = createActor(groupMachine, {
@@ -146,7 +153,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
     ]);
@@ -164,7 +171,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the left
@@ -175,7 +182,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -188,7 +195,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
     ]);
@@ -210,7 +217,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the up
@@ -225,7 +232,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469385 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.5204081632653061 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -251,11 +258,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2" }),
         ],
       },
@@ -277,11 +280,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2" }),
         ],
       },
@@ -305,11 +304,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2" }),
         ],
       },
@@ -329,11 +324,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1", min: "40%" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2", min: "10%", default: "30%" }),
         ],
       },
@@ -357,11 +348,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1", max: "90%" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2", default: "30%" }),
         ],
       },
@@ -373,12 +360,9 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
-      dragHandle(actor, { id: "resizer-1", delta: 400 });
+      dragHandle(actor, { id: "resizer-1", delta: 500 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"450px 10px 40px"`);
     });
-
-    expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.9183673469387755 * (100% - 10px)), 90%)) 10px minmax(0px, min(calc(0.08163265306122448 * (100% - 10px)), 100%))"`
-    );
   });
 
   test("panel can have a min", () => {
@@ -390,7 +374,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -419,7 +403,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -450,7 +434,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -460,7 +444,7 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 310px)), 100%)) 10px minmax(0px, min(calc(1.5789473684210527 * (100% - 310px)), 100%))"`
+      `"minmax(0px, min(calc(1 * (100% - 310px)), 100%)) 10px minmax(0px, min(calc(1.57894736842105263158 * (100% - 310px)), 100%))"`
     );
 
     capturePixelValues(actor, () => {
@@ -477,7 +461,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -489,7 +473,7 @@ describe("constraints", () => {
       },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-2", size: handleSize },
+        data: { id: "resizer-2", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -516,11 +500,7 @@ describe("constraints", () => {
         groupId: "group",
         initialItems: [
           initializePanel({ id: "panel-1" }),
-          {
-            type: "handle",
-            id: "resizer-1",
-            size: { type: "pixel", value: 10 },
-          },
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
           initializePanel({ id: "panel-2" }),
         ],
       },
@@ -557,7 +537,7 @@ describe("constraints", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
     ]);
@@ -577,20 +557,19 @@ describe("constraints", () => {
 });
 
 describe("collapsible panel", () => {
-  // const springAnimation = spring({
-  //   keyframes: [0, 1],
-  //   velocity: 1,
-  //   stiffness: 100,
-  //   damping: 10,
-  //   mass: 1.0,
-  // });
-  // const springEasing = (t: number) => springAnimation.next(t * 1000).value;
+  const springAnimation = spring({
+    keyframes: [0, 1],
+    velocity: 1,
+    stiffness: 100,
+    damping: 10,
+    mass: 1.0,
+  });
+  const springEasing = (t: number) => springAnimation.next(t * 1000).value;
 
   test.each([
     undefined,
     "ease-in-out" as const,
-    // The math is wrong, enable after Decimal128
-    // { duration: 1000, easing: springEasing },
+    { duration: 1000, easing: springEasing },
   ])("panel can be collapsible: %s", async (animation) => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
@@ -600,7 +579,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -654,6 +633,35 @@ describe("collapsible panel", () => {
     });
   });
 
+  test("throws when you collapse a panel and there are no handles", async () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [initializePanel({ id: "panel-1" })],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    const spy = vi.fn();
+    let didError = false;
+
+    actor.subscribe({
+      error: (e) => {
+        spy(e);
+        didError = true;
+      },
+    });
+
+    actor.send({ type: "collapsePanel", panelId: "panel-1" });
+
+    await waitForCondition(() => didError);
+
+    expect(spy).toHaveBeenCalledWith(
+      new Error("Cant find handle for panel: panel-1")
+    );
+  });
+
   test("collapsible panel can have collapsed size - right", async () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
@@ -663,7 +671,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -703,6 +711,49 @@ describe("collapsible panel", () => {
     });
   });
 
+  test("non collapsible panels should have drag overflow too", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          default: "200px",
+          min: "200px",
+        }),
+      },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 1fr) 10px 200px"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the the panel
+      dragHandle(actor, { id: "resizer-1", delta: 50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the start
+      dragHandle(actor, { id: "resizer-1", delta: -50 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"290px 10px 200px"`);
+
+      // Drag into the drag buffer but not past it
+      dragHandle(actor, { id: "resizer-1", delta: -25 });
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"265px 10px 225px"`);
+    });
+  });
+
   test("can expand default collapsed panel via event", async () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
@@ -712,7 +763,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -753,7 +804,7 @@ describe("collapsible panel", () => {
       },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
     ]);
@@ -793,7 +844,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -840,7 +891,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -904,7 +955,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -952,7 +1003,7 @@ describe("collapsible panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -1013,25 +1064,25 @@ describe("collapsible panel", () => {
         panelId: "panel-2",
         controlled: true,
       });
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"321px 10px 169px"`);
     });
 
     spy.mockReset();
 
-    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    actor.send({ type: "collapsePanel", panelId: "panel-2", controlled: true });
     await waitForIdle(actor);
 
     // collapse the panel via drag
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
     });
 
-    actor.send({ type: "expandPanel", panelId: "panel-2" });
+    actor.send({ type: "expandPanel", panelId: "panel-2", controlled: true });
     await waitForIdle(actor);
 
     // collapse the panel via drag
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"319px 10px 171px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"321px 10px 169px"`);
     });
   });
 });
@@ -1046,7 +1097,7 @@ describe("conditional panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
     ]);
@@ -1060,7 +1111,7 @@ describe("conditional panel", () => {
     sendAll(actor, [
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-2", size: handleSize },
+        data: { id: "resizer-2", size: "10px" },
       },
       {
         type: "registerDynamicPanel",
@@ -1093,7 +1144,7 @@ describe("conditional panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -1110,7 +1161,7 @@ describe("conditional panel", () => {
     sendAll(actor, [
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-2", size: handleSize },
+        data: { id: "resizer-2", size: "10px" },
       },
       {
         type: "registerDynamicPanel",
@@ -1148,7 +1199,7 @@ describe("conditional panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       {
         type: "registerPanel",
@@ -1165,7 +1216,7 @@ describe("conditional panel", () => {
     sendAll(actor, [
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-2", size: handleSize },
+        data: { id: "resizer-2", size: "10px" },
       },
       {
         type: "registerDynamicPanel",
@@ -1201,7 +1252,7 @@ describe("conditional panel", () => {
       { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-1", size: handleSize },
+        data: { id: "resizer-1", size: "10px" },
       },
       { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
     ]);
@@ -1215,7 +1266,7 @@ describe("conditional panel", () => {
     sendAll(actor, [
       {
         type: "registerPanelHandle",
-        data: { id: "resizer-2", size: handleSize, order: 1 },
+        data: { id: "resizer-2", size: "10px", order: 1 },
       },
       {
         type: "registerDynamicPanel",
@@ -1248,6 +1299,44 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+    });
+  });
+
+  test("distributes space on both sides of dynamic panel as needed", async () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1" }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({ id: "panel-2", max: "50px" }),
+          initializePanelHandleData({ id: "resizer-2", size: "10px" }),
+          initializePanel({ id: "panel-3", default: "300px" }),
+          initializePanelHandleData({ id: "resizer-3", size: "10px" }),
+          initializePanel({ id: "panel-4", max: "50px" }),
+          initializePanelHandleData({ id: "resizer-4", size: "10px" }),
+          initializePanel({ id: "panel-5", max: "300px" }),
+        ],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"0px 10px 50px 10px 300px 10px 50px 10px 60px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"70px 10px 50px 10px 50px 10px 300px"`
+      );
     });
   });
 });

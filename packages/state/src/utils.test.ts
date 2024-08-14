@@ -7,18 +7,31 @@ import {
   initializePanel,
 } from "./index.js";
 import { createActor } from "xstate";
+import Big from "big.js";
 
 describe("getUnitPercentageValue", () => {
   test("works with pixels", () => {
-    expect(getUnitPercentageValue(100, { type: "pixel", value: 100 })).toBe(1);
-    expect(getUnitPercentageValue(100, { type: "pixel", value: 50 })).toBe(0.5);
+    expect(
+      getUnitPercentageValue(100, { type: "pixel", value: new Big(100) })
+    ).toBe(1);
+    expect(
+      getUnitPercentageValue(100, { type: "pixel", value: new Big(50) })
+    ).toBe(0.5);
   });
 
   test("works with percentages", () => {
-    expect(getUnitPercentageValue(100, { type: "percent", value: 1 })).toBe(1);
-    expect(getUnitPercentageValue(100, { type: "percent", value: 0.5 })).toBe(
-      0.5
-    );
+    expect(
+      getUnitPercentageValue(100, { type: "percent", value: new Big(1) })
+    ).toBe(1);
+    expect(
+      getUnitPercentageValue(100, { type: "percent", value: new Big(0.5) })
+    ).toBe(0.5);
+  });
+
+  test("works with 0", () => {
+    expect(
+      getUnitPercentageValue(0, { type: "pixel", value: new Big(1) })
+    ).toBe(0);
   });
 });
 
@@ -32,7 +45,7 @@ describe("getCollapsiblePanelForHandleId", () => {
           {
             type: "handle",
             id: "resizer-1",
-            size: { type: "pixel", value: 10 },
+            size: { type: "pixel", value: new Big(10) },
           },
           initializePanel({ id: "panel-2" }),
         ],
@@ -54,7 +67,7 @@ describe("getCollapsiblePanelForHandleId", () => {
           {
             type: "handle",
             id: "resizer-1",
-            size: { type: "pixel", value: 10 },
+            size: { type: "pixel", value: new Big(10) },
           },
           initializePanel({ id: "panel-2", collapsible: true }),
         ],
@@ -89,7 +102,7 @@ describe("getCollapsiblePanelForHandleId", () => {
           {
             type: "handle",
             id: "resizer-1",
-            size: { type: "pixel", value: 10 },
+            size: { type: "pixel", value: new Big(10) },
           },
         ],
       },

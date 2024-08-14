@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev:docs": "next dev",
     "build:docs": "next build",
     "start": "next start",
     "lint": "eslint ."

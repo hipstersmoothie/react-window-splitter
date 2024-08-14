@@ -27,7 +27,7 @@
   "devDependencies": {
     "@internal/eslint-config": "workspace:*",
     "@testing-library/react": "^16.0.0",
-    "@types/d3-ease": "^3.0.2",
+    "@types/big.js": "^6.2.2",
     "@vitest/browser": "^2.0.5",
     "@vitest/coverage-istanbul": "^2.0.5",
     "eslint": "^9.8.0",
@@ -41,12 +41,13 @@
   "dependencies": {
     "@react-spring/rafz": "^9.7.4",
     "@types/invariant": "^2.2.37",
-    "d3-ease": "^3.0.1",
+    "big.js": "^6.2.1",
     "invariant": "^2.2.4",
     "xstate": "^5.14.0"
   },
   "tshy": {
     "exclude": [
+      "src/**/*.test.ts",
       "node_modules"
     ],
     "exports": {

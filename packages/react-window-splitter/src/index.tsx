@@ -7,6 +7,7 @@ import React, {
   createContext,
   useRef,
   useState,
+  useMemo,
 } from "react";
 import Cookies from "universal-cookie";
 import { mergeProps, useButton, useId, useMove } from "react-aria";
@@ -36,6 +37,7 @@ import {
   prepareItems,
   Rect,
   Unit,
+  prepareSnapshot,
 } from "@window-splitter/state";
 
 // #region Components
@@ -294,6 +296,10 @@ const PanelGroupImpl = React.forwardRef<
     }
   }
 
+  const snapshotMemo = useMemo(() => {
+    return typeof snapshot === "object" ? prepareSnapshot(snapshot) : undefined;
+  }, [snapshot]);
+
   return (
     <GroupMachineContext.Provider
       options={{
@@ -303,7 +309,7 @@ const PanelGroupImpl = React.forwardRef<
           groupId,
           initialItems: initialItems.current,
         },
-        snapshot: typeof snapshot === "object" ? snapshot : undefined,
+        snapshot: typeof snapshotMemo === "object" ? snapshotMemo : undefined,
       }}
       logic={groupMachine.provide({
         actions: {
@@ -407,8 +413,8 @@ const PanelGroupImplementation = React.forwardRef<
 
         return prepareItems(context).map((i) =>
           isPanelData(i)
-            ? i.currentValue.value
-            : getUnitPixelValue(context, i.size)
+            ? i.currentValue.value.toNumber()
+            : getUnitPixelValue(context, i.size).toNumber()
         );
       },
       getPercentageSizes() {
@@ -648,10 +654,10 @@ const PanelVisible = React.forwardRef<
         );
 
         if (p.currentValue.type === "pixel") {
-          return p.currentValue.value;
+          return p.currentValue.value.toNumber();
         }
 
-        return p.currentValue.value * getGroupSize(context);
+        return p.currentValue.value.mul(getGroupSize(context)).toNumber();
       },
       setSize: (size) => {
         send({ type: "setPanelPixelSize", panelId, size });
@@ -776,17 +782,17 @@ const PanelResizerVisible = React.forwardRef<
   if (disabled) {
     cursor = "default";
   } else if (orientation === "horizontal") {
-    if (overshoot > 0) {
+    if (overshoot.gt(0)) {
       cursor = "w-resize";
-    } else if (overshoot < 0) {
+    } else if (overshoot.lt(0)) {
       cursor = "e-resize";
     } else {
       cursor = "ew-resize";
     }
   } else {
-    if (overshoot > 0) {
+    if (overshoot.gt(0)) {
       cursor = "n-resize";
-    } else if (overshoot < 0) {
+    } else if (overshoot.lt(0)) {
       cursor = "s-resize";
     } else {
       cursor = "ns-resize";
@@ -844,8 +850,8 @@ const PanelResizerVisible = React.forwardRef<
         cursor,
         ...props.style,
         ...(orientation === "horizontal"
-          ? { width: unit.value, height: "100%" }
-          : { height: unit.value, width: "100%" }),
+          ? { width: unit.value.toNumber(), height: "100%" }
+          : { height: unit.value.toNumber(), width: "100%" }),
       }}
     />
   );
