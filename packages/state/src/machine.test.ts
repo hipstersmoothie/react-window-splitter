@@ -136,6 +136,17 @@ function initializeSizes(
   });
 }
 
+function waitForCondition(condition: () => boolean) {
+  return new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      if (condition()) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100);
+  });
+}
+
 describe("constraints", () => {
   test("works with 2 simple panels - horizontal", () => {
     const actor = createActor(groupMachine, {
@@ -652,6 +663,35 @@ describe("collapsible panel", () => {
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toBe("490px 10px 0px");
     });
+  });
+
+  test("throws when you collapse a panel and there are no handles", async () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [initializePanel({ id: "panel-1" })],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    const spy = vi.fn();
+    let didError = false;
+
+    actor.subscribe({
+      error: (e) => {
+        spy(e);
+        didError = true;
+      },
+    });
+
+    actor.send({ type: "collapsePanel", panelId: "panel-1" });
+
+    await waitForCondition(() => didError);
+
+    expect(spy).toHaveBeenCalledWith(
+      new Error("Cant find handle for panel: panel-1")
+    );
   });
 
   test("collapsible panel can have collapsed size - right", async () => {
@@ -1248,6 +1288,44 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+    });
+  });
+
+  test("distributes space on both sides of dynamic panel as needed", async () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1" }),
+          { type: "handle", id: "resizer-1", size: handleSize },
+          initializePanel({ id: "panel-2", max: "50px" }),
+          { type: "handle", id: "resizer-2", size: handleSize },
+          initializePanel({ id: "panel-3", default: "300px" }),
+          { type: "handle", id: "resizer-3", size: handleSize },
+          initializePanel({ id: "panel-4", max: "50px" }),
+          { type: "handle", id: "resizer-4", size: handleSize },
+          initializePanel({ id: "panel-5", max: "300px" }),
+        ],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"0px 10px 50px 10px 300px 10px 50px 10px 60px"`
+      );
+    });
+
+    sendAll(actor, [
+      { type: "unregisterPanelHandle", id: "resizer-2" },
+      { type: "unregisterPanel", id: "panel-3" },
+    ]);
+
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(
+        `"0px 10px 50px 10px 50px 10px 300px"`
+      );
     });
   });
 });

@@ -559,7 +559,10 @@ function panelHasSpace(context: GroupMachineContextValue, item: PanelData) {
     return true;
   }
 
-  return item.currentValue.value > getUnitPixelValue(context, item.min);
+  return (
+    item.currentValue.value > getUnitPixelValue(context, item.min) &&
+    item.currentValue.value < getUnitPixelValue(context, item.max)
+  );
 }
 
 /** Search in a `direction` for a panel that still has space to expand. */
