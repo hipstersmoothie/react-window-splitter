@@ -2,6 +2,7 @@ import { raf } from "@react-spring/rafz";
 import { createMachine, assign, enqueueActions, fromPromise } from "xstate";
 import invariant from "invariant";
 import * as easings from "d3-ease";
+import Big from "big.js";
 
 // #region Constants
 
@@ -1144,19 +1145,20 @@ const animationActor = fromPromise<
       const panel = getPanelWithId(context, event.panelId);
       const handle = getHandleForPanelId(context, event.panelId);
 
-      let direction = handle.direction;
-      let fullDelta = 0;
+      let direction = new Big(handle.direction);
+      let fullDelta = new Big(0);
 
       if (event.type === "expandPanel") {
-        fullDelta =
+        fullDelta = new Big(
           (panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)) -
-          panel.currentValue.value;
+            panel.currentValue.value
+        );
       } else {
         const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
 
         panel.sizeBeforeCollapse = panel.currentValue.value;
-        direction *= -1 as -1 | 1;
-        fullDelta = panel.currentValue.value - collapsedSize;
+        direction = direction.mul(new Big(-1));
+        fullDelta = new Big(panel.currentValue.value - collapsedSize);
       }
 
       const fps = 60;
@@ -1165,21 +1167,31 @@ const animationActor = fromPromise<
         panel.collapseAnimation ? duration / (1000 / fps) : 1
       );
       let frame = 0;
-      let appliedDelta = 0;
+      let appliedDelta = new Big(0);
 
       function renderFrame() {
         const progress = (frame++ + 1) / totalFrames;
-        const e = panel.collapseAnimation ? ease(progress) : 1;
-        const delta = (e * fullDelta - appliedDelta) * direction;
+        const e = new Big(panel.collapseAnimation ? ease(progress) : 1);
+        const delta = e.mul(fullDelta).sub(appliedDelta).mul(direction);
 
-        send({ type: "applyDelta", handleId: handle.item.id, delta });
-        appliedDelta +=
-          Math.abs(delta) *
-          ((delta > 0 && direction === -1) || (delta < 0 && direction === 1)
-            ? -1
-            : 1);
+        send({
+          type: "applyDelta",
+          handleId: handle.item.id,
+          delta: delta.toNumber(),
+        });
 
-        if (e === 1) {
+        appliedDelta = delta
+          .abs()
+          .mul(
+            new Big(
+              (delta.toNumber() > 0 && direction.toNumber() === -1) ||
+              (delta.toNumber() < 0 && direction.toNumber() === 1)
+                ? -1
+                : 1
+            )
+          );
+
+        if (e.toNumber() === 1) {
           const action = event.type === "expandPanel" ? "expand" : "collapse";
           resolve({ panelId: panel.id, action });
           return false;
