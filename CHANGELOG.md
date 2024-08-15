@@ -1,3 +1,17 @@
+# v0.2.4 (Thu Aug 15 2024)
+
+#### 🐛 Bug Fix
+
+- `react-window-splitter`, `@window-splitter/state`
+  - Fix conditional panel rendering [#22](https://github.com/hipstersmoothie/react-window-splitter/pull/22) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - Fix default size throwing of responsive sizing [#21](https://github.com/hipstersmoothie/react-window-splitter/pull/21) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.3 (Wed Aug 14 2024)
 
 #### 🐛 Bug Fix
