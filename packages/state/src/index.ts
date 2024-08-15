@@ -18,8 +18,8 @@ const COLLAPSE_THRESHOLD = 50;
 
 // #region Types
 
-type PixelUnit = `${number}px`;
-type PercentUnit = `${number}%`;
+export type PixelUnit = `${number}px`;
+export type PercentUnit = `${number}%`;
 export type Unit = PixelUnit | PercentUnit;
 type Orientation = "horizontal" | "vertical";
 
@@ -178,7 +178,7 @@ export type InitializePanelHandleData = Omit<
   PanelHandleData,
   "type" | "size"
 > & {
-  size: PixelUnit;
+  size: PixelUnit | ParsedPixelUnit;
 };
 
 interface RegisterPanelHandleEvent {
@@ -432,7 +432,7 @@ export function initializePanelHandleData(item: InitializePanelHandleData) {
   return {
     type: "handle" as const,
     ...item,
-    size: parseUnit(item.size) as ParsedPixelUnit,
+    size: typeof item.size === "string" ? parseUnit(item.size) : item.size,
   };
 }
 
@@ -1545,7 +1545,10 @@ export const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["registerPanelHandle"]);
 
-          const unit = parseUnit(event.data.size);
+          const unit =
+            typeof event.data.size === "string"
+              ? parseUnit(event.data.size)
+              : event.data.size;
 
           return addDeDuplicatedItems(context.items, {
             type: "handle",
