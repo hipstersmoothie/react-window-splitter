@@ -681,12 +681,6 @@ function getStaticWidth(context: GroupMachineContextValue) {
       item.currentValue.type === "pixel"
     ) {
       width = width.add(item.currentValue.value);
-    } else if (
-      isPanelData(item) &&
-      item.default &&
-      item.default.type === "pixel"
-    ) {
-      width = width.add(item.default.value);
     }
   }
 

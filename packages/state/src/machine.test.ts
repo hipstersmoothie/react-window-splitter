@@ -444,7 +444,7 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(1 * (100% - 310px)), 100%)) 10px minmax(0px, min(calc(1.57894736842105263158 * (100% - 310px)), 100%))"`
+      `"minmax(0px, min(calc(0.38775510204081632653 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"`
     );
 
     capturePixelValues(actor, () => {
