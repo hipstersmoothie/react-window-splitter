@@ -573,6 +573,7 @@ export function WithDefaultWidth() {
       <Panel
         id="right"
         default="100px"
+        min="100px"
         max="400px"
         style={{ backgroundColor: "#ff3366" }}
       />
