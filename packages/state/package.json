@@ -30,12 +30,12 @@
     "@types/big.js": "^6.2.2",
     "@vitest/browser": "^2.0.5",
     "@vitest/coverage-istanbul": "^2.0.5",
-    "eslint": "^9.8.0",
-    "framer-motion": "^11.3.24",
+    "eslint": "^9.9.0",
+    "framer-motion": "^11.3.28",
     "jsdom": "^24.1.1",
     "playwright": "^1.46.0",
     "tshy": "^3.0.2",
-    "typescript": "^5.5.3",
+    "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   },
   "dependencies": {
@@ -43,7 +43,7 @@
     "@types/invariant": "^2.2.37",
     "big.js": "^6.2.1",
     "invariant": "^2.2.4",
-    "xstate": "^5.14.0"
+    "xstate": "^5.17.4"
   },
   "tshy": {
     "exclude": [
