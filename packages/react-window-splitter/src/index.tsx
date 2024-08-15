@@ -38,6 +38,7 @@ import {
   Rect,
   Unit,
   prepareSnapshot,
+  PixelUnit,
 } from "@window-splitter/state";
 
 // #region Components
@@ -693,7 +694,7 @@ export interface PanelResizerProps
   extends React.HTMLAttributes<HTMLButtonElement> {
   /** If the handle is disabled */
   disabled?: boolean;
-  size?: Unit;
+  size?: PixelUnit;
 }
 
 /** A resize handle to place between panels. */
