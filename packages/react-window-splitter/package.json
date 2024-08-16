@@ -18,6 +18,7 @@
   },
   "scripts": {
     "build": "tshy",
+    "test": "vitest",
     "dev": "tshy -w",
     "lint": "eslint ."
   },
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "@radix-ui/react-compose-refs": "^1.1.0",
+    "@testing-library/jest-dom": "^6.4.8",
     "@window-splitter/state": "workspace:*",
     "@xstate/react": "^4.1.1",
     "invariant": "^2.2.4",
@@ -58,6 +60,7 @@
   "tshy": {
     "exclude": [
       "node_modules",
+      "src/**/*.test.ts",
       "**/*stories.*"
     ],
     "exports": {

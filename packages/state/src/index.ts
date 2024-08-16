@@ -318,6 +318,28 @@ type EventForType<T extends GroupMachineEvent["type"]> = Extract<
 
 // #region Helpers
 
+export function getCursor(
+  context: Pick<GroupMachineContextValue, "dragOvershoot" | "orientation">
+) {
+  if (context.orientation === "horizontal") {
+    if (context.dragOvershoot.gt(0)) {
+      return "w-resize";
+    } else if (context.dragOvershoot.lt(0)) {
+      return "e-resize";
+    } else {
+      return "ew-resize";
+    }
+  } else {
+    if (context.dragOvershoot.gt(0)) {
+      return "n-resize";
+    } else if (context.dragOvershoot.lt(0)) {
+      return "s-resize";
+    } else {
+      return "ns-resize";
+    }
+  }
+}
+
 export function prepareSnapshot(snapshot: Snapshot<unknown>) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const snapshotContext = (snapshot as any)
@@ -470,7 +492,7 @@ export function getGroupSize(context: GroupMachineContextValue) {
 }
 
 /** Get the size of a panel in pixels */
-export function getUnitPixelValue(
+function getUnitPixelValue(
   context: GroupMachineContextValue,
   unit: ParsedUnit | "1fr"
 ) {
@@ -694,6 +716,56 @@ function formatUnit(unit: ParsedUnit): Unit {
   }
 
   return `${unit.value.toNumber()}%`;
+}
+
+export function getPanelGroupPixelSizes(context: GroupMachineContextValue) {
+  return prepareItems(context).map((i) =>
+    isPanelData(i)
+      ? i.currentValue.value.toNumber()
+      : getUnitPixelValue(context, i.size).toNumber()
+  );
+}
+
+export function getPanelPixelSize(
+  context: GroupMachineContextValue,
+  panelId: string
+) {
+  const p = getPanelWithId(
+    { ...context, items: prepareItems(context) },
+    panelId
+  );
+
+  if (p.currentValue.type === "pixel") {
+    return p.currentValue.value.toNumber();
+  }
+
+  return p.currentValue.value.mul(getGroupSize(context)).toNumber();
+}
+
+export function getPanelGroupPercentageSizes(
+  context: GroupMachineContextValue
+) {
+  const clamped = commitLayout({
+    ...context,
+    items: prepareItems(context),
+  });
+
+  return clamped.map((i) => {
+    if (isPanelHandle(i)) {
+      return getUnitPercentageValue(getGroupSize(context), i.size);
+    }
+
+    return getUnitPercentageValue(getGroupSize(context), i.currentValue);
+  });
+}
+
+export function getPanelPercentageSize(
+  context: GroupMachineContextValue,
+  panelId: string
+) {
+  const items = prepareItems(context);
+  const p = getPanelWithId({ ...context, items }, panelId);
+  return getUnitPercentageValue(getGroupSize(context), p.currentValue);
 }
 
 /** Build the grid template from the item values. */
@@ -1081,7 +1153,7 @@ function updateLayout(
 }
 
 /** Converts the items to percentages */
-export function commitLayout(context: GroupMachineContextValue) {
+function commitLayout(context: GroupMachineContextValue) {
   const newItems = [...context.items];
 
   // First set all the static width

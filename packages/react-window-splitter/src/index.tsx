@@ -18,19 +18,16 @@ import { useComposedRefs } from "@radix-ui/react-compose-refs";
 import { useIndex, useIndexedChildren } from "reforest";
 import {
   buildTemplate,
-  commitLayout,
   Constraints,
   getCollapsiblePanelForHandleId,
   getGroupSize,
   getPanelWithId,
   getUnitPercentageValue,
-  getUnitPixelValue,
   groupMachine,
   GroupMachineContextValue,
   initializePanel,
   InitializePanelHandleData,
   isPanelData,
-  isPanelHandle,
   Item,
   PanelData,
   parseUnit,
@@ -39,6 +36,11 @@ import {
   Unit,
   prepareSnapshot,
   PixelUnit,
+  getPanelGroupPixelSizes,
+  getPanelGroupPercentageSizes,
+  getPanelPixelSize,
+  getPanelPercentageSize,
+  getCursor,
 } from "@window-splitter/state";
 
 // #region Components
@@ -46,8 +48,9 @@ import {
 const GroupMachineContext = createActorContext(groupMachine);
 
 // function useDebugGroupMachineContext({ id }: { id: string }) {
-//   const context = GroupMachineContext.useSelector((state) => state.context);
-//   console.log("GROUP CONTEXT", id, context);
+// const value = GroupMachineContext.useSelector((state) => state.value);
+// const context = GroupMachineContext.useSelector((state) => state.context);
+// console.log("GROUP CONTEXT", id, value, buildTemplate(context));
 // }
 
 const useIsomorphicLayoutEffect =
@@ -101,6 +104,8 @@ export interface PanelGroupHandle {
    * NOTE: Setting handle sizes will do nothing.
    */
   setSizes: (items: Array<Unit>) => void;
+  /** Get the template for the group in pixels. Useful for testing */
+  getTemplate: () => string;
 }
 
 export interface PanelGroupProps
@@ -191,7 +196,7 @@ function useGroupItem<T extends Item>(
               send({ type: "setActualItemsSize", childrenSizes });
             });
           });
-        } else if (isPanelHandle(itemArg)) {
+        } else {
           send({
             type: "registerPanelHandle",
             data: {
@@ -220,7 +225,7 @@ function useGroupItem<T extends Item>(
 
       if (isPanelData(itemArg)) {
         send({ type: "unregisterPanel", id: unmountId });
-      } else if (isPanelHandle(itemArg)) {
+      } else {
         send({ type: "unregisterPanelHandle", id: unmountId });
       }
     };
@@ -410,30 +415,10 @@ const PanelGroupImplementation = React.forwardRef<
   useImperativeHandle(handle || fallbackHandleRef, () => {
     return {
       getId: () => groupId,
-      getPixelSizes: () => {
-        const context = machineRef.getSnapshot().context;
-
-        return prepareItems(context).map((i) =>
-          isPanelData(i)
-            ? i.currentValue.value.toNumber()
-            : getUnitPixelValue(context, i.size).toNumber()
-        );
-      },
-      getPercentageSizes() {
-        const context = machineRef.getSnapshot().context;
-        const clamped = commitLayout({
-          ...context,
-          items: prepareItems(context),
-        });
-
-        return clamped.map((i) => {
-          if (isPanelHandle(i)) {
-            return getUnitPercentageValue(getGroupSize(context), i.size);
-          }
-
-          return getUnitPercentageValue(getGroupSize(context), i.currentValue);
-        });
-      },
+      getPixelSizes: () =>
+        getPanelGroupPixelSizes(machineRef.getSnapshot().context),
+      getPercentageSizes: () =>
+        getPanelGroupPercentageSizes(machineRef.getSnapshot().context),
       setSizes: (updates) => {
         const context = machineRef.getSnapshot().context;
 
@@ -449,6 +434,10 @@ const PanelGroupImplementation = React.forwardRef<
             });
           }
         }
+      },
+      getTemplate: () => {
+        const context = machineRef.getSnapshot().context;
+        return buildTemplate({ ...context, items: prepareItems(context) });
       },
     };
   });
@@ -650,25 +639,14 @@ const PanelVisible = React.forwardRef<
       isExpanded: () => Boolean(collapsible && !panel?.collapsed),
       getPixelSize: () => {
         const context = machineRef.getSnapshot().context;
-        const p = getPanelWithId(
-          { ...context, items: prepareItems(context) },
-          panelId
-        );
-
-        if (p.currentValue.type === "pixel") {
-          return p.currentValue.value.toNumber();
-        }
-
-        return p.currentValue.value.mul(getGroupSize(context)).toNumber();
+        return getPanelPixelSize(context, panelId);
       },
       setSize: (size) => {
         send({ type: "setPanelPixelSize", panelId, size });
       },
       getPercentageSize: () => {
         const context = machineRef.getSnapshot().context;
-        const items = prepareItems(context);
-        const p = getPanelWithId({ ...context, items }, panelId);
-        return getUnitPercentageValue(getGroupSize(context), p.currentValue);
+        return getPanelPercentageSize(context, panelId);
       },
     };
   });
@@ -780,25 +758,10 @@ const PanelResizerVisible = React.forwardRef<
 
   let cursor: React.CSSProperties["cursor"];
 
-  // TODO: should this be an actor in the state machine?
   if (disabled) {
     cursor = "default";
-  } else if (orientation === "horizontal") {
-    if (overshoot.gt(0)) {
-      cursor = "w-resize";
-    } else if (overshoot.lt(0)) {
-      cursor = "e-resize";
-    } else {
-      cursor = "ew-resize";
-    }
   } else {
-    if (overshoot.gt(0)) {
-      cursor = "n-resize";
-    } else if (overshoot.lt(0)) {
-      cursor = "s-resize";
-    } else {
-      cursor = "ns-resize";
-    }
+    cursor = getCursor({ dragOvershoot: overshoot, orientation });
   }
 
   // Update the cursor while the user is dragging.

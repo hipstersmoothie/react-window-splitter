@@ -17,7 +17,7 @@
     "build-storybook": "storybook build",
     "lint": "turbo run lint lint-root",
     "lint-root": "eslint .",
-    "test": "turbo run test",
+    "test": "turbo run test --concurrency=1",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },
@@ -45,7 +45,8 @@
     "prettier": "^3.3.3",
     "storybook": "^8.2.9",
     "turbo": "^2.0.14",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
   },
   "auto": {
     "plugins": [

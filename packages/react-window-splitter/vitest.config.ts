@@ -4,8 +4,10 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   test: {
+    setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "istanbul",
+      exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
     },
     browser: {
       enabled: true,
