@@ -15,9 +15,12 @@
     "dev": "turbo run dev",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "lint": "turbo run lint lint-root",
+    "lint": "turbo run lint lint-root --continue",
     "lint-root": "eslint .",
-    "test": "turbo run test --concurrency=1",
+    "test": "turbo run test --continue --concurrency=1",
+    "merge-codecov": "mkdir -p coverage && pnpm run merge-coverage && pnpm run merge-summary",
+    "merge-coverage": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-final.json' --exclude '*'  packages coverage/reports && flatten-directory --rootdir='coverage/reports' --outputdir='coverage/reports-combined' && nyc merge coverage/reports-combined coverage/combined/all.json",
+    "merge-summary": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-summary.json' --exclude '*'  packages coverage/summary && flatten-directory --rootdir='coverage/summary' --outputdir='coverage/summary-combined' && node scripts/combine-summaries.js",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },
@@ -39,14 +42,16 @@
     "all-contributors-cli": "^6.26.1",
     "auto": "^11.2.0",
     "eslint": "^9.9.0",
+    "fast-glob": "^3.3.2",
     "find-package-json": "^1.2.0",
+    "flatten-directory": "^1.0.8",
     "globals": "^15.9.0",
     "lerna": "^8.1.8",
+    "nyc": "^17.0.0",
     "prettier": "^3.3.3",
     "storybook": "^8.2.9",
     "turbo": "^2.0.14",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.5"
+    "typescript": "^5.5.4"
   },
   "auto": {
     "plugins": [

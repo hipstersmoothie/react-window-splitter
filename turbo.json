@@ -10,7 +10,7 @@
       "cache": false,
       "persistent": true
     },
-    "test": { "outputs": [] },
+    "test": { "outputs": ["coverage/**"] },
     "lint": { "outputs": [] },
     "//#lint-root": { "outputs": [] }
   }
