@@ -6,6 +6,7 @@ import {
   groupMachine,
   initializePanel,
   getCursor,
+  initializePanelHandleData,
 } from "./index.js";
 import { createActor } from "xstate";
 import Big from "big.js";
@@ -156,5 +157,47 @@ describe("getCursor", () => {
         getCursor({ orientation: "vertical", dragOvershoot: new Big(10) })
       ).toBe("n-resize");
     });
+  });
+});
+
+describe("initializePanelHandleData", () => {
+  test("works with pixel size", () => {
+    const data = initializePanelHandleData({
+      id: "resizer-1",
+      size: "10px",
+    });
+
+    expect(data).toMatchInlineSnapshot(`
+      {
+        "id": "resizer-1",
+        "size": {
+          "type": "pixel",
+          "value": "10",
+        },
+        "type": "handle",
+      }
+    `);
+  });
+
+  test("works with pixel size", () => {
+    const data = initializePanelHandleData({
+      id: "resizer-1",
+      // @ts-expect-error The types were hard and i wanted to keep the public API simple
+      size: {
+        type: "pixel",
+        value: new Big(10),
+      },
+    });
+
+    expect(data).toMatchInlineSnapshot(`
+      {
+        "id": "resizer-1",
+        "size": {
+          "type": "pixel",
+          "value": "10",
+        },
+        "type": "handle",
+      }
+    `);
   });
 });
