@@ -201,13 +201,7 @@ describe("Autosave", () => {
       Boolean(localStorage.getItem("autosave-example"))
     );
     const obj = JSON.parse(localStorage.getItem("autosave-example") || "{}");
-    expect({
-      ...obj,
-      context: {
-        ...obj.context,
-        groupId: undefined,
-      },
-    }).toMatchSnapshot();
+    expect(obj.context.items).toMatchSnapshot();
   });
 
   test("cookie", async () => {

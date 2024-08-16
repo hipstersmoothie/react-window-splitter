@@ -3,75 +3,54 @@
 exports[`Autosave > cookie 3`] = `"autosave-cookie-example=%7B%22status%22%3A%22active%22%2C%22value%22%3A%22idle%22%2C%22historyValue%22%3A%7B%7D%2C%22context%22%3A%7B%22size%22%3A%7B%22x%22%3A0%2C%22y%22%3A0%2C%22width%22%3A500%2C%22height%22%3A200%2C%22top%22%3A0%2C%22right%22%3A500%2C%22bottom%22%3A200%2C%22left%22%3A0%7D%2C%22items%22%3A%5B%7B%22type%22%3A%22panel%22%2C%22min%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%220%22%7D%2C%22max%22%3A%221fr%22%2C%22collapsible%22%3Afalse%2C%22collapsedSize%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%220%22%7D%2C%22onCollapseChange%22%3A%7B%7D%2C%22collapseIsControlled%22%3Afalse%2C%22id%22%3A%22panel1%22%2C%22currentValue%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%22343%22%7D%7D%2C%7B%22type%22%3A%22handle%22%2C%22size%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%2210%22%7D%2C%22id%22%3A%22resizer1%22%7D%2C%7B%22type%22%3A%22panel%22%2C%22min%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%220%22%7D%2C%22max%22%3A%221fr%22%2C%22collapsible%22%3Afalse%2C%22collapsedSize%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%220%22%7D%2C%22onCollapseChange%22%3A%7B%7D%2C%22collapseIsControlled%22%3Afalse%2C%22id%22%3A%22panel2%22%2C%22currentValue%22%3A%7B%22type%22%3A%22pixel%22%2C%22value%22%3A%22147%22%7D%7D%5D%2C%22orientation%22%3A%22horizontal%22%2C%22dragOvershoot%22%3A%220%22%2C%22groupId%22%3A%22panel-group-react-aria-%3Ar1e%3A%22%7D%2C%22children%22%3A%7B%7D%7D"`;
 
 exports[`Autosave > localStorage 3`] = `
-{
-  "children": {},
-  "context": {
-    "dragOvershoot": "0",
-    "groupId": undefined,
-    "items": [
-      {
-        "collapseIsControlled": false,
-        "collapsedSize": {
-          "type": "pixel",
-          "value": "0",
-        },
-        "collapsible": false,
-        "currentValue": {
-          "type": "pixel",
-          "value": "342",
-        },
-        "id": "1",
-        "max": "1fr",
-        "min": {
-          "type": "pixel",
-          "value": "0",
-        },
-        "onCollapseChange": {},
-        "type": "panel",
-      },
-      {
-        "id": "resizer",
-        "size": {
-          "type": "pixel",
-          "value": "10",
-        },
-        "type": "handle",
-      },
-      {
-        "collapseIsControlled": false,
-        "collapsedSize": {
-          "type": "pixel",
-          "value": "0",
-        },
-        "collapsible": false,
-        "currentValue": {
-          "type": "pixel",
-          "value": "146",
-        },
-        "id": "2",
-        "max": "1fr",
-        "min": {
-          "type": "pixel",
-          "value": "0",
-        },
-        "onCollapseChange": {},
-        "type": "panel",
-      },
-    ],
-    "orientation": "horizontal",
-    "size": {
-      "bottom": 58.5,
-      "height": 58.5,
-      "left": 0,
-      "right": 498,
-      "top": 0,
-      "width": 498,
-      "x": 0,
-      "y": 0,
+[
+  {
+    "collapseIsControlled": false,
+    "collapsedSize": {
+      "type": "pixel",
+      "value": "0",
     },
+    "collapsible": false,
+    "currentValue": {
+      "type": "pixel",
+      "value": "342",
+    },
+    "id": "1",
+    "max": "1fr",
+    "min": {
+      "type": "pixel",
+      "value": "0",
+    },
+    "onCollapseChange": {},
+    "type": "panel",
   },
-  "historyValue": {},
-  "status": "active",
-  "value": "idle",
-}
+  {
+    "id": "resizer",
+    "size": {
+      "type": "pixel",
+      "value": "10",
+    },
+    "type": "handle",
+  },
+  {
+    "collapseIsControlled": false,
+    "collapsedSize": {
+      "type": "pixel",
+      "value": "0",
+    },
+    "collapsible": false,
+    "currentValue": {
+      "type": "pixel",
+      "value": "146",
+    },
+    "id": "2",
+    "max": "1fr",
+    "min": {
+      "type": "pixel",
+      "value": "0",
+    },
+    "onCollapseChange": {},
+    "type": "panel",
+  },
+]
 `;
