@@ -23,6 +23,7 @@ function StyledPanelGroup(props: PanelGroupProps) {
         border: "1px solid rgba(0, 0, 0, 0.3)",
         background: "rgba(0, 0, 0, 0.1)",
         borderRadius: 12,
+        boxSizing: "border-box",
         ...props.style,
       }}
     />
@@ -39,11 +40,14 @@ function StyledPanel({ children, ...props }: PanelProps) {
     >
       <div
         style={{
+          height: "100%",
+          width: "100%",
           padding: 20,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
         {children}
@@ -56,23 +60,19 @@ function StyledResizer(props: PanelResizerProps) {
   return <PanelResizer size="10px" style={{ background: "red" }} {...props} />;
 }
 
-export function Simple() {
+export function Simple({ handle }: { handle?: React.Ref<PanelGroupHandle> }) {
   return (
-    <StyledPanelGroup>
-      <StyledPanel>
-        <div>Panel 1</div>
-      </StyledPanel>
+    <StyledPanelGroup handle={handle} style={{ height: 200 }}>
+      <StyledPanel>Panel 1</StyledPanel>
       <StyledResizer />
-      <StyledPanel min="100px">
-        <div>Panel 2</div>
-      </StyledPanel>
+      <StyledPanel min="100px">Panel 2</StyledPanel>
     </StyledPanelGroup>
   );
 }
 
-export function Autosave() {
+export function Autosave({ handle }: { handle?: React.Ref<PanelGroupHandle> }) {
   return (
-    <StyledPanelGroup autosaveId="autosave-example">
+    <StyledPanelGroup handle={handle} autosaveId="autosave-example">
       <StyledPanel id="1">Panel 1</StyledPanel>
       <StyledResizer id="resizer" />
       <StyledPanel id="2">Panel 2</StyledPanel>
@@ -146,17 +146,21 @@ export function HorizontalLayout() {
   );
 }
 
-export function VerticalLayout() {
+export function VerticalLayout({
+  handle,
+}: {
+  handle?: React.Ref<PanelGroupHandle>;
+}) {
   return (
-    <StyledPanelGroup orientation="vertical">
+    <StyledPanelGroup handle={handle} orientation="vertical">
       <StyledPanel default="30%" min="20%">
-        left
+        top
       </StyledPanel>
       <StyledResizer />
       <StyledPanel min="20%">middle</StyledPanel>
       <StyledResizer />
       <StyledPanel default="30%" min="20%">
-        right
+        bottom
       </StyledPanel>
     </StyledPanelGroup>
   );
@@ -295,12 +299,21 @@ export function WithOverflow() {
   );
 }
 
-export function Collapsible() {
+export function Collapsible({
+  leftPanelHandle,
+  rightPanelHandle,
+  handle,
+}: {
+  leftPanelHandle?: React.Ref<PanelHandle>;
+  handle?: React.Ref<PanelGroupHandle>;
+  rightPanelHandle?: React.Ref<PanelHandle>;
+}) {
   const [collapsed, setCollapsed] = React.useState(true);
 
   return (
-    <StyledPanelGroup>
+    <StyledPanelGroup handle={handle}>
       <StyledPanel
+        handle={leftPanelHandle}
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -315,8 +328,9 @@ export function Collapsible() {
       <StyledPanel min="100px">
         <div>2</div>
       </StyledPanel>
-      <StyledResizer />
+      <StyledResizer id="resizer-2" />
       <StyledPanel
+        handle={rightPanelHandle}
         min="100px"
         collapsible
         collapsedSize="60px"
@@ -486,12 +500,16 @@ export function ImperativePanel() {
   );
 }
 
-export function ConditionalPanel() {
+export function ConditionalPanel({
+  handle,
+}: {
+  handle?: React.Ref<PanelGroupHandle>;
+}) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
     <React.StrictMode>
-      <StyledPanelGroup>
+      <StyledPanelGroup handle={handle}>
         <StyledPanel id="panel-1" min="100px" collapsible collapsedSize="60px">
           <div>1</div>
         </StyledPanel>
