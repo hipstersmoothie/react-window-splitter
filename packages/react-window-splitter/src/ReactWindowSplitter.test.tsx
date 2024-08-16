@@ -130,13 +130,13 @@ test("vertical layout", async () => {
   expect(getByText("bottom")).toBeInTheDocument();
 
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"58.640625px 10px 58.203125px 10px 58.640625px"`
+    `"96px 10px 108px 10px 96px"`
   );
 
   // Should respect the min
   await dragHandle({ delta: 100, orientation: "vertical" });
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"97.30625px 10px 39.096875px 10px 39.096875px"`
+    `"172px 10px 64px 10px 64px"`
   );
 });
 

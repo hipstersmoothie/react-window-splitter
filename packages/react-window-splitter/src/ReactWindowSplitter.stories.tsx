@@ -152,7 +152,11 @@ export function VerticalLayout({
   handle?: React.Ref<PanelGroupHandle>;
 }) {
   return (
-    <StyledPanelGroup handle={handle} orientation="vertical">
+    <StyledPanelGroup
+      handle={handle}
+      orientation="vertical"
+      style={{ height: 322 }}
+    >
       <StyledPanel default="30%" min="20%">
         top
       </StyledPanel>
