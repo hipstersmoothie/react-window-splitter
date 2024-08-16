@@ -3,7 +3,7 @@ import type { StorybookConfig } from "@storybook/react-vite";
 const config: StorybookConfig = {
   stories: [
     "../packages/react-window-splitter/**/*.mdx",
-    "../packages/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    "../packages/**/*.stories.tsx",
   ],
   addons: [
     "@storybook/addon-onboarding",

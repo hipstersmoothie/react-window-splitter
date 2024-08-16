@@ -8,20 +8,21 @@ async function main() {
     filepaths.map((f) => fs.readFile(f, "utf-8").then(JSON.parse))
   );
   const combined = files.reduce((acc, { total, ...filesResults }) => {
-    if (!acc.totals) {
-      acc.totals = {};
+    if (!acc.total) {
+      acc.total = {};
     }
 
     Object.entries(total).forEach(([key, value]) => {
-      acc.totals[key] = {
-        ...acc.totals[key],
-        total: (acc.totals[key]?.total || 0) + value.total,
-        covered: (acc.totals[key]?.covered || 0) + value.covered,
-        skipped: (acc.totals[key]?.skipped || 0) + value.skipped,
+      acc.total[key] = {
+        ...acc.total[key],
+        total: (acc.total[key]?.total || 0) + value.total,
+        covered: (acc.total[key]?.covered || 0) + value.covered,
+        skipped: (acc.total[key]?.skipped || 0) + value.skipped,
       };
 
-      acc.totals[key].percent = acc.totals[key].total
-        ? (acc.totals[key].covered / acc.totals[key].total) * 100
+      acc.total[key].pct = acc.total[key].total
+        ? // to fixed 2 decimal places
+          ((acc.total[key].covered / acc.total[key].total) * 100).toFixed(2)
         : 0;
     });
 

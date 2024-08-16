@@ -7,8 +7,9 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "istanbul",
-      exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
+      include: ["**/*.tsx", "!**/*.stories.tsx", "!**/*.test.tsx"],
       reporter: ["text", "json-summary", "json"],
+      reportOnFailure: true,
     },
     browser: {
       enabled: true,
