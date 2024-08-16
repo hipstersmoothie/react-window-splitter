@@ -1,3 +1,18 @@
+# v0.2.5 (Thu Aug 15 2024)
+
+#### ⚠️ Pushed to `main`
+
+- `react-window-splitter`, `@window-splitter/state`
+  - add more docs to state machine + add defaults to params ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - fix repo/description ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - upgrade deps ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.4 (Thu Aug 15 2024)
 
 #### 🐛 Bug Fix
