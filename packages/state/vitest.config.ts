@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: "istanbul",
-      reporter: ["text", "json-summary", "json"],
+      reporter: ["text", "html", "json-summary", "json"],
       reportOnFailure: true,
     },
     browser: {

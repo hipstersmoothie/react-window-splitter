@@ -113,8 +113,8 @@ function getCollapseAnimation(panel: PanelData) {
   if (panel.collapseAnimation) {
     if (typeof panel.collapseAnimation === "string") {
       easeFn = collapseAnimations[panel.collapseAnimation];
-    } else if ("duration" in panel.collapseAnimation) {
-      duration = panel.collapseAnimation.duration ?? duration;
+    } else {
+      duration = panel.collapseAnimation.duration;
       easeFn =
         typeof panel.collapseAnimation.easing === "function"
           ? panel.collapseAnimation.easing
@@ -350,14 +350,8 @@ export function prepareSnapshot(snapshot: Snapshot<unknown>) {
   for (const item of snapshotContext.items) {
     if (isPanelData(item)) {
       item.currentValue.value = new Big(item.currentValue.value);
-
-      if (item.collapsedSize) {
-        item.collapsedSize.value = new Big(item.collapsedSize.value);
-      }
-
-      if (item.min) {
-        item.min.value = new Big(item.min.value);
-      }
+      item.collapsedSize.value = new Big(item.collapsedSize.value);
+      item.min.value = new Big(item.min.value);
 
       if (item.max && item.max !== "1fr") {
         item.max.value = new Big(item.max.value);

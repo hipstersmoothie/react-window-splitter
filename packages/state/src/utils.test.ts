@@ -5,6 +5,7 @@ import {
   getCollapsiblePanelForHandleId,
   groupMachine,
   initializePanel,
+  getCursor,
 } from "./index.js";
 import { createActor } from "xstate";
 import Big from "big.js";
@@ -113,5 +114,47 @@ describe("getCollapsiblePanelForHandleId", () => {
     ).toThrowErrorMatchingInlineSnapshot(
       `[Error: No collapsible panel found for handle: resizer-1]`
     );
+  });
+});
+
+describe("getCursor", () => {
+  describe("horizontal", () => {
+    test("works before overshoot", () => {
+      expect(
+        getCursor({ orientation: "horizontal", dragOvershoot: new Big(-10) })
+      ).toBe("e-resize");
+    });
+
+    test("works at overshoot", () => {
+      expect(
+        getCursor({ orientation: "horizontal", dragOvershoot: new Big(0) })
+      ).toBe("ew-resize");
+    });
+
+    test("works after overshoot", () => {
+      expect(
+        getCursor({ orientation: "horizontal", dragOvershoot: new Big(10) })
+      ).toBe("w-resize");
+    });
+  });
+
+  describe("vertical", () => {
+    test("works before overshoot", () => {
+      expect(
+        getCursor({ orientation: "vertical", dragOvershoot: new Big(-10) })
+      ).toBe("s-resize");
+    });
+
+    test("works at overshoot", () => {
+      expect(
+        getCursor({ orientation: "vertical", dragOvershoot: new Big(0) })
+      ).toBe("ns-resize");
+    });
+
+    test("works after overshoot", () => {
+      expect(
+        getCursor({ orientation: "vertical", dragOvershoot: new Big(10) })
+      ).toBe("n-resize");
+    });
   });
 });

@@ -1,0 +1,71 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`utils > prepareSnapshot 1`] = `
+{
+  "children": {},
+  "context": {
+    "dragOvershoot": "0",
+    "groupId": "group",
+    "items": [
+      {
+        "collapseIsControlled": false,
+        "collapsedSize": {
+          "type": "pixel",
+          "value": "0",
+        },
+        "currentValue": {
+          "type": "percent",
+          "value": "0.38775510204081632653",
+        },
+        "id": "panel-1",
+        "max": "1fr",
+        "min": {
+          "type": "pixel",
+          "value": "100",
+        },
+        "type": "panel",
+      },
+      {
+        "id": "resizer-1",
+        "size": {
+          "type": "pixel",
+          "value": "10",
+        },
+        "type": "handle",
+      },
+      {
+        "collapseIsControlled": false,
+        "collapsed": false,
+        "collapsedSize": {
+          "type": "pixel",
+          "value": "50",
+        },
+        "collapsible": true,
+        "currentValue": {
+          "type": "percent",
+          "value": "0.61224489795918367347",
+        },
+        "id": "panel-2",
+        "max": {
+          "type": "pixel",
+          "value": "300",
+        },
+        "min": {
+          "type": "pixel",
+          "value": "0",
+        },
+        "type": "panel",
+      },
+    ],
+    "orientation": "horizontal",
+    "size": {
+      "height": 200,
+      "width": 500,
+    },
+  },
+  "historyValue": {},
+  "status": "active",
+  "tags": [],
+  "value": "idle",
+}
+`;

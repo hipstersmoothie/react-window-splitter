@@ -6,14 +6,20 @@ import { expect, test, describe, vi } from "vitest";
 import {
   buildTemplate,
   dragHandlePayload,
+  getPanelGroupPercentageSizes,
+  getPanelGroupPixelSizes,
+  getPanelPercentageSize,
+  getPanelPixelSize,
   groupMachine,
   GroupMachineEvent,
   initializePanel,
   initializePanelHandleData,
   isPanelHandle,
+  prepareSnapshot,
 } from "./index.js";
 import { Actor, createActor } from "xstate";
 import { spring } from "framer-motion";
+import Big from "big.js";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
   return buildTemplate(actor.getSnapshot().context);
@@ -569,6 +575,8 @@ describe("collapsible panel", () => {
   test.each([
     undefined,
     "ease-in-out" as const,
+    "bounce" as const,
+    { duration: 500, easing: "linear" as const },
     { duration: 1000, easing: springEasing },
   ])("panel can be collapsible: %s", async (animation) => {
     const actor = createActor(groupMachine, {
@@ -1401,5 +1409,135 @@ describe("errors", () => {
     expect(spy).toHaveBeenCalledWith(
       new Error("Expected panel handle with id: handle-2")
     );
+  });
+});
+
+describe("utils", async () => {
+  test("getPanelGroupPixelSizes", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2", max: "300px" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    expect(getPanelGroupPixelSizes(actor.getSnapshot().context)).toEqual([
+      190, 10, 300,
+    ]);
+  });
+
+  test("getPanelGroupPercentageSizes", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2", max: "300px" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    expect(getPanelGroupPercentageSizes(actor.getSnapshot().context)).toEqual([
+      0.3877551020408163, 0.02, 0.6122448979591837,
+    ]);
+  });
+
+  test("getPanelPercentageSize", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2", max: "300px" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    expect(getPanelPercentageSize(actor.getSnapshot().context, "panel-2")).toBe(
+      0.6
+    );
+  });
+
+  test("getPanelPixelSize", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-2", max: "300px" }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    expect(getPanelPixelSize(actor.getSnapshot().context, "panel-2")).toBe(300);
+  });
+
+  test("prepareSnapshot", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-1", min: "100px" }),
+      },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          max: "300px",
+          collapsible: true,
+          collapsedSize: "50px",
+        }),
+      },
+    ]);
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    const oldSnapshot = actor.getSnapshot();
+    const serialized = JSON.stringify(oldSnapshot);
+    const newSnapshot = prepareSnapshot(JSON.parse(serialized));
+
+    expect(newSnapshot).toMatchSnapshot();
   });
 });
