@@ -178,7 +178,7 @@ export type InitializePanelHandleData = Omit<
   PanelHandleData,
   "type" | "size"
 > & {
-  size: PixelUnit | ParsedPixelUnit;
+  size: PixelUnit;
 };
 
 interface RegisterPanelHandleEvent {
@@ -289,8 +289,6 @@ export interface GroupMachineContextValue {
   orientation: Orientation;
   /** How much the drag has overshot the handle */
   dragOvershoot: Big.Big;
-  /** An id to use for autosaving the layout */
-  autosaveId?: string;
   groupId: string;
 }
 
@@ -432,7 +430,10 @@ export function initializePanelHandleData(item: InitializePanelHandleData) {
   return {
     type: "handle" as const,
     ...item,
-    size: typeof item.size === "string" ? parseUnit(item.size) : item.size,
+    size:
+      typeof item.size === "string"
+        ? (parseUnit(item.size) as ParsedPixelUnit)
+        : item.size,
   };
 }
 
@@ -1120,11 +1121,11 @@ export function commitLayout(context: GroupMachineContextValue) {
 
 export function dragHandlePayload({
   delta,
-  orientation,
+  orientation = "horizontal",
   shiftKey = false,
 }: {
   delta: number;
-  orientation: Orientation;
+  orientation?: Orientation;
   shiftKey?: boolean;
 }) {
   return {
@@ -1308,7 +1309,6 @@ export const groupMachine = createMachine(
       context: {} as GroupMachineContextValue,
       events: {} as GroupMachineEvent,
       input: {} as {
-        autosaveId?: string;
         orientation?: Orientation;
         groupId: string;
         initialItems?: Item[];
@@ -1319,7 +1319,6 @@ export const groupMachine = createMachine(
       items: input.initialItems || [],
       orientation: input.orientation || "horizontal",
       dragOvershoot: new Big(0),
-      autosaveId: input.autosaveId,
       groupId: input.groupId,
     }),
     states: {

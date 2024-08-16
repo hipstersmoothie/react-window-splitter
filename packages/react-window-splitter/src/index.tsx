@@ -105,7 +105,7 @@ export interface PanelGroupHandle {
 
 export interface PanelGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Partial<Pick<GroupMachineContextValue, "orientation" | "autosaveId">> {
+    Partial<Pick<GroupMachineContextValue, "orientation">> {
   /** Imperative handle to control the group */
   handle?: React.Ref<PanelGroupHandle>;
   /** Persisted state to initialized the machine with */
@@ -115,6 +115,8 @@ export interface PanelGroupProps
    * @default "localStorage"
    */
   autosaveStrategy?: "localStorage" | "cookie";
+  /** An id to use for autosaving the layout */
+  autosaveId?: string;
 }
 
 const InitialMapContext = createContext<Item[]>([]);
@@ -305,7 +307,6 @@ const PanelGroupImpl = React.forwardRef<
     <GroupMachineContext.Provider
       options={{
         input: {
-          autosaveId,
           orientation: props.orientation,
           groupId,
           initialItems: initialItems.current,

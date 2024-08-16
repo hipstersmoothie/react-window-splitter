@@ -33,7 +33,7 @@ function dragHandle(
       type: "dragHandle",
       handleId: options.id,
       value: dragHandlePayload({
-        orientation: options.orientation || "horizontal",
+        orientation: options.orientation,
         delta: options.delta > 0 ? 1 : -1,
         shiftKey: options.shiftKey,
       }),
@@ -292,7 +292,7 @@ describe("constraints", () => {
       actor.send({
         type: "dragHandle",
         handleId: "resizer-1",
-        value: dragHandlePayload({ delta: 0, orientation: "horizontal" }),
+        value: dragHandlePayload({ delta: 0 }),
       });
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
@@ -1394,7 +1394,7 @@ describe("errors", () => {
       {
         type: "dragHandle",
         handleId: "handle-2",
-        value: dragHandlePayload({ delta: 100, orientation: "horizontal" }),
+        value: dragHandlePayload({ delta: 100 }),
       },
     ]);
 
