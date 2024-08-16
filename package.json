@@ -18,6 +18,7 @@
     "lint": "turbo run lint lint-root",
     "lint-root": "eslint .",
     "test": "turbo run test --concurrency=1",
+    "merge-coverage": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-final.json' --exclude '*'  packages coverage && flatten-directory --rootdir='coverage' --outputdir='coverage-combined' && nyc merge coverage-combined coverage-combined/all.json",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },
@@ -40,13 +41,14 @@
     "auto": "^11.2.0",
     "eslint": "^9.9.0",
     "find-package-json": "^1.2.0",
+    "flatten-directory": "^1.0.8",
     "globals": "^15.9.0",
     "lerna": "^8.1.8",
+    "nyc": "^17.0.0",
     "prettier": "^3.3.3",
     "storybook": "^8.2.9",
     "turbo": "^2.0.14",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.5"
+    "typescript": "^5.5.4"
   },
   "auto": {
     "plugins": [

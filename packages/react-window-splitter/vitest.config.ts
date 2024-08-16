@@ -8,6 +8,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
+      reporter: ["text", "json-summary", "json"],
     },
     browser: {
       enabled: true,

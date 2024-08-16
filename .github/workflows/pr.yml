@@ -39,3 +39,11 @@ jobs:
 
       - name: Test
         run: pnpm test -- -- --coverage
+
+      - name: Merge Coverage
+        run: pnpm merge-coverage
+
+      - name: Report Coverage"
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          working-directory: combined-coverage/
