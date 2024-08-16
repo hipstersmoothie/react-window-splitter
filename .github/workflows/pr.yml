@@ -41,9 +41,10 @@ jobs:
         run: pnpm test -- -- --coverage
 
       - name: Merge Coverage
-        run: pnpm merge-coverage
+        run: pnpm merge-codecov
 
-      - name: Report Coverage"
+      - name: Report Coverage
         uses: davelosert/vitest-coverage-report-action@v2
         with:
-          working-directory: combined-coverage/
+          json-summary-path: coverage/combined/summary.json
+          json-final-path: coverage/combined/all.json

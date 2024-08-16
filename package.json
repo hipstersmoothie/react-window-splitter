@@ -18,7 +18,9 @@
     "lint": "turbo run lint lint-root",
     "lint-root": "eslint .",
     "test": "turbo run test --concurrency=1",
-    "merge-coverage": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-final.json' --exclude '*'  packages coverage && flatten-directory --rootdir='coverage' --outputdir='coverage-combined' && nyc merge coverage-combined coverage-combined/all.json",
+    "merge-codecov": "mkdir -p coverage && pnpm run merge-coverage && pnpm run merge-summary",
+    "merge-coverage": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-final.json' --exclude '*'  packages coverage/reports && flatten-directory --rootdir='coverage/reports' --outputdir='coverage/reports-combined' && nyc merge coverage/reports-combined coverage/combined/all.json",
+    "merge-summary": "rsync -a --prune-empty-dirs --include '*/' --include 'coverage-summary.json' --exclude '*'  packages coverage/summary && flatten-directory --rootdir='coverage/summary' --outputdir='coverage/summary-combined' && node scripts/combine-summaries.js",
     "format": "prettier --write .",
     "release": "pnpm run build && auto shipit"
   },
@@ -40,6 +42,7 @@
     "all-contributors-cli": "^6.26.1",
     "auto": "^11.2.0",
     "eslint": "^9.9.0",
+    "fast-glob": "^3.3.2",
     "find-package-json": "^1.2.0",
     "flatten-directory": "^1.0.8",
     "globals": "^15.9.0",
