@@ -3,9 +3,12 @@
   "name": "@window-splitter/state",
   "sideEffects": false,
   "version": "0.2.4",
-  "description": "A WAI-ARIA compliant window splitter for React.",
+  "description": "A state machine for a WAI-ARIA compliant window splitter",
   "homepage": "https://react-window-splitter-six.vercel.app",
-  "repository": "https://github.com/hipstersmoothie/react-window-splitter",
+  "repository": {
+    "url": "https://github.com/hipstersmoothie/react-window-splitter",
+    "directory": "packages/state"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -1,6 +1,6 @@
 # `@window-splitter/state`
 
-A state machine for the window splitter.
+A state machine for a WAI-ARIA compliant window splitter.
 
 [Read the full docs](https://react-window-splitter-six.vercel.app)
 
