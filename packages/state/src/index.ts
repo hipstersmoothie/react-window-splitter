@@ -729,11 +729,7 @@ export function getPanelPixelSize(
     panelId
   );
 
-  if (p.currentValue.type === "pixel") {
-    return p.currentValue.value.toNumber();
-  }
-
-  return p.currentValue.value.mul(getGroupSize(context)).toNumber();
+  return p.currentValue.value.toNumber();
 }
 
 export function getPanelGroupPercentageSizes(
@@ -775,10 +771,6 @@ export function buildTemplate(context: GroupMachineContextValue) {
           item.currentValue.type === "pixel" &&
           item.currentValue.value.toNumber() !== -1
         ) {
-          if (item.currentValue.value.toNumber() < 0) {
-            return "0px";
-          }
-
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
           const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
@@ -1138,7 +1130,7 @@ function updateLayout(
     )
   );
 
-  if (leftoverSpace.gt(0)) {
+  if (!leftoverSpace.eq(0)) {
     panelBefore.currentValue.value =
       panelBefore.currentValue.value.add(leftoverSpace);
   }

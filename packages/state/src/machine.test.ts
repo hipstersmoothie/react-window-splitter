@@ -192,6 +192,86 @@ describe("constraints", () => {
     );
   });
 
+  test("works with 2 simple panels - overshot flakiness", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-1" }),
+      },
+      {
+        type: "registerPanelHandle",
+        // @ts-expect-error The types were hard and i wanted to keep the public API simple
+        data: { id: "resizer-1", size: { type: "pixel", value: new Big(10) } },
+      },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    // The only way i could simulate the leftoverSpace was to set the size
+    // during a drag
+    capturePixelValues(actor, () => {
+      actor.send({
+        type: "setSize",
+        size: {
+          width: 600,
+          height: 200,
+        },
+      });
+      actor.send({
+        type: "dragHandle",
+        handleId: "resizer-1",
+        value: dragHandlePayload({
+          delta: 30,
+        }),
+      });
+    });
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, min(calc(0.46610169491525423729 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.53389830508474576271 * (100% - 10px)), 100%))"`
+    );
+  });
+
+  test("works with 2 simple panels - max percents", () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    sendAll(actor, [
+      {
+        type: "registerPanel",
+        data: initializePanel({ id: "panel-1", max: "40%" }),
+      },
+      {
+        type: "registerPanelHandle",
+        // @ts-expect-error The types were hard and i wanted to keep the public API simple
+        data: { id: "resizer-1", size: { type: "pixel", value: new Big(10) } },
+      },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 40%) 10px minmax(0px, 1fr)"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    // Drag the resizer to the right
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: 10 });
+    });
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, min(calc(0.40816326530612244898 * (100% - 10px)), 40%)) 10px minmax(0px, min(calc(0.59183673469387755102 * (100% - 10px)), 100%))"`
+    );
+  });
+
   test("works with 2 simple panels - vertical", () => {
     const actor = createActor(groupMachine, {
       input: { orientation: "vertical", groupId: "group" },
@@ -1000,7 +1080,7 @@ describe("collapsible panel", () => {
     });
   });
 
-  test("panel collapse can be controlled", async () => {
+  test("panel collapse can be controlled ", async () => {
     const actor = createActor(groupMachine, {
       input: { groupId: "group" },
     }).start();
@@ -1077,6 +1157,8 @@ describe("collapsible panel", () => {
 
     spy.mockReset();
 
+    // Sending controlled events works
+
     actor.send({ type: "collapsePanel", panelId: "panel-2", controlled: true });
     await waitForIdle(actor);
 
@@ -1091,6 +1173,81 @@ describe("collapsible panel", () => {
     // collapse the panel via drag
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"321px 10px 169px"`);
+    });
+  });
+
+  test("panel collapse can be controlled - event", async () => {
+    const actor = createActor(groupMachine, {
+      input: { groupId: "group" },
+    }).start();
+
+    const spy = vi.fn();
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: { id: "resizer-1", size: "10px" },
+      },
+      {
+        type: "registerPanel",
+        data: initializePanel({
+          id: "panel-2",
+          collapsible: true,
+          min: "100px",
+          // This marks the collapse as controlled
+          collapsed: false,
+          collapsedSize: "20px",
+          onCollapseChange: {
+            current: spy,
+          },
+        }),
+      },
+    ]);
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+    );
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    // COLLAPSE
+
+    // An uncontrolled event doesn't collapse the panel, it only calls the onCollapseChange
+    actor.send({ type: "collapsePanel", panelId: "panel-2" });
+    expect(spy).toHaveBeenCalledWith(true);
+    await waitForIdle(actor);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
+    });
+    spy.mockReset();
+
+    // Sending controlled events works
+    actor.send({ type: "collapsePanel", panelId: "panel-2", controlled: true });
+    // and doesn't call the onCollapseChange
+    expect(spy).not.toHaveBeenCalled();
+    await waitForIdle(actor);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
+    });
+
+    // EXPAND
+
+    // An uncontrolled event doesn't expand the panel, it only calls the onCollapseChange
+    actor.send({ type: "expandPanel", panelId: "panel-2" });
+    expect(spy).toHaveBeenCalledWith(false);
+    await waitForIdle(actor);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"470px 10px 20px"`);
+    });
+    spy.mockReset();
+
+    // Sending controlled events works
+    actor.send({ type: "expandPanel", panelId: "panel-2", controlled: true });
+    // and doesn't call the onCollapseChange
+    expect(spy).not.toHaveBeenCalled();
+    await waitForIdle(actor);
+    capturePixelValues(actor, () => {
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 });
@@ -1315,13 +1472,13 @@ describe("conditional panel", () => {
       input: {
         groupId: "group",
         initialItems: [
-          initializePanel({ id: "panel-1" }),
+          initializePanel({ id: "panel-1", max: "20px" }),
           initializePanelHandleData({ id: "resizer-1", size: "10px" }),
-          initializePanel({ id: "panel-2", max: "50px" }),
+          initializePanel({ id: "panel-2", default: "10px", max: "50px" }),
           initializePanelHandleData({ id: "resizer-2", size: "10px" }),
           initializePanel({ id: "panel-3", default: "300px" }),
           initializePanelHandleData({ id: "resizer-3", size: "10px" }),
-          initializePanel({ id: "panel-4", max: "50px" }),
+          initializePanel({ id: "panel-4", default: "10px", max: "50px" }),
           initializePanelHandleData({ id: "resizer-4", size: "10px" }),
           initializePanel({ id: "panel-5", max: "300px" }),
         ],
@@ -1332,7 +1489,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"0px 10px 50px 10px 300px 10px 50px 10px 60px"`
+        `"20px 10px 10px 10px 300px 10px 10px 10px 120px"`
       );
     });
 
@@ -1343,7 +1500,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"70px 10px 50px 10px 50px 10px 300px"`
+        `"20px 10px 50px 10px 50px 10px 300px"`
       );
     });
   });
