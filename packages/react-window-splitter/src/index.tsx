@@ -674,6 +674,12 @@ export interface PanelResizerProps
   /** If the handle is disabled */
   disabled?: boolean;
   size?: PixelUnit;
+  /** Called when the user starts dragging the handle */
+  onDragStart?: () => void;
+  /** Called when the user drags the handle */
+  onDrag?: () => void;
+  /** Called when the user stops dragging the handle */
+  onDragEnd?: () => void;
 }
 
 /** A resize handle to place between panels. */
@@ -704,7 +710,10 @@ export const PanelResizer = React.forwardRef<
 const PanelResizerVisible = React.forwardRef<
   HTMLButtonElement,
   PanelResizerProps
->(function PanelResizerVisible({ size = "0px", disabled, ...props }, outerRef) {
+>(function PanelResizerVisible(
+  { size = "0px", disabled, onDragStart, onDrag, onDragEnd, ...props },
+  outerRef
+) {
   const innerRef = React.useRef<HTMLButtonElement>(null);
   const ref = useComposedRefs(outerRef, innerRef);
   const unit = parseUnit(size);
@@ -738,11 +747,16 @@ const PanelResizerVisible = React.forwardRef<
     onMoveStart: () => {
       setIsDragging(true);
       send({ type: "dragHandleStart", handleId: handleId });
+      onDragStart?.();
     },
-    onMove: (e) => send({ type: "dragHandle", handleId: handleId, value: e }),
+    onMove: (e) => {
+      send({ type: "dragHandle", handleId: handleId, value: e });
+      onDrag?.();
+    },
     onMoveEnd: () => {
       setIsDragging(false);
       send({ type: "dragHandleEnd", handleId: handleId });
+      onDragEnd?.();
     },
   });
 
