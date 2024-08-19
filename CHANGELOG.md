@@ -1,3 +1,31 @@
+# v0.3.0 (Sun Aug 18 2024)
+
+#### 🚀 Enhancement
+
+- `react-window-splitter`, `@window-splitter/state`
+  - Add `onResize` prop to Panel [#28](https://github.com/hipstersmoothie/react-window-splitter/pull/28) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- `react-window-splitter`
+  - feat: add callbacks for drag interaction [#27](https://github.com/hipstersmoothie/react-window-splitter/pull/27) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### 🐛 Bug Fix
+
+- `@window-splitter/state`
+  - 100 [#26](https://github.com/hipstersmoothie/react-window-splitter/pull/26) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- `react-window-splitter`, `@window-splitter/state`
+  - add coverage for PRs [#25](https://github.com/hipstersmoothie/react-window-splitter/pull/25) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - Add react tests [#24](https://github.com/hipstersmoothie/react-window-splitter/pull/24) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### ⚠️ Pushed to `main`
+
+- `react-window-splitter`, `@window-splitter/state`
+  - improve test coverage in state machine ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.2.5 (Thu Aug 15 2024)
 
 #### ⚠️ Pushed to `main`
