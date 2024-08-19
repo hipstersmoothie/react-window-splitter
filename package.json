@@ -78,5 +78,10 @@
         }
       ]
     ]
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "mdxts@1.6.2": "patches/mdxts@1.6.2.patch"
+    }
   }
 }

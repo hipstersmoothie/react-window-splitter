@@ -1,0 +1,92 @@
+diff --git a/dist/cjs/src/components/CodeInline.js b/dist/cjs/src/components/CodeInline.js
+index 1ecc53dc273d1815c5f021979109982afa1c55e2..600c2ad5b162e738da4bd6813310f8755e7f418f 100644
+--- a/dist/cjs/src/components/CodeInline.js
++++ b/dist/cjs/src/components/CodeInline.js
+@@ -69,11 +69,12 @@ function Token({ token }) {
+         className: classNames
+     }, token.value, styles);
+ }
+-async function CodeInlineAsync({ value, language, allowCopy, paddingX, paddingY, css: cssProp, className, style }) {
++async function CodeInlineAsync({ value, language, allowCopy, paddingX, paddingY, css: cssProp, className, style,allowErrors }) {
+     const { tokens } = await (0, _project.analyzeSourceText)({
+         isInline: true,
+         value,
+-        language
++        language, 
++        allowErrors
+     });
+     const theme = await (0, _getthemecolors.getThemeColors)();
+     const [classNames, styles] = (0, _restyle.css)({
+diff --git a/dist/esm/components/CodeInline.js b/dist/esm/components/CodeInline.js
+index ecaaf76e99cd6f02914eff6189c4ada0507c6213..0ab651da49164a8576b4ad4a32a44dc5fce9216e 100644
+--- a/dist/esm/components/CodeInline.js
++++ b/dist/esm/components/CodeInline.js
+@@ -18,11 +18,12 @@ function Token({ token }) {
+         token.value,
+         styles));
+ }
+-async function CodeInlineAsync({ value, language, allowCopy, paddingX, paddingY, css: cssProp, className, style, }) {
++async function CodeInlineAsync({ value, language, allowCopy, paddingX, paddingY, css: cssProp, className, style, allowErrors}) {
+     const { tokens } = await analyzeSourceText({
+         isInline: true,
+         value,
+         language,
++        allowErrors
+     });
+     const theme = await getThemeColors();
+     const [classNames, styles] = css({
+diff --git a/dist/types/components/CodeInline.d.ts b/dist/types/components/CodeInline.d.ts
+index 6d5313736312dca842ef005814caee09054fa5f3..490d2ae26ed0ac54b1b698590ebce54fd9f7a2aa 100644
+--- a/dist/types/components/CodeInline.d.ts
++++ b/dist/types/components/CodeInline.d.ts
+@@ -1,24 +1,29 @@
+-import React from 'react';
+-import { type CSSProp } from 'restyle';
+-import 'server-only';
+-import type { Languages } from '../utils/get-tokens';
++import React from "react";
++import { type CSSProp } from "restyle";
++import "server-only";
++import type { Languages } from "../utils/get-tokens";
+ export type CodeInlineProps = {
+-    /** Code snippet to be highlighted. */
+-    value: string;
+-    /** Language of the code snippet. */
+-    language?: Languages;
+-    /** Show or hide a persistent button that copies the `value` to the clipboard. */
+-    allowCopy?: boolean;
+-    /** Horizontal padding to apply to the wrapping element. */
+-    paddingX?: string;
+-    /** Vertical padding to apply to the wrapping element. */
+-    paddingY?: string;
+-    /** CSS styles to apply to the wrapping element. */
+-    css?: CSSProp;
+-    /** Class name to apply to the wrapping element. */
+-    className?: string;
+-    /** Style to apply to the wrapping element. */
+-    style?: React.CSSProperties;
++  /** Code snippet to be highlighted. */
++  value: string;
++  /** Language of the code snippet. */
++  language?: Languages;
++  /** Show or hide a persistent button that copies the `value` to the clipboard. */
++  allowCopy?: boolean;
++  /** Horizontal padding to apply to the wrapping element. */
++  paddingX?: string;
++  /** Vertical padding to apply to the wrapping element. */
++  paddingY?: string;
++  /** CSS styles to apply to the wrapping element. */
++  css?: CSSProp;
++  /** Class name to apply to the wrapping element. */
++  className?: string;
++  /** Style to apply to the wrapping element. */
++  style?: React.CSSProperties;
++  allowErrors?: boolean;
+ };
+ /** Renders an inline `code` element with optional syntax highlighting and copy button. */
+-export declare function CodeInline({ paddingX, paddingY, ...props }: CodeInlineProps): Promise<React.JSX.Element>;
++export declare function CodeInline({
++  paddingX,
++  paddingY,
++  ...props
++}: CodeInlineProps): Promise<React.JSX.Element>;

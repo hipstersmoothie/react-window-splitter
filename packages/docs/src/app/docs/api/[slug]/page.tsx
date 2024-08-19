@@ -87,6 +87,7 @@ export default async function ApiPage({
                   language="ts"
                   className="text-sm !px-2 !py-0.5 !whitespace-pre-wrap !block !w-fit"
                   value={prop.type.name}
+                  allowErrors
                 />
               </TableCell>
               <TableCell>
@@ -118,6 +119,7 @@ export default async function ApiPage({
                       language="ts"
                       className="text-sm !px-2 !py-0.5 !whitespace-pre-wrap !block !w-fit"
                       value={prop.type}
+                      allowErrors
                     />
                   </TableCell>
                   <TableCell>
