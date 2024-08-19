@@ -1,3 +1,15 @@
+# v0.3.1 (Sun Aug 18 2024)
+
+#### ⚠️ Pushed to `main`
+
+- fix mutating context ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.3.0 (Sun Aug 18 2024)
 
 #### 🚀 Enhancement

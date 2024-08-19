@@ -1,3 +1,19 @@
+# v0.3.1 (Sun Aug 18 2024)
+
+#### ⚠️ Pushed to `main`
+
+- fix docs build ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- `react-window-splitter`
+  - fix drag callback types ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- `@window-splitter/state`
+  - fix mutating context ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.3.0 (Sun Aug 18 2024)
 
 #### 🚀 Enhancement
