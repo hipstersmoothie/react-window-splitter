@@ -23,6 +23,7 @@ exports[`utils > prepareSnapshot 1`] = `
           "type": "pixel",
           "value": "100",
         },
+        "onResize": {},
         "type": "panel",
       },
       {
@@ -54,6 +55,7 @@ exports[`utils > prepareSnapshot 1`] = `
           "type": "pixel",
           "value": "0",
         },
+        "onResize": {},
         "type": "panel",
       },
     ],

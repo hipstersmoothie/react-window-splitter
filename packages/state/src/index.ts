@@ -23,12 +23,12 @@ export type PercentUnit = `${number}%`;
 export type Unit = PixelUnit | PercentUnit;
 type Orientation = "horizontal" | "vertical";
 
-interface ParsedPercentUnit {
+export interface ParsedPercentUnit {
   type: "percent";
   value: Big.Big;
 }
 
-interface ParsedPixelUnit {
+export interface ParsedPixelUnit {
   type: "pixel";
   value: Big.Big;
 }
@@ -87,6 +87,10 @@ export interface PanelData
   /** A ref to the latest "collapseChange" function provided by the user */
   onCollapseChange?: {
     current: ((isCollapsed: boolean) => void) | null | undefined;
+  };
+  /** A ref to the latest "onResize" function provided by the user */
+  onResize?: {
+    current: OnResizeCallback | null | undefined;
   };
   /**
    * The current value for the item in the grid
@@ -395,6 +399,13 @@ export function isPanelHandle(value: unknown): value is PanelHandleData {
   );
 }
 
+type OnResizeSize = {
+  pixel: number;
+  percentage: number;
+};
+
+export type OnResizeCallback = (size: OnResizeSize) => void;
+
 interface InitializePanelOptions {
   min?: Unit;
   max?: Unit;
@@ -404,6 +415,9 @@ interface InitializePanelOptions {
   collapsedSize?: Unit;
   onCollapseChange?: {
     current: ((isCollapsed: boolean) => void) | null | undefined;
+  };
+  onResize?: {
+    current: OnResizeCallback | null | undefined;
   };
   collapseAnimation?: PanelData["collapseAnimation"];
   defaultCollapsed?: boolean;
@@ -419,6 +433,25 @@ export function initializePanel(
 export function initializePanel(
   item: InitializePanelOptions | InitializePanelOptionsWithId
 ): PanelData | Omit<PanelData, "id"> {
+  const onResize = () => {
+    let lastCall: OnResizeSize | null = null;
+
+    // Memo-ize so we only call the callback once per size
+    return ((size) => {
+      if (
+        !lastCall ||
+        (lastCall.pixel === size.pixel &&
+          lastCall.percentage === size.percentage)
+      ) {
+        lastCall = size;
+        return;
+      }
+
+      lastCall = size;
+      item.onResize?.current?.(size);
+    }) satisfies OnResizeCallback;
+  };
+
   const data = {
     type: "panel" as const,
     min: parseUnit(item.min || "0px"),
@@ -429,6 +462,7 @@ export function initializePanel(
     collapsible: item.collapsible,
     collapsedSize: parseUnit(item.collapsedSize ?? "0px"),
     onCollapseChange: item.onCollapseChange,
+    onResize: { current: onResize() },
     collapseIsControlled: typeof item.collapsed !== "undefined",
     sizeBeforeCollapse: undefined,
     id: item.id,
@@ -1385,7 +1419,13 @@ export const groupMachine = createMachine(
           setActualItemsSize: { actions: ["recordActualItemSize"] },
           dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
-            actions: ["prepare", "onSetPanelSize", "commit"],
+            actions: [
+              "prepare",
+              "onSetPanelSize",
+              "commit",
+              "onResize",
+              "onAutosave",
+            ],
           },
           collapsePanel: [
             {
@@ -1406,7 +1446,7 @@ export const groupMachine = createMachine(
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["onDragHandle"] },
+          dragHandle: { actions: ["onDragHandle", "onResize"] },
           dragHandleEnd: { target: "idle" },
           collapsePanel: {
             guard: "shouldCollapseToggle",
@@ -1430,24 +1470,30 @@ export const groupMachine = createMachine(
           },
         },
         on: {
-          applyDelta: { actions: ["onApplyDelta"] },
+          applyDelta: { actions: ["onApplyDelta", "onResize"] },
         },
       },
     },
     on: {
       registerPanel: { actions: ["assignPanelData"] },
       registerDynamicPanel: {
-        actions: ["prepare", "onRegisterDynamicPanel", "commit", "onAutosave"],
+        actions: [
+          "prepare",
+          "onRegisterDynamicPanel",
+          "commit",
+          "onResize",
+          "onAutosave",
+        ],
       },
       unregisterPanel: {
-        actions: ["prepare", "removeItem", "commit", "onAutosave"],
+        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
       },
       registerPanelHandle: { actions: ["assignPanelHandleData"] },
       unregisterPanelHandle: {
-        actions: ["prepare", "removeItem", "commit", "onAutosave"],
+        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
       },
-      setSize: { actions: ["updateSize"] },
-      setOrientation: { actions: ["updateOrientation"] },
+      setSize: { actions: ["updateSize", "onResize"] },
+      setOrientation: { actions: ["updateOrientation", "onResize"] },
     },
   },
   {
@@ -1687,6 +1733,19 @@ export const groupMachine = createMachine(
           })
         );
       }),
+      onResize: ({ context }) => {
+        for (const item of context.items) {
+          if (isPanelData(item)) {
+            item.onResize?.current?.({
+              pixel: getUnitPixelValue(context, item.currentValue).toNumber(),
+              percentage: getUnitPercentageValue(
+                getGroupSize(context),
+                item.currentValue
+              ),
+            });
+          }
+        }
+      },
     },
   }
 );

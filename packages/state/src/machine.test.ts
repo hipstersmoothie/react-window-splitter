@@ -360,6 +360,29 @@ describe("constraints", () => {
     });
   });
 
+  test("can spy on resize", () => {
+    const spy = vi.fn();
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1", onResize: { current: spy } }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({ id: "panel-2" }),
+        ],
+      },
+    }).start();
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: 100 });
+      expect(spy).toHaveBeenCalledWith({
+        pixel: 345,
+        percentage: 0.69,
+      });
+    });
+  });
+
   test("no delta does nothing", () => {
     const actor = createActor(groupMachine, {
       input: {
