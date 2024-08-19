@@ -903,15 +903,17 @@ function createUnrestrainedPanel(_: GroupMachineContextValue, data: PanelData) {
 
 /** Converts the items to pixels */
 export function prepareItems(context: GroupMachineContextValue) {
-  const newItems = [...context.items];
   const staticWidth = getStaticWidth(context);
+  const newItems = [];
 
-  for (const item of newItems) {
+  for (const item of context.items) {
     if (!item || !isPanelData(item)) {
+      newItems.push(item);
       continue;
     }
 
     if (item.currentValue.type === "pixel") {
+      newItems.push(item);
       continue;
     }
 
@@ -919,7 +921,10 @@ export function prepareItems(context: GroupMachineContextValue) {
       .minus(staticWidth)
       .mul(item.currentValue.value);
 
-    item.currentValue = makePixelUnit(pixel.toNumber());
+    newItems.push({
+      ...item,
+      currentValue: makePixelUnit(pixel.toNumber()),
+    });
   }
 
   return newItems;
