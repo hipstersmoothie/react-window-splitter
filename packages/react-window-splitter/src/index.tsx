@@ -41,6 +41,7 @@ import {
   getPanelPixelSize,
   getPanelPercentageSize,
   getCursor,
+  OnResizeCallback,
 } from "@window-splitter/state";
 
 // #region Components
@@ -489,7 +490,7 @@ export interface PanelHandle {
 export interface PanelProps
   extends Constraints<Unit>,
     Pick<PanelData, "collapseAnimation">,
-    React.HTMLAttributes<HTMLDivElement> {
+    Omit<React.HTMLAttributes<HTMLDivElement>, "onResize"> {
   /**
    * __CONTROLLED COMPONENT__
    *
@@ -513,6 +514,8 @@ export interface PanelProps
   onCollapseChange?: (isCollapsed: boolean) => void;
   /** Imperative handle to control the panel */
   handle?: React.Ref<PanelHandle>;
+  /** Callback called when the panel is resized */
+  onResize?: OnResizeCallback;
 }
 
 /** A panel within a `PanelGroup` */
@@ -525,6 +528,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       default: defaultSize,
       collapsedSize,
       onCollapseChange,
+      onResize,
       collapseAnimation,
       ...props
     },
@@ -533,6 +537,13 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
     const { collapsible = false, collapsed } = props;
     const isPrerender = React.useContext(PreRenderContext);
     const onCollapseChangeRef = React.useRef(onCollapseChange);
+    useEffect(() => {
+      onCollapseChangeRef.current = onCollapseChange;
+    }, [onCollapseChange]);
+    const onResizeRef = React.useRef(onResize);
+    useEffect(() => {
+      onResizeRef.current = onResize;
+    }, [onResize]);
     const panelDataRef = React.useMemo(() => {
       return initializePanel({
         min: min,
@@ -542,6 +553,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         collapsedSize: collapsedSize,
         onCollapseChange: onCollapseChangeRef,
         collapseAnimation: collapseAnimation,
+        onResize: onResizeRef,
         id: props.id,
         defaultCollapsed,
         default: defaultSize,
@@ -578,6 +590,7 @@ const PanelVisible = React.forwardRef<
     | "min"
     | "max"
     | "collapseAnimation"
+    | "onResize"
   > & {
     panelId: string;
   }
