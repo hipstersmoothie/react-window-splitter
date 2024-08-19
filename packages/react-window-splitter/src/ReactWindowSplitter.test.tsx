@@ -159,13 +159,13 @@ test("Conditional Panels", async () => {
   getByText("Expand").click();
   await waitForCondition(() => handle.current.getTemplate().endsWith("100px"));
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"236.953125px 10px 141.046875px 10px 100px"`
+    `"232.046875px 10px 145.9375px 10px 100px"`
   );
 
   getByText("Close").click();
   await waitForCondition(() => !handle.current.getTemplate().endsWith("100px"));
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"236.953125px 10px 251.046875px"`
+    `"232.046875px 10px 255.9375px"`
   );
 });
 

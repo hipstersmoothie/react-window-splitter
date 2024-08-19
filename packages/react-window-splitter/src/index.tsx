@@ -683,7 +683,10 @@ const PanelVisible = React.forwardRef<
 });
 
 export interface PanelResizerProps
-  extends React.HTMLAttributes<HTMLButtonElement> {
+  extends Omit<
+    React.HTMLAttributes<HTMLButtonElement>,
+    "onDragStart" | "onDrag" | "onDragEnd"
+  > {
   /** If the handle is disabled */
   disabled?: boolean;
   size?: PixelUnit;
