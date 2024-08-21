@@ -372,7 +372,12 @@ describe("constraints", () => {
         ],
       },
     }).start();
+
     initializeSizes(actor, { width: 500, height: 200 });
+    expect(spy).toHaveBeenCalledWith({
+      percentage: 0.5,
+      pixel: 250,
+    });
 
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-1", delta: 100 });
