@@ -1048,9 +1048,11 @@ function updateLayout(
 
   // Don't let the panel collapse until the threshold is reached
   if (
+    !dragEvent.disregardCollapseBuffer &&
     panelBefore.collapsible &&
-    panelBefore.currentValue.value ===
+    panelBefore.currentValue.value.eq(
       getUnitPixelValue(context, panelBefore.min)
+    )
   ) {
     const potentialNewValue = panelBefore.currentValue.value.sub(
       newDragOvershoot.abs()
@@ -1140,9 +1142,9 @@ function updateLayout(
     }
   }
 
-  const panelBeforeIsAboutToCollapse =
-    panelBefore.currentValue.value ===
-    getUnitPixelValue(context, panelBefore.min);
+  const panelBeforeIsAboutToCollapse = panelBefore.currentValue.value.eq(
+    getUnitPixelValue(context, panelBefore.min)
+  );
 
   // If the panel was expanded and now is at it's min size, collapse it
   if (
