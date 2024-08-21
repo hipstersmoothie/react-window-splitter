@@ -1,3 +1,20 @@
+# v0.3.2 (Wed Aug 21 2024)
+
+#### 🐛 Bug Fix
+
+- Fix panel not expanding to take up width with a default collapsed panel [#29](https://github.com/hipstersmoothie/react-window-splitter/pull/29) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Fix panel not expanding to take up width with a default collapsed panel ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Fix bug in onResize callbacks [#30](https://github.com/hipstersmoothie/react-window-splitter/pull/30) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- call onResize once the item sizes are known too ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix pixel calculation on onResize ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Fix inconsistent percent value structure ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.3.1 (Sun Aug 18 2024)
 
 #### ⚠️ Pushed to `main`
