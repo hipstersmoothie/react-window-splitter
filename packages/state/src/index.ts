@@ -498,7 +498,7 @@ export function parseUnit(unit: Unit | "1fr"): ParsedUnit {
   }
 
   if (unit.endsWith("%")) {
-    return makePercentUnit(parseFloat(unit));
+    return makePercentUnit(parseFloat(unit) / 100);
   }
 
   throw new Error(`Invalid unit: ${unit}`);
@@ -527,7 +527,7 @@ function getUnitPixelValue(
   const parsed = unit === "1fr" ? parseUnit(unit) : unit;
   return parsed.type === "pixel"
     ? parsed.value
-    : new Big(parsed.value).div(100).mul(getGroupSize(context));
+    : parsed.value.mul(getGroupSize(context));
 }
 
 /** Clamp a new `currentValue` given the panel's constraints. */
@@ -743,7 +743,7 @@ function formatUnit(unit: ParsedUnit): Unit {
     return `${unit.value.toNumber()}px`;
   }
 
-  return `${unit.value.toNumber()}%`;
+  return `${unit.value.mul(100).toNumber()}%`;
 }
 
 export function getPanelGroupPixelSizes(context: GroupMachineContextValue) {
