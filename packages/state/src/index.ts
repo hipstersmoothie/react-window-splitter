@@ -812,11 +812,28 @@ export function buildTemplate(context: GroupMachineContextValue) {
         } else if (item.collapsible && item.collapsed) {
           return formatUnit(item.collapsedSize);
         } else if (item.default) {
-          return formatUnit(item.default);
-        }
+          const siblingHasFill = context.items.some(
+            (i) =>
+              isPanelData(i) &&
+              i.id !== item.id &&
+              !i.collapsed &&
+              (i.max === "1fr" ||
+                (i.max.type === "percent" && i.max.value.eq(100)))
+          );
 
-        const max = item.max === "1fr" ? "1fr" : formatUnit(item.max);
-        return `minmax(${min}, ${max})`;
+          // If a sibling has a fill, this item doesn't need to expand
+          // So we can just use the default value
+          if (siblingHasFill) {
+            return formatUnit(item.default);
+          }
+
+          // Use 1fr so that panel fills ths space if needed
+          const max = item.max === "1fr" ? "1fr" : formatUnit(item.max);
+          return `minmax(${formatUnit(item.default)}, ${max})`;
+        } else {
+          const max = item.max === "1fr" ? "1fr" : formatUnit(item.max);
+          return `minmax(${min}, ${max})`;
+        }
       }
 
       return formatUnit(item.size);
