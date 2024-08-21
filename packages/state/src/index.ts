@@ -1421,7 +1421,7 @@ export const groupMachine = createMachine(
     states: {
       idle: {
         on: {
-          setActualItemsSize: { actions: ["recordActualItemSize"] },
+          setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
           dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
             actions: [
