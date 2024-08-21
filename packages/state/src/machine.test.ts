@@ -469,7 +469,7 @@ describe("constraints", () => {
     }).start();
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, 90%) 10px 30%"`
+      `"minmax(0px, 90%) 10px minmax(30%, 1fr)"`
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -477,6 +477,29 @@ describe("constraints", () => {
       dragHandle(actor, { id: "resizer-1", delta: 500 });
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"450px 10px 40px"`);
     });
+  });
+
+  test("supports 1 panel being collapsed with another panel expanding to fill", () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({ id: "panel-1", default: "200px", min: "200px" }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({
+            id: "panel-2",
+            min: "200px",
+            collapsible: true,
+            collapsedSize: "60px",
+            defaultCollapsed: true,
+          }),
+        ],
+      },
+    }).start();
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"minmax(200px, 1fr) 10px 60px"`
+    );
   });
 
   test("panel can have a min", () => {
@@ -732,7 +755,7 @@ describe("collapsible panel", () => {
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toBe("490px 10px 0px");
 
-      // Stays oollapsed in the buffer
+      // Stays collapsed in the buffer
       dragHandle(actor, { id: "resizer-1", delta: -30 });
       expect(getTemplate(actor)).toBe("490px 10px 0px");
 

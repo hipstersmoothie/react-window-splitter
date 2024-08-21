@@ -170,6 +170,33 @@ export function VerticalLayout({
   );
 }
 
+export function VerticalLayout2({
+  handle,
+}: {
+  handle?: React.Ref<PanelGroupHandle>;
+}) {
+  return (
+    <StyledPanelGroup
+      handle={handle}
+      orientation="vertical"
+      style={{ height: 322 }}
+    >
+      <StyledPanel default="200px" min="200px">
+        top
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel
+        min="200px"
+        collapsedSize="60px"
+        defaultCollapsed
+        collapsible
+      >
+        middle
+      </StyledPanel>
+    </StyledPanelGroup>
+  );
+}
+
 export function NestedGroups() {
   return (
     <PanelGroup
