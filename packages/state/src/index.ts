@@ -1741,12 +1741,15 @@ export const groupMachine = createMachine(
       onResize: ({ context }) => {
         for (const item of context.items) {
           if (isPanelData(item)) {
+            const pixel = clampUnit(
+              context,
+              item,
+              getUnitPixelValue(context, item.currentValue)
+            );
+
             item.onResize?.current?.({
-              pixel: getUnitPixelValue(context, item.currentValue).toNumber(),
-              percentage: getUnitPercentageValue(
-                getGroupSize(context),
-                item.currentValue
-              ),
+              pixel: pixel.toNumber(),
+              percentage: pixel.div(getGroupSize(context)).toNumber(),
             });
           }
         }
