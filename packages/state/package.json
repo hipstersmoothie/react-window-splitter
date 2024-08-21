@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@window-splitter/state",
   "sideEffects": false,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A state machine for a WAI-ARIA compliant window splitter",
   "homepage": "https://react-window-splitter-six.vercel.app",
   "repository": {
