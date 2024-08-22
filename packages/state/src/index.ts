@@ -1765,10 +1765,14 @@ export const groupMachine = createMachine(
               item,
               getUnitPixelValue(context, item.currentValue)
             );
+            const groupSize = getGroupSize(context);
 
             item.onResize?.current?.({
               pixel: pixel.toNumber(),
-              percentage: pixel.div(getGroupSize(context)).toNumber(),
+              percentage:
+                groupSize > 0
+                  ? pixel.div(getGroupSize(context)).toNumber()
+                  : -1,
             });
           }
         }
