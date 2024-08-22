@@ -1131,12 +1131,6 @@ function updateLayout(
       panelAfterNewValue = panelAfterNewValue.add(extra);
     }
 
-    // if (panelAfterNewValue.lt(panelAfter.min.value)) {
-    //   // TODO this should probably distribute the space between the panels?
-    //   return { dragOvershoot: newDragOvershoot };
-    // }
-
-    panelAfter.collapsed = false;
     panelBeforeNewValue = panelBeforeNewValue
       // Subtract the delta of the after panel's size
       .minus(
@@ -1145,6 +1139,13 @@ function updateLayout(
           // And then re-apply the movement value
           .minus(Math.abs(moveAmount))
       );
+
+    if (panelBeforeNewValue.lt(panelBefore.min.value)) {
+      // TODO this should probably distribute the space between the panels?
+      return { dragOvershoot: newDragOvershoot };
+    }
+
+    panelAfter.collapsed = false;
 
     if (
       panelAfter.onCollapseChange?.current &&
