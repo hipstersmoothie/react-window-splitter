@@ -686,10 +686,7 @@ function panelHasSpace(
     );
   }
 
-  return (
-    item.currentValue.value.gt(getUnitPixelValue(context, item.min)) &&
-    item.currentValue.value.lte(getUnitPixelValue(context, item.max))
-  );
+  return item.currentValue.value.gt(getUnitPixelValue(context, item.min));
 }
 
 /** Search in a `direction` for a panel that still has space to expand. */
