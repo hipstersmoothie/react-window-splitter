@@ -394,8 +394,6 @@ const PanelGroupImplementation = React.forwardRef<
       return;
     }
 
-    let hasMeasuredChildren = false;
-
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
 
@@ -409,20 +407,11 @@ const PanelGroupImplementation = React.forwardRef<
           ? entry.contentRect.width < entry.target.scrollWidth
           : entry.contentRect.height < entry.target.scrollHeight;
 
-      if (!hasMeasuredChildren) {
-        measureGroupChildren(groupId, (childrenSizes) => {
-          send({ type: "setSize", size: entry.contentRect });
-          send({ type: "setActualItemsSize", childrenSizes });
-          send({ type: "setSize", size: entry.contentRect, handleOverflow });
-          hasMeasuredChildren = true;
-        });
-      } else {
-        send({
-          type: "setSize",
-          size: entry.contentRect,
-          handleOverflow,
-        });
-      }
+      measureGroupChildren(groupId, (childrenSizes) => {
+        send({ type: "setSize", size: entry.contentRect });
+        send({ type: "setActualItemsSize", childrenSizes });
+        send({ type: "setSize", size: entry.contentRect, handleOverflow });
+      });
     });
 
     observer.observe(el);
