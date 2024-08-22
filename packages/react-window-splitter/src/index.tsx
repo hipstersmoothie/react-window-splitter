@@ -48,11 +48,23 @@ import {
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-// function useDebugGroupMachineContext({ id }: { id: string }) {
-// const value = GroupMachineContext.useSelector((state) => state.value);
-// const context = GroupMachineContext.useSelector((state) => state.context);
-// console.log("GROUP CONTEXT", id, value, buildTemplate(context));
-// }
+function useDebugGroupMachineContext({ id }: { id: string }) {
+  const value = GroupMachineContext.useSelector((state) => state.value);
+  const context = GroupMachineContext.useSelector((state) => state.context);
+  console.log(
+    "GROUP CONTEXT",
+    buildTemplate(context),
+    context.size,
+    context.items.map((item) =>
+      isPanelData(item)
+        ? {
+            type: item.currentValue.type,
+            value: item.currentValue.value.toNumber(),
+          }
+        : { type: item.size.type, value: item.size.value.toNumber() }
+    )
+  );
+}
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -391,14 +403,25 @@ const PanelGroupImplementation = React.forwardRef<
         return;
       }
 
+      const context = machineRef.getSnapshot().context;
+      const handleOverflow =
+        context.orientation === "horizontal"
+          ? entry.contentRect.width < entry.target.scrollWidth
+          : entry.contentRect.height < entry.target.scrollHeight;
+
       if (!hasMeasuredChildren) {
         measureGroupChildren(groupId, (childrenSizes) => {
           send({ type: "setSize", size: entry.contentRect });
           send({ type: "setActualItemsSize", childrenSizes });
+          send({ type: "setSize", size: entry.contentRect, handleOverflow });
           hasMeasuredChildren = true;
         });
       } else {
-        send({ type: "setSize", size: entry.contentRect });
+        send({
+          type: "setSize",
+          size: entry.contentRect,
+          handleOverflow,
+        });
       }
     });
 
@@ -409,7 +432,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef, groupId]);
 
-  // useDebugGroupMachineContext({ id: groupId });
+  useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 

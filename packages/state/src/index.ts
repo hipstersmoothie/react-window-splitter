@@ -228,6 +228,7 @@ interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
+  handleOverflow?: boolean;
 }
 
 interface SetActualItemsSizeEvent {
@@ -959,6 +960,14 @@ function updateLayout(
         controlled?: boolean;
         disregardCollapseBuffer?: boolean;
       }
+    | {
+        type: "handleOverflow";
+        value: MoveMoveEvent;
+        direction: -1 | 1;
+        disregardCollapseBuffer?: never;
+        controlled?: never;
+        handleId: string;
+      }
 ): Partial<GroupMachineContextValue> {
   const handleIndex = getPanelHandleIndex(context, dragEvent.handleId);
   const handle = context.items[handleIndex] as PanelHandleData;
@@ -973,11 +982,14 @@ function updateLayout(
     moveAmount *= 15;
   }
 
-  if (moveAmount === 0) {
+  if (dragEvent.type !== "handleOverflow" && moveAmount === 0) {
     return {};
   }
 
-  const moveDirection = moveAmount / Math.abs(moveAmount);
+  const moveDirection =
+    dragEvent.type === "handleOverflow"
+      ? dragEvent.direction
+      : moveAmount / Math.abs(moveAmount);
 
   // Go forward into the shrinking panels to find a panel that still has space.
   const panelBefore = findPanelWithSpace(
@@ -1115,12 +1127,16 @@ function updateLayout(
             .add(Math.abs(moveAmount))
         );
 
-    panelAfter.collapsed = false;
-
     if (extra.gt(0)) {
       panelAfterNewValue = panelAfterNewValue.add(extra);
     }
 
+    // if (panelAfterNewValue.lt(panelAfter.min.value)) {
+    //   // TODO this should probably distribute the space between the panels?
+    //   return { dragOvershoot: newDragOvershoot };
+    // }
+
+    panelAfter.collapsed = false;
     panelBeforeNewValue = panelBeforeNewValue
       // Subtract the delta of the after panel's size
       .minus(
@@ -1331,6 +1347,90 @@ function applyDeltaInBothDirections(
     deltaLeft = deltaLeft.sub(newValue.sub(oldValue));
     direction = direction === 1 ? -1 : 1;
   }
+}
+
+function handleOverflow(context: GroupMachineContextValue) {
+  if (
+    context.items.some((i) => isPanelData(i) && i.currentValue.value.eq(-1))
+  ) {
+    return context;
+  }
+
+  const groupSize = getGroupSize(context);
+  const staticWidth = getStaticWidth(context);
+  const nonStaticWidth = new Big(getGroupSize(context)).sub(
+    staticWidth.toNumber()
+  );
+  const pixelItems = context.items.map((i) =>
+    isPanelData(i)
+      ? i.collapsed
+        ? getUnitPixelValue(context, i.currentValue)
+        : clampUnit(
+            context,
+            i,
+            i.currentValue.type === "pixel"
+              ? i.currentValue.value
+              : i.currentValue.value.mul(nonStaticWidth)
+          )
+      : i.size.value
+  );
+  const totalSize = pixelItems.reduce((acc, i) => acc.add(i), new Big(0));
+
+  const overflow = totalSize.abs().sub(groupSize);
+
+  // TODO DOESN"T WORK WITH KEYBOARD
+  // TODO DOESN"T WORK WITH RESIZE
+  if (overflow.eq(0) || groupSize === 0) {
+    return context;
+  }
+
+  let newContext = { ...context, items: prepareItems(context) };
+
+  const collapsiblePanelIndex = newContext.items.findIndex((i) =>
+    Boolean(isPanelData(i) && i.collapsible)
+  );
+
+  if (collapsiblePanelIndex !== -1) {
+    const collapsiblePanel = newContext.items[
+      collapsiblePanelIndex
+    ] as PanelData;
+
+    if (collapsiblePanel) {
+      const handleId = getHandleForPanelId(newContext, collapsiblePanel.id);
+      const sizeChange = collapsiblePanel.currentValue.value.sub(
+        getUnitPixelValue(newContext, collapsiblePanel.collapsedSize)
+      );
+
+      newContext = {
+        ...newContext,
+        ...iterativelyUpdateLayout({
+          context: {
+            ...newContext,
+            // act like its the old size
+            size: {
+              width: totalSize.toNumber(),
+              height: totalSize.toNumber(),
+            },
+          },
+          handleId: handleId.item.id,
+          delta: sizeChange,
+          direction: (handleId.direction * -1) as -1 | 1,
+        }),
+      };
+
+      // Then remove all the overflow
+      if (sizeChange.gt(overflow)) {
+        applyDeltaInBothDirections(
+          newContext,
+          newContext.items,
+          collapsiblePanelIndex,
+          overflow.neg()
+        );
+      }
+    }
+  }
+
+  return { ...newContext, items: commitLayout(newContext) };
 }
 
 // #endregion
@@ -1574,11 +1674,14 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: assign({
-        size: ({ event }) => {
-          isEvent(event, ["setSize"]);
-          return event.size;
-        },
+      updateSize: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["setSize"]);
+
+        if (event.handleOverflow) {
+          enqueue.assign(handleOverflow({ ...context, size: event.size }));
+        } else {
+          enqueue.assign({ size: event.size });
+        }
       }),
       recordActualItemSize: assign({
         items: ({ context, event }) => {
