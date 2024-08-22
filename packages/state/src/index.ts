@@ -1350,45 +1350,43 @@ function applyDeltaInBothDirections(
   }
 }
 
+/**
+ * A layout might overflow at small screen sizes.
+ * This function tries to fix that by:
+ *
+ * 1. It will try to collapse a panel if it can.
+ */
 function handleOverflow(context: GroupMachineContextValue) {
+  // If we haven't measured yet we can't do anything
   if (
     context.items.some((i) => isPanelData(i) && i.currentValue.value.eq(-1))
   ) {
     return context;
   }
 
-  const groupSize = getGroupSize(context);
-  const staticWidth = getStaticWidth(context);
-  const nonStaticWidth = new Big(getGroupSize(context)).sub(
-    staticWidth.toNumber()
-  );
-  const pixelItems = context.items.map((i) =>
-    isPanelData(i)
-      ? i.collapsed
-        ? getUnitPixelValue(context, i.currentValue)
-        : clampUnit(
-            context,
-            i,
-            i.currentValue.type === "pixel"
-              ? i.currentValue.value
-              : i.currentValue.value.mul(nonStaticWidth)
-          )
-      : i.size.value
-  );
-  const totalSize = pixelItems.reduce((acc, i) => acc.add(i), new Big(0));
+  const groupSize = new Big(getGroupSize(context));
+  const nonStaticWidth = groupSize.sub(getStaticWidth(context).toNumber());
+  const pixelItems = context.items.map((i) => {
+    if (isPanelHandle(i)) return i.size.value;
+    if (i.collapsed) return getUnitPixelValue(context, i.currentValue);
 
+    const pixel =
+      (i.currentValue.type === "pixel" && i.currentValue.value) ||
+      i.currentValue.value.mul(nonStaticWidth);
+
+    return clampUnit(context, i, pixel);
+  });
+  const totalSize = pixelItems.reduce((acc, i) => acc.add(i), new Big(0));
   const overflow = totalSize.abs().sub(groupSize);
 
-  // TODO DOESN"T WORK WITH KEYBOARD
-  // TODO DOESN"T WORK WITH RESIZE
-  if (overflow.eq(0) || groupSize === 0) {
+  if (overflow.eq(0) || groupSize.eq(0)) {
     return context;
   }
 
   let newContext = { ...context, items: prepareItems(context) };
 
-  const collapsiblePanelIndex = newContext.items.findIndex((i) =>
-    Boolean(isPanelData(i) && i.collapsible)
+  const collapsiblePanelIndex = newContext.items.findIndex(
+    (i) => isPanelData(i) && i.collapsible
   );
 
   if (collapsiblePanelIndex !== -1) {
@@ -1402,20 +1400,18 @@ function handleOverflow(context: GroupMachineContextValue) {
         getUnitPixelValue(newContext, collapsiblePanel.collapsedSize)
       );
 
+      // Try to collapse the panel
       newContext = {
         ...newContext,
         ...iterativelyUpdateLayout({
-          context: {
-            ...newContext,
-            // act like its the old size
-            size: {
-              width: totalSize.toNumber(),
-              height: totalSize.toNumber(),
-            },
-          },
           handleId: handleId.item.id,
           delta: sizeChange,
           direction: (handleId.direction * -1) as -1 | 1,
+          context: {
+            ...newContext,
+            // act like its the old size so the space is distributed correctly
+            size: { width: totalSize.toNumber(), height: totalSize.toNumber() },
+          },
         }),
       };
 
