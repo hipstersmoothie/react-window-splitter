@@ -148,8 +148,7 @@ test.skip("Conditional Panels", async () => {
   const handle = { current: null } as unknown as {
     current: PanelGroupHandle;
   };
-  // const { getByText } =
-  render(
+  const { getByText } = render(
     <div style={{ width: 500 }}>
       <ConditionalPanel handle={handle} />
     </div>
@@ -161,15 +160,15 @@ test.skip("Conditional Panels", async () => {
     `"244px 10px 244px"`
   );
 
-  // getByText("Expand").click();
-  // await waitForCondition(
-  //   () =>
-  //     handle.current.getTemplate().startsWith("232.046875px") &&
-  //     handle.current.getTemplate().endsWith("100px")
-  // );
-  // expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-  //   `"232.046875px 10px 145.9375px 10px 100px"`
-  // );
+  getByText("Expand").click();
+  await waitForCondition(
+    () =>
+      handle.current.getTemplate().startsWith("232.046875px") &&
+      handle.current.getTemplate().endsWith("100px")
+  );
+  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+    `"232.046875px 10px 145.9375px 10px 100px"`
+  );
 
   // getByText("Close").click();
   // await waitForCondition(
