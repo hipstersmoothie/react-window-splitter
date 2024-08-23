@@ -1,3 +1,4 @@
+import Cookies from "universal-cookie";
 import { raf } from "@react-spring/rafz";
 import {
   createMachine,
@@ -302,7 +303,16 @@ export interface GroupMachineContextValue {
   /** How much the drag has overshot the handle */
   dragOvershoot: Big.Big;
   groupId: string;
+  /**
+   * How to save the persisted state
+   */
+  autosaveStrategy?: "localStorage" | "cookie";
 }
+
+export type GroupMachineSnapshot = Snapshot<unknown> & {
+  context: GroupMachineContextValue;
+  value: string;
+};
 
 export type GroupMachineEvent =
   | RegisterPanelEvent
@@ -352,10 +362,8 @@ export function getCursor(
   }
 }
 
-export function prepareSnapshot(snapshot: Snapshot<unknown>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const snapshotContext = (snapshot as any)
-    .context as unknown as GroupMachineContextValue;
+export function prepareSnapshot(snapshot: GroupMachineSnapshot) {
+  const snapshotContext = snapshot.context;
 
   snapshotContext.dragOvershoot = new Big(snapshotContext.dragOvershoot);
 
@@ -1534,6 +1542,7 @@ export const groupMachine = createMachine(
         orientation?: Orientation;
         groupId: string;
         initialItems?: Item[];
+        autosaveStrategy?: "localStorage" | "cookie";
       },
     },
     context: ({ input }) => ({
@@ -1542,9 +1551,11 @@ export const groupMachine = createMachine(
       orientation: input.orientation || "horizontal",
       dragOvershoot: new Big(0),
       groupId: input.groupId,
+      autosaveStrategy: input.autosaveStrategy,
     }),
     states: {
       idle: {
+        entry: ["onAutosave"],
         on: {
           setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
           dragHandleStart: { target: "dragging" },
@@ -1589,7 +1600,7 @@ export const groupMachine = createMachine(
             actions: "runCollapseToggle",
           },
         },
-        exit: ["commit", "onAutosave"],
+        exit: ["commit"],
       },
       togglingCollapse: {
         entry: ["prepare"],
@@ -1598,7 +1609,7 @@ export const groupMachine = createMachine(
           input: (i) => ({ ...i, send: i.self.send }),
           onDone: {
             target: "idle",
-            actions: ["onToggleCollapseComplete", "commit", "onAutosave"],
+            actions: ["onToggleCollapseComplete", "commit"],
           },
         },
         on: {
@@ -1677,6 +1688,26 @@ export const groupMachine = createMachine(
       animation: animationActor,
     },
     actions: {
+      onAutosave: ({ context, self }) => {
+        if (!context.autosaveStrategy || typeof window === "undefined") {
+          return;
+        }
+
+        const snapshot = self.getPersistedSnapshot() as GroupMachineSnapshot;
+        snapshot.context.items = context.items;
+        snapshot.value = "idle";
+        const data = JSON.stringify(snapshot);
+
+        if (context.autosaveStrategy === "localStorage") {
+          localStorage.setItem(context.groupId, data);
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ActualClass = (Cookies as any).default || Cookies;
+          const cookies = new ActualClass(null, { path: "/" });
+
+          cookies.set(context.groupId, data, { path: "/", maxAge: 31536000 });
+        }
+      },
       notifyCollapseToggle: ({ context, event }) => {
         isEvent(event, ["collapsePanel", "expandPanel"]);
         const panel = getPanelWithId(context, event.panelId);
@@ -1703,8 +1734,7 @@ export const groupMachine = createMachine(
       }),
       onToggleCollapseComplete: assign({
         items: ({ context, event: e }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const output = (e as any).output as AnimationActorOutput;
+          const { output } = e as unknown as { output: AnimationActorOutput };
           invariant(output, "Expected output from animation actor");
 
           const panel = getPanelWithId(context, output.panelId);
