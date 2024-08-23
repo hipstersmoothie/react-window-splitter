@@ -20,6 +20,7 @@ import {
 import { Actor, createActor } from "xstate";
 import { spring } from "framer-motion";
 import Big from "big.js";
+import Cookies from "universal-cookie";
 
 function getTemplate(actor: Actor<typeof groupMachine>) {
   return buildTemplate(actor.getSnapshot().context);
@@ -1965,6 +1966,96 @@ describe("static at rest", () => {
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
       `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+    );
+  });
+});
+
+describe("autosave", () => {
+  test("localStorage", async () => {
+    localStorage.removeItem("group");
+
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        autosaveStrategy: "localStorage",
+        initialItems: [
+          initializePanel({
+            id: "panel-1",
+            min: "20px",
+            max: "200px",
+            isStaticAtRest: true,
+          }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({ id: "panel-2", min: "50px" }),
+          initializePanelHandleData({ id: "resizer-2", size: "10px" }),
+          initializePanel({ id: "panel-3", min: "50px" }),
+        ],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: -10 });
+    });
+
+    await waitForIdle(actor);
+
+    const snapshot = prepareSnapshot(
+      JSON.parse(localStorage.getItem("group")!)
+    );
+    const actor2 = createActor(groupMachine, {
+      // @ts-expect-error For tests
+      input: {},
+      snapshot,
+    }).start();
+
+    expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
+      `"clamp(20px, 190px, 200px) 10px 150px 10px 140px"`
+    );
+  });
+
+  test("cookie", async () => {
+    localStorage.removeItem("group");
+
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group-2",
+        autosaveStrategy: "cookie",
+        initialItems: [
+          initializePanel({
+            id: "panel-1",
+            min: "20px",
+            max: "200px",
+            isStaticAtRest: true,
+          }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({ id: "panel-2", min: "50px" }),
+          initializePanelHandleData({ id: "resizer-2", size: "10px" }),
+          initializePanel({ id: "panel-3", min: "50px" }),
+        ],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: -10 });
+    });
+
+    await waitForIdle(actor);
+
+    const ActualClass = (Cookies as any).default || Cookies;
+    const cookies = new ActualClass(null, { path: "/" });
+    const snapshot = prepareSnapshot(cookies.get("group-2")!);
+    const actor2 = createActor(groupMachine, {
+      // @ts-expect-error For tests
+      input: {},
+      snapshot,
+    }).start();
+
+    expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
+      `"clamp(20px, 190px, 200px) 10px 150px 10px 140px"`
     );
   });
 });

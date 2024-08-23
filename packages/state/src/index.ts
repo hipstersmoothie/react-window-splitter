@@ -1,3 +1,4 @@
+import Cookies from "universal-cookie";
 import { raf } from "@react-spring/rafz";
 import {
   createMachine,
@@ -302,6 +303,10 @@ export interface GroupMachineContextValue {
   /** How much the drag has overshot the handle */
   dragOvershoot: Big.Big;
   groupId: string;
+  /**
+   * How to save the persisted state
+   */
+  autosaveStrategy?: "localStorage" | "cookie";
 }
 
 export type GroupMachineEvent =
@@ -1534,6 +1539,7 @@ export const groupMachine = createMachine(
         orientation?: Orientation;
         groupId: string;
         initialItems?: Item[];
+        autosaveStrategy?: "localStorage" | "cookie";
       },
     },
     context: ({ input }) => ({
@@ -1542,6 +1548,7 @@ export const groupMachine = createMachine(
       orientation: input.orientation || "horizontal",
       dragOvershoot: new Big(0),
       groupId: input.groupId,
+      autosaveStrategy: input.autosaveStrategy,
     }),
     states: {
       idle: {
@@ -1677,6 +1684,23 @@ export const groupMachine = createMachine(
       animation: animationActor,
     },
     actions: {
+      onAutosave: ({ context, self }) => {
+        if (!context.autosaveStrategy || typeof window === "undefined") {
+          return;
+        }
+
+        const data = JSON.stringify(self.getPersistedSnapshot());
+
+        if (context.autosaveStrategy === "localStorage") {
+          localStorage.setItem(context.groupId, data);
+        } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ActualClass = (Cookies as any).default || Cookies;
+          const cookies = new ActualClass(null, { path: "/" });
+
+          cookies.set(context.groupId, data, { path: "/", maxAge: 31536000 });
+        }
+      },
       notifyCollapseToggle: ({ context, event }) => {
         isEvent(event, ["collapsePanel", "expandPanel"]);
         const panel = getPanelWithId(context, event.panelId);

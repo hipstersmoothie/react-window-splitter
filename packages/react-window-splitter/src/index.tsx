@@ -9,7 +9,6 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import Cookies from "universal-cookie";
 import { mergeProps, useButton, useId, useMove } from "react-aria";
 import { Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
@@ -123,16 +122,13 @@ export interface PanelGroupHandle {
 
 export interface PanelGroupProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    Partial<Pick<GroupMachineContextValue, "orientation">> {
+    Partial<
+      Pick<GroupMachineContextValue, "orientation" | "autosaveStrategy">
+    > {
   /** Imperative handle to control the group */
   handle?: React.Ref<PanelGroupHandle>;
   /** Persisted state to initialized the machine with */
   snapshot?: Snapshot<unknown>;
-  /**
-   * How to save the persisted state
-   * @default "localStorage"
-   */
-  autosaveStrategy?: "localStorage" | "cookie";
   /** An id to use for autosaving the layout */
   autosaveId?: string;
 }
@@ -298,7 +294,7 @@ const PanelGroupImpl = React.forwardRef<
   ref
 ) {
   const defaultGroupId = `panel-group-${useId()}`;
-  const groupId = props.id || autosaveId || defaultGroupId;
+  const groupId = autosaveId || props.id || defaultGroupId;
   const [snapshot, setSnapshot] = React.useState<
     Snapshot<unknown> | true | undefined
   >(snapshotProp);
@@ -329,33 +325,10 @@ const PanelGroupImpl = React.forwardRef<
           orientation: props.orientation,
           groupId,
           initialItems: initialItems.current,
+          autosaveStrategy,
         },
         snapshot: typeof snapshotMemo === "object" ? snapshotMemo : undefined,
       }}
-      logic={groupMachine.provide({
-        actions: {
-          onAutosave: (context) => {
-            if (!autosaveId) {
-              return;
-            }
-
-            // Wait for new context to be committed
-            requestAnimationFrame(() => {
-              const data = JSON.stringify(context.self.getPersistedSnapshot());
-
-              if (autosaveStrategy === "localStorage") {
-                localStorage.setItem(autosaveId, data);
-              } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const ActualClass = (Cookies as any).default || Cookies;
-                const cookies = new ActualClass(null, { path: "/" });
-
-                cookies.set(autosaveId, data, { path: "/", maxAge: 31536000 });
-              }
-            });
-          },
-        },
-      })}
     >
       <PanelGroupImplementation ref={ref} {...props} />
     </GroupMachineContext.Provider>

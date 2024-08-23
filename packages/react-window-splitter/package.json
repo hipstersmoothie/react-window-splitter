@@ -44,6 +44,7 @@
     "react-dom": "^18",
     "tshy": "^3.0.2",
     "typescript": "^5.5.4",
+    "universal-cookie": "^7.2.0",
     "vitest": "^2.0.5"
   },
   "dependencies": {
@@ -54,7 +55,6 @@
     "invariant": "^2.2.4",
     "react-aria": "^3.34.1",
     "reforest": "^0.13.0",
-    "universal-cookie": "^7.2.0",
     "xstate": "^5.17.4"
   },
   "tshy": {
