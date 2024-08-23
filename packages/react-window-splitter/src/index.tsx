@@ -297,7 +297,8 @@ const PanelGroupImpl = React.forwardRef<
   },
   ref
 ) {
-  const groupId = `panel-group-${useId()}`;
+  const defaultGroupId = `panel-group-${useId()}`;
+  const groupId = props.id || autosaveId || defaultGroupId;
   const [snapshot, setSnapshot] = React.useState<
     Snapshot<unknown> | true | undefined
   >(snapshotProp);

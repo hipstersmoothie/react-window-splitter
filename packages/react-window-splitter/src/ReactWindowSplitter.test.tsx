@@ -148,7 +148,8 @@ test.skip("Conditional Panels", async () => {
   const handle = { current: null } as unknown as {
     current: PanelGroupHandle;
   };
-  const { getByText } = render(
+  // const { getByText } =
+  render(
     <div style={{ width: 500 }}>
       <ConditionalPanel handle={handle} />
     </div>
