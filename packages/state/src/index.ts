@@ -116,6 +116,7 @@ export interface PanelData
   collapseAnimation?:
     | CollapseAnimation
     | { duration: number; easing: CollapseAnimation | ((t: number) => number) };
+  lastKnownSize?: Rect;
 }
 
 function getCollapseAnimation(panel: PanelData) {
@@ -957,6 +958,16 @@ export function prepareItems(context: GroupMachineContextValue): Item[] {
       continue;
     }
 
+    if (item.lastKnownSize) {
+      const lastSize = makePixelUnit(
+        context.orientation === "horizontal"
+          ? item.lastKnownSize.width
+          : item.lastKnownSize.height
+      );
+      newItems.push({ ...item, currentValue: lastSize });
+      continue;
+    }
+
     if (item.currentValue.type === "pixel") {
       newItems.push({ ...item });
       continue;
@@ -1567,7 +1578,6 @@ export const groupMachine = createMachine(
       idle: {
         entry: ["onAutosave"],
         on: {
-          setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
           dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
             actions: [
@@ -1628,6 +1638,7 @@ export const groupMachine = createMachine(
       },
     },
     on: {
+      setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
       registerPanel: { actions: ["assignPanelData"] },
       registerDynamicPanel: {
         actions: [
@@ -1770,21 +1781,11 @@ export const groupMachine = createMachine(
         items: ({ context, event }) => {
           isEvent(event, ["setActualItemsSize"]);
 
-          const orientation = context.orientation;
-
-          for (const [id, size] of Object.entries(event.childrenSizes)) {
-            const item = context.items.find((i) => i.id === id);
-
-            if (!isPanelData(item)) {
-              continue;
-            }
-
-            item.currentValue = makePixelUnit(
-              orientation === "horizontal" ? size.width : size.height
-            );
-          }
-
-          return commitLayout(context);
+          return context.items.map((i) => {
+            if (!isPanelData(i)) return i;
+            const lastKnownSize = event.childrenSizes[i.id] || i.lastKnownSize;
+            return { ...i, lastKnownSize };
+          });
         },
       }),
       updateOrientation: assign({
