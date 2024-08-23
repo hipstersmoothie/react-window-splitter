@@ -960,14 +960,6 @@ function updateLayout(
         controlled?: boolean;
         disregardCollapseBuffer?: boolean;
       }
-    | {
-        type: "handleOverflow";
-        value: MoveMoveEvent;
-        direction: -1 | 1;
-        disregardCollapseBuffer?: never;
-        controlled?: never;
-        handleId: string;
-      }
 ): Partial<GroupMachineContextValue> {
   const handleIndex = getPanelHandleIndex(context, dragEvent.handleId);
   const handle = context.items[handleIndex] as PanelHandleData;
@@ -982,14 +974,11 @@ function updateLayout(
     moveAmount *= 15;
   }
 
-  if (dragEvent.type !== "handleOverflow" && moveAmount === 0) {
+  if (moveAmount === 0) {
     return {};
   }
 
-  const moveDirection =
-    dragEvent.type === "handleOverflow"
-      ? dragEvent.direction
-      : moveAmount / Math.abs(moveAmount);
+  const moveDirection = moveAmount / Math.abs(moveAmount);
 
   // Go forward into the shrinking panels to find a panel that still has space.
   const panelBefore = findPanelWithSpace(
@@ -1388,46 +1377,41 @@ function handleOverflow(context: GroupMachineContextValue) {
 
   let newContext = { ...context, items: prepareItems(context) };
 
-  const collapsiblePanelIndex = newContext.items.findIndex(
-    (i) => isPanelData(i) && i.collapsible
+  const collapsiblePanel = newContext.items.find((i): i is PanelData =>
+    Boolean(isPanelData(i) && i.collapsible)
   );
 
-  if (collapsiblePanelIndex !== -1) {
-    const collapsiblePanel = newContext.items[
-      collapsiblePanelIndex
-    ] as PanelData;
+  if (collapsiblePanel) {
+    const collapsiblePanelIndex = newContext.items.findIndex(
+      (i) => i.id === collapsiblePanel.id
+    );
+    const handleId = getHandleForPanelId(newContext, collapsiblePanel.id);
+    const sizeChange = collapsiblePanel.currentValue.value.sub(
+      getUnitPixelValue(newContext, collapsiblePanel.collapsedSize)
+    );
 
-    if (collapsiblePanel) {
-      const handleId = getHandleForPanelId(newContext, collapsiblePanel.id);
-      const sizeChange = collapsiblePanel.currentValue.value.sub(
-        getUnitPixelValue(newContext, collapsiblePanel.collapsedSize)
-      );
+    // Try to collapse the panel
+    newContext = {
+      ...newContext,
+      ...iterativelyUpdateLayout({
+        handleId: handleId.item.id,
+        delta: sizeChange,
+        direction: (handleId.direction * -1) as -1 | 1,
+        context: {
+          ...newContext,
+          // act like its the old size so the space is distributed correctly
+          size: { width: totalSize.toNumber(), height: totalSize.toNumber() },
+        },
+      }),
+    };
 
-      // Try to collapse the panel
-      newContext = {
-        ...newContext,
-        ...iterativelyUpdateLayout({
-          handleId: handleId.item.id,
-          delta: sizeChange,
-          direction: (handleId.direction * -1) as -1 | 1,
-          context: {
-            ...newContext,
-            // act like its the old size so the space is distributed correctly
-            size: { width: totalSize.toNumber(), height: totalSize.toNumber() },
-          },
-        }),
-      };
-
-      // Then remove all the overflow
-      if (sizeChange.gt(overflow)) {
-        applyDeltaInBothDirections(
-          newContext,
-          newContext.items,
-          collapsiblePanelIndex,
-          overflow.neg()
-        );
-      }
-    }
+    // Then remove all the overflow
+    applyDeltaInBothDirections(
+      newContext,
+      newContext.items,
+      collapsiblePanelIndex,
+      overflow.neg()
+    );
   }
 
   return { ...newContext, items: commitLayout(newContext) };
@@ -1649,23 +1633,28 @@ export const groupMachine = createMachine(
         let interimContext = { ...context, items: pixelItems };
         interimContext = {
           ...interimContext,
-          ...updateLayout(interimContext, {
+          ...iterativelyUpdateLayout({
+            context: interimContext,
             handleId: handle.item.id,
-            type: "dragHandle",
             controlled: event.controlled,
-            value: dragHandlePayload({
-              delta: delta.toNumber(),
-              orientation: context.orientation,
-            }),
+            delta: delta,
+            direction: handle.direction,
           }),
         };
+        const updatedPanel = interimContext.items.find(
+          (i) => i.id === event.panelId
+        );
         const totalSize = interimContext.items.reduce(
           (acc, i) =>
             acc.add(isPanelData(i) ? i.currentValue.value : i.size.value),
           new Big(0)
         );
+        const didExpand =
+          updatedPanel &&
+          isPanelData(updatedPanel) &&
+          !updatedPanel.currentValue.value.eq(updatedPanel.collapsedSize.value);
 
-        return totalSize.gt(getGroupSize(context));
+        return totalSize.gt(getGroupSize(context)) || !didExpand;
       },
     },
     actors: {
