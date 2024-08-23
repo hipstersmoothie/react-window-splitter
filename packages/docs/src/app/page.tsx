@@ -2,6 +2,7 @@ import HeaderExample from "../Components/HeaderExample";
 import { CodeBlock } from "mdxts/components";
 import { CopyPackageNameButton } from "../Components/CopyPackageNameButton";
 import { ButtonLink } from "../Components/Button";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 
 export default async function Home() {
   return (
@@ -30,7 +31,17 @@ export default async function Home() {
           showToolbar={false}
         />
 
-        <ButtonLink href="docs/install">Read the docs</ButtonLink>
+        <div className="flex gap-2 items-center">
+          <ButtonLink
+            icon={<GitHubLogoIcon />}
+            variant="secondary"
+            href="https://github.com/hipstersmoothie/react-window-splitter"
+            target="_blank"
+          >
+            View on Github
+          </ButtonLink>
+          <ButtonLink href="docs/install">Read the docs</ButtonLink>
+        </div>
       </div>
     </main>
   );
