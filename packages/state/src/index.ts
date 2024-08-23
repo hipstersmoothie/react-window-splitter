@@ -407,23 +407,23 @@ type OnResizeSize = {
 
 export type OnResizeCallback = (size: OnResizeSize) => void;
 
-interface InitializePanelOptions {
+type InitializePanelOptions = {
   min?: Unit;
   max?: Unit;
   default?: Unit;
-  collapsible?: boolean;
-  collapsed?: boolean;
   collapsedSize?: Unit;
-  onCollapseChange?: {
-    current: ((isCollapsed: boolean) => void) | null | undefined;
-  };
-  onResize?: {
-    current: OnResizeCallback | null | undefined;
-  };
-  collapseAnimation?: PanelData["collapseAnimation"];
-  defaultCollapsed?: boolean;
   id?: string;
-}
+} & Partial<
+  Pick<
+    PanelData,
+    | "collapseAnimation"
+    | "defaultCollapsed"
+    | "onResize"
+    | "collapsible"
+    | "collapsed"
+    | "onCollapseChange"
+  >
+>;
 
 type InitializePanelOptionsWithId = InitializePanelOptions & { id: string };
 
