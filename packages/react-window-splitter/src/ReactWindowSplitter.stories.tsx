@@ -391,7 +391,6 @@ export function CustomCollapseAnimation() {
     });
   }, []);
 
-  console.log(springFn);
   return (
     <StyledPanelGroup>
       <StyledPanel

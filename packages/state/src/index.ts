@@ -1582,6 +1582,7 @@ export const groupMachine = createMachine(
           setPanelPixelSize: {
             actions: [
               "prepare",
+              "clearLastKnownSize",
               "onSetPanelSize",
               "commit",
               "onResize",
@@ -1609,7 +1610,9 @@ export const groupMachine = createMachine(
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["onDragHandle", "onResize"] },
+          dragHandle: {
+            actions: ["clearLastKnownSize", "onDragHandle", "onResize"],
+          },
           dragHandleEnd: { target: "idle" },
           collapsePanel: {
             guard: "shouldCollapseToggle",
@@ -1623,7 +1626,7 @@ export const groupMachine = createMachine(
         exit: ["commit"],
       },
       togglingCollapse: {
-        entry: ["prepare"],
+        entry: ["clearLastKnownSize", "prepare"],
         invoke: {
           src: "animation",
           input: (i) => ({ ...i, send: i.self.send }),
@@ -1644,20 +1647,37 @@ export const groupMachine = createMachine(
         actions: [
           "prepare",
           "onRegisterDynamicPanel",
+          "clearLastKnownSize",
           "commit",
           "onResize",
           "onAutosave",
         ],
       },
       unregisterPanel: {
-        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
+        actions: [
+          "prepare",
+          "removeItem",
+          "clearLastKnownSize",
+          "commit",
+          "onResize",
+          "onAutosave",
+        ],
       },
       registerPanelHandle: { actions: ["assignPanelHandleData"] },
       unregisterPanelHandle: {
-        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
+        actions: [
+          "prepare",
+          "removeItem",
+          "clearLastKnownSize",
+          "commit",
+          "onResize",
+          "onAutosave",
+        ],
       },
       setSize: { actions: ["updateSize", "onResize"] },
-      setOrientation: { actions: ["updateOrientation", "onResize"] },
+      setOrientation: {
+        actions: ["updateOrientation", "clearLastKnownSize", "onResize"],
+      },
     },
   },
   {
@@ -1772,7 +1792,19 @@ export const groupMachine = createMachine(
         isEvent(event, ["setSize"]);
 
         if (event.handleOverflow) {
-          enqueue.assign(handleOverflow({ ...context, size: event.size }));
+          enqueue.assign(
+            handleOverflow({
+              ...context,
+              size: event.size,
+              items: prepareItems(context).map((i) => {
+                if (isPanelData(i)) {
+                  return { ...i, lastKnownSize: undefined };
+                }
+
+                return i;
+              }),
+            })
+          );
         } else {
           enqueue.assign({ size: event.size });
         }
@@ -1792,6 +1824,11 @@ export const groupMachine = createMachine(
         orientation: ({ event }) => {
           isEvent(event, ["setOrientation"]);
           return event.orientation;
+        },
+      }),
+      clearLastKnownSize: assign({
+        items: ({ context }) => {
+          return context.items.map((i) => ({ ...i, lastKnownSize: undefined }));
         },
       }),
       assignPanelData: assign({
@@ -1944,11 +1981,17 @@ export const groupMachine = createMachine(
       onResize: ({ context }) => {
         for (const item of context.items) {
           if (isPanelData(item)) {
-            const pixel = clampUnit(
-              context,
-              item,
-              getUnitPixelValue(context, item.currentValue)
-            );
+            const pixel = item.lastKnownSize
+              ? new Big(
+                  context.orientation === "horizontal"
+                    ? item.lastKnownSize.width
+                    : item.lastKnownSize.height
+                )
+              : clampUnit(
+                  context,
+                  item,
+                  getUnitPixelValue(context, item.currentValue)
+                );
             const groupSize = getGroupSize(context);
 
             item.onResize?.current?.({

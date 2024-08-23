@@ -16,6 +16,10 @@ exports[`Autosave > localStorage 3`] = `
       "value": "0.70081967213114754098",
     },
     "id": "1",
+    "lastKnownSize": {
+      "height": 58,
+      "width": 342,
+    },
     "max": "1fr",
     "min": {
       "type": "pixel",
@@ -45,6 +49,10 @@ exports[`Autosave > localStorage 3`] = `
       "value": "0.29918032786885245902",
     },
     "id": "2",
+    "lastKnownSize": {
+      "height": 58,
+      "width": 146,
+    },
     "max": "1fr",
     "min": {
       "type": "pixel",

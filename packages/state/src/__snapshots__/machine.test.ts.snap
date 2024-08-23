@@ -14,8 +14,88 @@ exports[`utils > prepareSnapshot 1`] = `
           "value": "0",
         },
         "currentValue": {
+          "type": "pixel",
+          "value": "-1",
+        },
+        "id": "panel-1",
+        "lastKnownSize": {
+          "height": 200,
+          "width": 190,
+        },
+        "max": "1fr",
+        "min": {
+          "type": "pixel",
+          "value": "100",
+        },
+        "onResize": {},
+        "type": "panel",
+      },
+      {
+        "id": "resizer-1",
+        "size": {
+          "type": "pixel",
+          "value": "10",
+        },
+        "type": "handle",
+      },
+      {
+        "collapseIsControlled": false,
+        "collapsed": false,
+        "collapsedSize": {
+          "type": "pixel",
+          "value": "50",
+        },
+        "collapsible": true,
+        "currentValue": {
+          "type": "pixel",
+          "value": "-1",
+        },
+        "id": "panel-2",
+        "lastKnownSize": {
+          "height": 200,
+          "width": 300,
+        },
+        "max": {
+          "type": "pixel",
+          "value": "300",
+        },
+        "min": {
+          "type": "pixel",
+          "value": "0",
+        },
+        "onResize": {},
+        "type": "panel",
+      },
+    ],
+    "orientation": "horizontal",
+    "size": {
+      "height": 200,
+      "width": 500,
+    },
+  },
+  "historyValue": {},
+  "status": "active",
+  "tags": [],
+  "value": "idle",
+}
+`;
+
+exports[`utils > prepareSnapshot 2`] = `
+{
+  "children": {},
+  "context": {
+    "dragOvershoot": "0",
+    "groupId": "group",
+    "items": [
+      {
+        "collapseIsControlled": false,
+        "collapsedSize": {
+          "type": "pixel",
+          "value": "0",
+        },
+        "currentValue": {
           "type": "percent",
-          "value": "0.38775510204081632653",
+          "value": "0.59183673469387755102",
         },
         "id": "panel-1",
         "max": "1fr",
@@ -44,7 +124,7 @@ exports[`utils > prepareSnapshot 1`] = `
         "collapsible": true,
         "currentValue": {
           "type": "percent",
-          "value": "0.61224489795918367347",
+          "value": "0.40816326530612244898",
         },
         "id": "panel-2",
         "max": {

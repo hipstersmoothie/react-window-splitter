@@ -178,7 +178,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the left
@@ -189,7 +189,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -236,7 +236,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.46610169491525423729 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.53389830508474576271 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.53389830508474576271 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -269,7 +269,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.40816326530612244898 * (100% - 10px)), 40%)) 10px minmax(0px, min(calc(0.59183673469387755102 * (100% - 10px)), 100%))"`
+      `"minmax(0px, min(calc(0.40816326530612244898 * (100% - 10px)), 40%)) 10px minmax(0px, 1fr)"`
     );
   });
 
@@ -304,7 +304,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
     );
 
     // Drag the resizer to the up
@@ -319,7 +319,7 @@ describe("constraints", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
     );
   });
 
@@ -376,8 +376,8 @@ describe("constraints", () => {
 
     initializeSizes(actor, { width: 500, height: 200 });
     expect(spy).toHaveBeenCalledWith({
-      percentage: 0.5,
-      pixel: 250,
+      percentage: 0.49,
+      pixel: 245,
     });
 
     capturePixelValues(actor, () => {
@@ -582,7 +582,7 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.38775510204081632653 * (100% - 10px)), 100%)) 10px minmax(0px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px 300px"`
     );
 
     capturePixelValues(actor, () => {
@@ -748,9 +748,7 @@ describe("collapsible panel", () => {
       expect(getTemplate(actor)).toBe("490px 10px 0px");
     });
 
-    expect(getTemplate(actor)).toBe(
-      "minmax(0px, min(calc(1 * (100% - 10px)), 100%)) 10px 0px"
-    );
+    expect(getTemplate(actor)).toBe("minmax(0px, 1fr) 10px 0px");
 
     // Test dragging to expand the panel
     capturePixelValues(actor, () => {
@@ -1339,9 +1337,7 @@ describe("collapsible panel", () => {
         handleOverflow: true,
       });
       // There wasn't enough space to render the panel so the last one is collapsed
-      expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
-      );
+      expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
     });
 
     test("on resize", async () => {
@@ -1373,8 +1369,13 @@ describe("collapsible panel", () => {
         "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
       );
       initializeSizes(actor, { width: 500, height: 200 });
+
+      capturePixelValues(actor, () => {
+        dragHandle(actor, { id: "resizer-1", delta: 10 });
+      });
+
       expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(0.40816326530612244898 * (100% - 10px)), 100%)) 10px minmax(300px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"
+        "minmax(200px, 1fr) 10px minmax(300px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"
       );
 
       actor.send({
@@ -1383,9 +1384,7 @@ describe("collapsible panel", () => {
         handleOverflow: true,
       });
       // There wasn't enough space to render the panel so the last one is collapsed
-      expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
-      );
+      expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
     });
 
     test("cannot expand panel via event", async () => {
@@ -1423,9 +1422,7 @@ describe("collapsible panel", () => {
         handleOverflow: true,
       });
       // There wasn't enough space to render the panel so the last one is collapsed
-      expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
-      );
+      expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
 
       actor.send({
         type: "expandPanel",
@@ -1434,9 +1431,7 @@ describe("collapsible panel", () => {
       await waitForIdle(actor);
 
       // There wasn't enough space to render the panel so the last one is collapsed
-      expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
-      );
+      expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
     });
 
     test("cannot expand panel via drag", async () => {
@@ -1474,12 +1469,11 @@ describe("collapsible panel", () => {
         handleOverflow: true,
       });
       // There wasn't enough space to render the panel so the last one is collapsed
-      expect(getTemplate(actor)).toBe(
-        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
-      );
+      expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
 
       // Drag the resizer to the right
       capturePixelValues(actor, () => {
+        expect(getTemplate(actor)).toBe("330px 10px 60px");
         dragHandle(actor, { id: "resizer-1", delta: -400 });
         expect(getTemplate(actor)).toBe("330px 10px 60px");
       });
@@ -1521,7 +1515,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"240px 10px 140px 10px 100px"`
+        `"245px 10px 135px 10px 100px"`
       );
     });
 
@@ -1531,7 +1525,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 
@@ -1576,7 +1570,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"240px 10px 240px 10px 0px"`
+        `"245px 10px 235px 10px 0px"`
       );
     });
 
@@ -1586,7 +1580,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 
@@ -1629,7 +1623,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"240px 10px 115px 10px 125px"`
+        `"245px 10px 110px 10px 125px"`
       );
     });
 
@@ -1639,7 +1633,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 
@@ -1679,7 +1673,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(
-        `"240px 10px 100px 10px 140px"`
+        `"245px 10px 100px 10px 135px"`
       );
     });
 
@@ -1689,7 +1683,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
 
     sendAll(actor, [
@@ -1698,7 +1692,7 @@ describe("conditional panel", () => {
     ]);
 
     capturePixelValues(actor, () => {
-      expect(getTemplate(actor)).toMatchInlineSnapshot(`"240px 10px 250px"`);
+      expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
 
@@ -1926,9 +1920,19 @@ describe("utils", async () => {
 
     initializeSizes(actor, { width: 500, height: 200 });
 
-    const oldSnapshot = actor.getSnapshot();
-    const serialized = JSON.stringify(oldSnapshot);
-    const newSnapshot = prepareSnapshot(JSON.parse(serialized));
+    let oldSnapshot = actor.getSnapshot();
+    let serialized = JSON.stringify(oldSnapshot);
+    let newSnapshot = prepareSnapshot(JSON.parse(serialized));
+
+    expect(newSnapshot).toMatchSnapshot();
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: 100 });
+    });
+
+    oldSnapshot = actor.getSnapshot();
+    serialized = JSON.stringify(oldSnapshot);
+    newSnapshot = prepareSnapshot(JSON.parse(serialized));
 
     expect(newSnapshot).toMatchSnapshot();
   });
@@ -1957,7 +1961,7 @@ describe("static at rest", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"clamp(20px, 200px, 200px) 10px minmax(50px, min(calc(0.5 * (100% - 220px)), 100%)) 10px minmax(50px, min(calc(0.5 * (100% - 220px)), 100%))"`
+      `"minmax(20px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, 1fr)"`
     );
 
     capturePixelValues(actor, () => {
@@ -1965,7 +1969,7 @@ describe("static at rest", () => {
     });
 
     expect(getTemplate(actor)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
     );
   });
 });
@@ -2011,7 +2015,7 @@ describe("autosave", () => {
     }).start();
 
     expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
     );
   });
 
@@ -2055,7 +2059,7 @@ describe("autosave", () => {
     }).start();
 
     expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
     );
   });
 });
