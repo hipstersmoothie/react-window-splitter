@@ -1932,3 +1932,39 @@ describe("utils", async () => {
     expect(newSnapshot).toMatchSnapshot();
   });
 });
+
+describe("static at rest", () => {
+  test("a panel can be pixels when resting", async () => {
+    const actor = createActor(groupMachine, {
+      input: {
+        groupId: "group",
+        initialItems: [
+          initializePanel({
+            id: "panel-1",
+            min: "20px",
+            max: "200px",
+            isStaticAtRest: true,
+          }),
+          initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+          initializePanel({ id: "panel-2", min: "50px" }),
+          initializePanelHandleData({ id: "resizer-2", size: "10px" }),
+          initializePanel({ id: "panel-3", min: "50px" }),
+        ],
+      },
+    }).start();
+
+    initializeSizes(actor, { width: 500, height: 200 });
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"clamp(20px, 200px, 200px) 10px minmax(50px, min(calc(0.5 * (100% - 220px)), 100%)) 10px minmax(50px, min(calc(0.5 * (100% - 220px)), 100%))"`
+    );
+
+    capturePixelValues(actor, () => {
+      dragHandle(actor, { id: "resizer-1", delta: -10 });
+    });
+
+    expect(getTemplate(actor)).toMatchInlineSnapshot(
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+    );
+  });
+});

@@ -629,3 +629,21 @@ export function WithDefaultWidth() {
     </PanelGroup>
   );
 }
+
+export function StaticAtRest({
+  handle,
+}: {
+  handle?: React.Ref<PanelGroupHandle>;
+}) {
+  return (
+    <StyledPanelGroup handle={handle} style={{ height: 200 }}>
+      <StyledPanel min="100px" max="300px" isStaticAtRest>
+        Panel 1
+      </StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">Panel 2</StyledPanel>
+      <StyledResizer />
+      <StyledPanel min="100px">Panel 3</StyledPanel>
+    </StyledPanelGroup>
+  );
+}

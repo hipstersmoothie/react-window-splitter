@@ -543,6 +543,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       onCollapseChange,
       onResize,
       collapseAnimation,
+      isStaticAtRest,
       ...props
     },
     outerRef
@@ -570,6 +571,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         id: props.id,
         defaultCollapsed,
         default: defaultSize,
+        isStaticAtRest,
       });
     }, [
       collapseAnimation,
@@ -581,6 +583,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       min,
       props.id,
       defaultSize,
+      isStaticAtRest,
     ]);
 
     const { id: panelId } = useGroupItem(panelDataRef);

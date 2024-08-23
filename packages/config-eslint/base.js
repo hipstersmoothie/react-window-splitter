@@ -7,7 +7,15 @@ import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import * as tsParser from "@typescript-eslint/parser";
 
 export default [
-  { ignores: ["**/dist/**", "**/.next/**", "**/coverage/**"] },
+  {
+    ignores: [
+      "**/dist/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/.tshy-build/**",
+      "**/.tshy/**",
+    ],
+  },
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
   { languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } } },
   { languageOptions: { globals: globals.node } },

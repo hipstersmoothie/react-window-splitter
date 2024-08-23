@@ -1,0 +1,50 @@
+import {
+  ColorfulPanel,
+  ColorfulPanelGroup,
+  ColorfulPanelResizer,
+} from "../../../../Components/ColorfulPanels";
+import { CodeBlock } from "mdxts/components";
+
+# Static at rest
+
+The default behavior of the window splitter is represent the panel widths as percentages of the available space.
+Notice in the following example that as you resize the window, all the panels scale proportionally.
+
+<div className="overflow-scroll my-6" style={{ resize:'horizontal' }}>
+  <ColorfulPanelGroup style={{ height: 200 }}>
+    <ColorfulPanel color="green" min="80px" max="200px" id="1" />
+    <ColorfulPanelResizer id="2" />
+    <ColorfulPanel color="red" min="130px" id="3" />
+    <ColorfulPanelResizer id="4" />
+    <ColorfulPanel color="blue" min="130px" id="5" />
+  </ColorfulPanelGroup>
+</div>
+
+This is desired for most use cases, but you can also use the `isStaticAtRest` prop to make the panel width pixel-based.
+This means when the user resizes the window or container, the panel will stay the same size.
+
+<div className="overflow-scroll my-6" style={{ resize:'horizontal' }}>
+  <ColorfulPanelGroup style={{ height: 200 }}>
+    <ColorfulPanel color="green" min="80px" max="200px" id="1" isStaticAtRest />
+    <ColorfulPanelResizer id="2" />
+    <ColorfulPanel color="red" min="130px" id="3" />
+    <ColorfulPanelResizer id="4" />
+    <ColorfulPanel color="blue" min="130px" id="5" />
+  </ColorfulPanelGroup>
+</div>
+
+```tsx
+import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
+
+function StaticAtRestExample() {
+  return (
+    <PanelGroup>
+      <Panel min="80px" max="200px" isStaticAtRest />
+      <PanelResizer />
+      <Panel min="130px" />
+      <PanelResizer />
+      <Panel min="130px" />
+    </PanelGroup>
+  );
+}
+```
