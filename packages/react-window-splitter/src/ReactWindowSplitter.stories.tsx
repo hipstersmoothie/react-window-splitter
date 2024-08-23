@@ -637,7 +637,7 @@ export function StaticAtRest({
 }) {
   return (
     <StyledPanelGroup handle={handle} style={{ height: 200 }}>
-      <StyledPanel min="100px" max="300px" isStaticAtRest={true}>
+      <StyledPanel min="100px" max="300px" isStaticAtRest>
         Panel 1
       </StyledPanel>
       <StyledResizer />

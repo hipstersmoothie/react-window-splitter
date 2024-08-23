@@ -583,6 +583,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       min,
       props.id,
       defaultSize,
+      isStaticAtRest,
     ]);
 
     const { id: panelId } = useGroupItem(panelDataRef);
