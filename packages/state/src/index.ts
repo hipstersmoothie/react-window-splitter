@@ -65,6 +65,13 @@ export interface Constraints<T extends ParsedUnit | Unit = ParsedUnit> {
   defaultCollapsed?: boolean;
   /** The size of the panel once collapsed */
   collapsedSize?: T;
+  /**
+   * By default the layout will be stored in percentage values while at rest.
+   * This makes scaling the layout easier when the container is resized.
+   * However you might have a panel you want to stay at a static size when
+   * the container is resized.
+   */
+  isStaticAtRest?: boolean;
 }
 
 interface Order {
@@ -416,6 +423,7 @@ type InitializePanelOptions = {
 } & Partial<
   Pick<
     PanelData,
+    | "isStaticAtRest"
     | "collapseAnimation"
     | "defaultCollapsed"
     | "onResize"
@@ -469,6 +477,7 @@ export function initializePanel(
     id: item.id,
     collapseAnimation: item.collapseAnimation,
     default: item.default ? parseUnit(item.default) : undefined,
+    isStaticAtRest: item.isStaticAtRest,
   } satisfies Omit<PanelData, "id" | "currentValue"> & { id?: string };
 
   return { ...data, currentValue: makePixelUnit(-1) } satisfies Omit<
@@ -724,11 +733,9 @@ function getStaticWidth(context: GroupMachineContextValue) {
   for (const item of context.items) {
     if (isPanelHandle(item)) {
       width = width.add(item.size.value);
-    } else if (
-      isPanelData(item) &&
-      item.collapsed &&
-      item.currentValue.type === "pixel"
-    ) {
+    } else if (item.collapsed && item.currentValue.type === "pixel") {
+      width = width.add(item.currentValue.value);
+    } else if (item.isStaticAtRest) {
       width = width.add(item.currentValue.value);
     }
   }
@@ -803,6 +810,11 @@ export function buildTemplate(context: GroupMachineContextValue) {
           item.currentValue.type === "pixel" &&
           item.currentValue.value.toNumber() !== -1
         ) {
+          if (item.isStaticAtRest) {
+            const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
+            return `clamp(${min}, ${formatUnit(item.currentValue)}, ${max})`;
+          }
+
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
           const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
@@ -1227,7 +1239,7 @@ function commitLayout(context: GroupMachineContextValue) {
   const staticWidth = getStaticWidth({ ...context, items: newItems });
 
   newItems.forEach((item, index) => {
-    if (item.type !== "panel" || item.collapsed) {
+    if (item.type !== "panel" || item.collapsed || item.isStaticAtRest) {
       return;
     }
 
