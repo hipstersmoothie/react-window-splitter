@@ -49,9 +49,21 @@ import {
 const GroupMachineContext = createActorContext(groupMachine);
 
 // function useDebugGroupMachineContext({ id }: { id: string }) {
-// const value = GroupMachineContext.useSelector((state) => state.value);
-// const context = GroupMachineContext.useSelector((state) => state.context);
-// console.log("GROUP CONTEXT", id, value, buildTemplate(context));
+//   const value = GroupMachineContext.useSelector((state) => state.value);
+//   const context = GroupMachineContext.useSelector((state) => state.context);
+//   console.log(
+//     "GROUP CONTEXT",
+//     buildTemplate(context),
+//     context.size,
+//     context.items.map((item) =>
+//       isPanelData(item)
+//         ? {
+//             type: item.currentValue.type,
+//             value: item.currentValue.value.toNumber(),
+//           }
+//         : { type: item.size.type, value: item.size.value.toNumber() }
+//     )
+//   );
 // }
 
 const useIsomorphicLayoutEffect =
@@ -285,7 +297,8 @@ const PanelGroupImpl = React.forwardRef<
   },
   ref
 ) {
-  const groupId = `panel-group-${useId()}`;
+  const defaultGroupId = `panel-group-${useId()}`;
+  const groupId = props.id || autosaveId || defaultGroupId;
   const [snapshot, setSnapshot] = React.useState<
     Snapshot<unknown> | true | undefined
   >(snapshotProp);
@@ -382,8 +395,6 @@ const PanelGroupImplementation = React.forwardRef<
       return;
     }
 
-    let hasMeasuredChildren = false;
-
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
 
@@ -391,15 +402,17 @@ const PanelGroupImplementation = React.forwardRef<
         return;
       }
 
-      if (!hasMeasuredChildren) {
-        measureGroupChildren(groupId, (childrenSizes) => {
-          send({ type: "setSize", size: entry.contentRect });
-          send({ type: "setActualItemsSize", childrenSizes });
-          hasMeasuredChildren = true;
-        });
-      } else {
+      const context = machineRef.getSnapshot().context;
+      const handleOverflow =
+        context.orientation === "horizontal"
+          ? entry.contentRect.width < entry.target.scrollWidth
+          : entry.contentRect.height < entry.target.scrollHeight;
+
+      measureGroupChildren(groupId, (childrenSizes) => {
         send({ type: "setSize", size: entry.contentRect });
-      }
+        send({ type: "setActualItemsSize", childrenSizes });
+        send({ type: "setSize", size: entry.contentRect, handleOverflow });
+      });
     });
 
     observer.observe(el);

@@ -1301,6 +1301,189 @@ describe("collapsible panel", () => {
       expect(getTemplate(actor)).toMatchInlineSnapshot(`"245px 10px 245px"`);
     });
   });
+
+  describe("constraints", () => {
+    test("on render", async () => {
+      const actor = createActor(groupMachine, {
+        input: { groupId: "group" },
+      }).start();
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1", min: "200px" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: { id: "resizer-1", size: "10px" },
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "300px",
+            collapsedSize: "60px",
+          }),
+        },
+      ]);
+
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+      );
+      initializeSizes(actor, { width: 400, height: 200 });
+      actor.send({
+        type: "setSize",
+        size: { width: 400, height: 200 },
+        handleOverflow: true,
+      });
+      // There wasn't enough space to render the panel so the last one is collapsed
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
+      );
+    });
+
+    test("on resize", async () => {
+      const actor = createActor(groupMachine, {
+        input: { groupId: "group" },
+      }).start();
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1", min: "200px" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: { id: "resizer-1", size: "10px" },
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "300px",
+            collapsedSize: "60px",
+          }),
+        },
+      ]);
+
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+      );
+      initializeSizes(actor, { width: 500, height: 200 });
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(0.40816326530612244898 * (100% - 10px)), 100%)) 10px minmax(300px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"
+      );
+
+      actor.send({
+        type: "setSize",
+        size: { width: 400, height: 200 },
+        handleOverflow: true,
+      });
+      // There wasn't enough space to render the panel so the last one is collapsed
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
+      );
+    });
+
+    test("cannot expand panel via event", async () => {
+      const actor = createActor(groupMachine, {
+        input: { groupId: "group" },
+      }).start();
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1", min: "200px" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: { id: "resizer-1", size: "10px" },
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "300px",
+            collapsedSize: "60px",
+          }),
+        },
+      ]);
+
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+      );
+      initializeSizes(actor, { width: 400, height: 200 });
+      actor.send({
+        type: "setSize",
+        size: { width: 400, height: 200 },
+        handleOverflow: true,
+      });
+      // There wasn't enough space to render the panel so the last one is collapsed
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
+      );
+
+      actor.send({
+        type: "expandPanel",
+        panelId: "panel-2",
+      });
+      await waitForIdle(actor);
+
+      // There wasn't enough space to render the panel so the last one is collapsed
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
+      );
+    });
+
+    test("cannot expand panel via drag", async () => {
+      const actor = createActor(groupMachine, {
+        input: { groupId: "group" },
+      }).start();
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1", min: "200px" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: { id: "resizer-1", size: "10px" },
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "300px",
+            collapsedSize: "60px",
+          }),
+        },
+      ]);
+
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+      );
+      initializeSizes(actor, { width: 400, height: 200 });
+      actor.send({
+        type: "setSize",
+        size: { width: 400, height: 200 },
+        handleOverflow: true,
+      });
+      // There wasn't enough space to render the panel so the last one is collapsed
+      expect(getTemplate(actor)).toBe(
+        "minmax(200px, min(calc(1 * (100% - 70px)), 100%)) 10px 60px"
+      );
+
+      // Drag the resizer to the right
+      capturePixelValues(actor, () => {
+        dragHandle(actor, { id: "resizer-1", delta: -400 });
+        expect(getTemplate(actor)).toBe("330px 10px 60px");
+      });
+    });
+  });
 });
 
 describe("conditional panel", () => {

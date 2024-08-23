@@ -228,6 +228,7 @@ interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
+  handleOverflow?: boolean;
 }
 
 interface SetActualItemsSizeEvent {
@@ -686,10 +687,7 @@ function panelHasSpace(
     );
   }
 
-  return (
-    item.currentValue.value.gt(getUnitPixelValue(context, item.min)) &&
-    item.currentValue.value.lte(getUnitPixelValue(context, item.max))
-  );
+  return item.currentValue.value.gt(getUnitPixelValue(context, item.min));
 }
 
 /** Search in a `direction` for a panel that still has space to expand. */
@@ -919,18 +917,18 @@ function createUnrestrainedPanel(_: GroupMachineContextValue, data: PanelData) {
  */
 
 /** Converts the items to pixels */
-export function prepareItems(context: GroupMachineContextValue) {
+export function prepareItems(context: GroupMachineContextValue): Item[] {
   const staticWidth = getStaticWidth(context);
   const newItems = [];
 
   for (const item of context.items) {
     if (!item || !isPanelData(item)) {
-      newItems.push(item);
+      newItems.push({ ...item });
       continue;
     }
 
     if (item.currentValue.type === "pixel") {
-      newItems.push(item);
+      newItems.push({ ...item });
       continue;
     }
 
@@ -1031,6 +1029,10 @@ function updateLayout(
 
     const isInDragBugger =
       newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
+      // Let the panel expand at it's min size
+      !panelAfter.currentValue.value
+        .add(newDragOvershoot.abs())
+        .gte(panelAfter.min.value) &&
       panelAfter.collapsible &&
       panelAfter.collapsed &&
       (isInLeftOvershoot || isInRightOvershoot);
@@ -1048,9 +1050,11 @@ function updateLayout(
 
   // Don't let the panel collapse until the threshold is reached
   if (
+    !dragEvent.disregardCollapseBuffer &&
     panelBefore.collapsible &&
-    panelBefore.currentValue.value ===
+    panelBefore.currentValue.value.eq(
       getUnitPixelValue(context, panelBefore.min)
+    )
   ) {
     const potentialNewValue = panelBefore.currentValue.value.sub(
       newDragOvershoot.abs()
@@ -1116,8 +1120,6 @@ function updateLayout(
             .add(Math.abs(moveAmount))
         );
 
-    panelAfter.collapsed = false;
-
     if (extra.gt(0)) {
       panelAfterNewValue = panelAfterNewValue.add(extra);
     }
@@ -1131,6 +1133,13 @@ function updateLayout(
           .minus(Math.abs(moveAmount))
       );
 
+    if (panelBeforeNewValue.lt(panelBefore.min.value)) {
+      // TODO this should probably distribute the space between the panels?
+      return { dragOvershoot: newDragOvershoot };
+    }
+
+    panelAfter.collapsed = false;
+
     if (
       panelAfter.onCollapseChange?.current &&
       !panelAfter.collapseIsControlled &&
@@ -1140,9 +1149,9 @@ function updateLayout(
     }
   }
 
-  const panelBeforeIsAboutToCollapse =
-    panelBefore.currentValue.value ===
-    getUnitPixelValue(context, panelBefore.min);
+  const panelBeforeIsAboutToCollapse = panelBefore.currentValue.value.eq(
+    getUnitPixelValue(context, panelBefore.min)
+  );
 
   // If the panel was expanded and now is at it's min size, collapse it
   if (
@@ -1187,8 +1196,11 @@ function updateLayout(
   );
 
   if (!leftoverSpace.eq(0)) {
-    panelBefore.currentValue.value =
-      panelBefore.currentValue.value.add(leftoverSpace);
+    panelBefore.currentValue.value = clampUnit(
+      context,
+      panelBefore,
+      panelBefore.currentValue.value.add(leftoverSpace)
+    );
   }
 
   return { items: newItems };
@@ -1334,6 +1346,81 @@ function applyDeltaInBothDirections(
   }
 }
 
+/**
+ * A layout might overflow at small screen sizes.
+ * This function tries to fix that by:
+ *
+ * 1. It will try to collapse a panel if it can.
+ */
+function handleOverflow(context: GroupMachineContextValue) {
+  // If we haven't measured yet we can't do anything
+  if (
+    context.items.some((i) => isPanelData(i) && i.currentValue.value.eq(-1))
+  ) {
+    return context;
+  }
+
+  const groupSize = new Big(getGroupSize(context));
+  const nonStaticWidth = groupSize.sub(getStaticWidth(context).toNumber());
+  const pixelItems = context.items.map((i) => {
+    if (isPanelHandle(i)) return i.size.value;
+    if (i.collapsed) return getUnitPixelValue(context, i.currentValue);
+
+    const pixel =
+      (i.currentValue.type === "pixel" && i.currentValue.value) ||
+      i.currentValue.value.mul(nonStaticWidth);
+
+    return clampUnit(context, i, pixel);
+  });
+  const totalSize = pixelItems.reduce((acc, i) => acc.add(i), new Big(0));
+  const overflow = totalSize.abs().sub(groupSize);
+
+  if (overflow.eq(0) || groupSize.eq(0)) {
+    return context;
+  }
+
+  let newContext = { ...context, items: prepareItems(context) };
+
+  const collapsiblePanel = newContext.items.find((i): i is PanelData =>
+    Boolean(isPanelData(i) && i.collapsible)
+  );
+
+  if (collapsiblePanel) {
+    const collapsiblePanelIndex = newContext.items.findIndex(
+      (i) => i.id === collapsiblePanel.id
+    );
+    const handleId = getHandleForPanelId(newContext, collapsiblePanel.id);
+    const sizeChange = collapsiblePanel.currentValue.value.sub(
+      getUnitPixelValue(newContext, collapsiblePanel.collapsedSize)
+    );
+
+    // Try to collapse the panel
+    newContext = {
+      ...newContext,
+      ...iterativelyUpdateLayout({
+        handleId: handleId.item.id,
+        delta: sizeChange,
+        direction: (handleId.direction * -1) as -1 | 1,
+        context: {
+          ...newContext,
+          // act like its the old size so the space is distributed correctly
+          size: { width: totalSize.toNumber(), height: totalSize.toNumber() },
+        },
+      }),
+    };
+
+    // Then remove all the overflow
+    applyDeltaInBothDirections(
+      newContext,
+      newContext.items,
+      collapsiblePanelIndex,
+      overflow.neg()
+    );
+  }
+
+  return { ...newContext, items: commitLayout(newContext) };
+}
+
 // #endregion
 
 // #region Machine
@@ -1349,6 +1436,22 @@ interface AnimationActorOutput {
   action: "expand" | "collapse";
 }
 
+function getDeltaForEvent(
+  context: GroupMachineContextValue,
+  event: CollapsePanelEvent | ExpandPanelEvent
+) {
+  const panel = getPanelWithId(context, event.panelId);
+
+  if (event.type === "expandPanel") {
+    return new Big(
+      panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)
+    ).minus(panel.currentValue.value);
+  }
+
+  const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
+  return panel.currentValue.value.minus(collapsedSize);
+}
+
 const animationActor = fromPromise<
   AnimationActorOutput | undefined,
   AnimationActorInput
@@ -1359,18 +1462,11 @@ const animationActor = fromPromise<
       const handle = getHandleForPanelId(context, event.panelId);
 
       let direction = new Big(handle.direction);
-      let fullDelta = new Big(0);
+      const fullDelta = getDeltaForEvent(context, event);
 
-      if (event.type === "expandPanel") {
-        fullDelta = new Big(
-          panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)
-        ).minus(panel.currentValue.value);
-      } else {
-        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
-
+      if (event.type === "collapsePanel") {
         panel.sizeBeforeCollapse = panel.currentValue.value.toNumber();
         direction = direction.mul(new Big(-1));
-        fullDelta = panel.currentValue.value.minus(collapsedSize);
       }
 
       const fps = 60;
@@ -1457,6 +1553,8 @@ export const groupMachine = createMachine(
             { target: "togglingCollapse" },
           ],
           expandPanel: [
+            // This will match if we can't expand and the expansion won't happen
+            { guard: "cannotExpandPanel" },
             {
               actions: "notifyCollapseToggle",
               guard: "shouldNotifyCollapseToggle",
@@ -1530,6 +1628,38 @@ export const groupMachine = createMachine(
         const panel = getPanelWithId(context, event.panelId);
         return panel.collapseIsControlled === true;
       },
+      cannotExpandPanel: ({ context, event }) => {
+        isEvent(event, ["expandPanel"]);
+        const delta = getDeltaForEvent(context, event);
+        const handle = getHandleForPanelId(context, event.panelId);
+        const pixelItems = prepareItems(context);
+
+        let interimContext = { ...context, items: pixelItems };
+        interimContext = {
+          ...interimContext,
+          ...iterativelyUpdateLayout({
+            context: interimContext,
+            handleId: handle.item.id,
+            controlled: event.controlled,
+            delta: delta,
+            direction: handle.direction,
+          }),
+        };
+        const updatedPanel = interimContext.items.find(
+          (i) => i.id === event.panelId
+        );
+        const totalSize = interimContext.items.reduce(
+          (acc, i) =>
+            acc.add(isPanelData(i) ? i.currentValue.value : i.size.value),
+          new Big(0)
+        );
+        const didExpand =
+          updatedPanel &&
+          isPanelData(updatedPanel) &&
+          !updatedPanel.currentValue.value.eq(updatedPanel.collapsedSize.value);
+
+        return totalSize.gt(getGroupSize(context)) || !didExpand;
+      },
     },
     actors: {
       animation: animationActor,
@@ -1575,11 +1705,14 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: assign({
-        size: ({ event }) => {
-          isEvent(event, ["setSize"]);
-          return event.size;
-        },
+      updateSize: enqueueActions(({ context, event, enqueue }) => {
+        isEvent(event, ["setSize"]);
+
+        if (event.handleOverflow) {
+          enqueue.assign(handleOverflow({ ...context, size: event.size }));
+        } else {
+          enqueue.assign({ size: event.size });
+        }
       }),
       recordActualItemSize: assign({
         items: ({ context, event }) => {
@@ -1763,10 +1896,14 @@ export const groupMachine = createMachine(
               item,
               getUnitPixelValue(context, item.currentValue)
             );
+            const groupSize = getGroupSize(context);
 
             item.onResize?.current?.({
               pixel: pixel.toNumber(),
-              percentage: pixel.div(getGroupSize(context)).toNumber(),
+              percentage:
+                groupSize > 0
+                  ? pixel.div(getGroupSize(context)).toNumber()
+                  : -1,
             });
           }
         }

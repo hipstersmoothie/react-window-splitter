@@ -37,7 +37,7 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: packages/react-window-splitter
-        run: pnpm exec playwright install
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Lint
         run: pnpm lint
