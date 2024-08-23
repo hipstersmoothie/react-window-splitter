@@ -368,6 +368,8 @@ const PanelGroupImplementation = React.forwardRef<
       return;
     }
 
+    let hasMeasured = false;
+
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
 
@@ -382,8 +384,29 @@ const PanelGroupImplementation = React.forwardRef<
           : entry.contentRect.height < entry.target.scrollHeight;
 
       measureGroupChildren(groupId, (childrenSizes) => {
-        send({ type: "setSize", size: entry.contentRect });
-        send({ type: "setActualItemsSize", childrenSizes });
+        const canUpdateSize = Object.entries(childrenSizes).every(
+          ([childId, i]) => {
+            const { collapsed, collapsible, currentValue } = context.items.find(
+              (j) => j.id === childId
+            ) as PanelData;
+
+            if (collapsible && collapsed && currentValue.value.eq(0)) {
+              return;
+            }
+
+            // If something is at 0 it can throw off resizing.
+            return context.orientation === "horizontal"
+              ? i.width !== 0
+              : i.height !== 0;
+          }
+        );
+
+        if (canUpdateSize && (handleOverflow || !hasMeasured)) {
+          send({ type: "setSize", size: entry.contentRect });
+          send({ type: "setActualItemsSize", childrenSizes });
+          hasMeasured = true;
+        }
+
         send({ type: "setSize", size: entry.contentRect, handleOverflow });
       });
     });
