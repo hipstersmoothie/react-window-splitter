@@ -1029,6 +1029,10 @@ function updateLayout(
 
     const isInDragBugger =
       newDragOvershoot.abs().lt(COLLAPSE_THRESHOLD) &&
+      // Let the panel expand at it's min size
+      !panelAfter.currentValue.value
+        .add(newDragOvershoot.abs())
+        .gte(panelAfter.min.value) &&
       panelAfter.collapsible &&
       panelAfter.collapsed &&
       (isInLeftOvershoot || isInRightOvershoot);
