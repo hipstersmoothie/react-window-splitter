@@ -1,3 +1,21 @@
+# v0.4.0 (Fri Aug 23 2024)
+
+#### 🚀 Enhancement
+
+- `react-window-splitter`, `@window-splitter/state`
+  - Add "isStaticAtRest" prop [#34](https://github.com/hipstersmoothie/react-window-splitter/pull/34) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - Collapse Validation [#33](https://github.com/hipstersmoothie/react-window-splitter/pull/33) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### 🐛 Bug Fix
+
+- Add view on github button to landing page [#35](https://github.com/hipstersmoothie/react-window-splitter/pull/35) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.3.2 (Wed Aug 21 2024)
 
 #### 🐛 Bug Fix

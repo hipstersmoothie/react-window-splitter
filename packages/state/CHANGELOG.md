@@ -1,3 +1,30 @@
+# v0.4.0 (Fri Aug 23 2024)
+
+#### 🚀 Enhancement
+
+- Add "isStaticAtRest" prop [#34](https://github.com/hipstersmoothie/react-window-splitter/pull/34) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Collapse Validation [#33](https://github.com/hipstersmoothie/react-window-splitter/pull/33) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### 🐛 Bug Fix
+
+- Add "isStaticAtRest" prop ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- simplify types ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix panel expandsion to min ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- add tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- get keyboard collapse logic working too ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- cleaner ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix being able to drag past a min ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- auto collapse panels when there is no room ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- loosen check to include panels that might be too big ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix bad percent calc ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix comparisions ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.3.2 (Wed Aug 21 2024)
 
 #### 🐛 Bug Fix
