@@ -48,23 +48,23 @@ import {
 
 const GroupMachineContext = createActorContext(groupMachine);
 
-function useDebugGroupMachineContext({ id }: { id: string }) {
-  const value = GroupMachineContext.useSelector((state) => state.value);
-  const context = GroupMachineContext.useSelector((state) => state.context);
-  console.log(
-    "GROUP CONTEXT",
-    buildTemplate(context),
-    context.size,
-    context.items.map((item) =>
-      isPanelData(item)
-        ? {
-            type: item.currentValue.type,
-            value: item.currentValue.value.toNumber(),
-          }
-        : { type: item.size.type, value: item.size.value.toNumber() }
-    )
-  );
-}
+// function useDebugGroupMachineContext({ id }: { id: string }) {
+//   const value = GroupMachineContext.useSelector((state) => state.value);
+//   const context = GroupMachineContext.useSelector((state) => state.context);
+//   console.log(
+//     "GROUP CONTEXT",
+//     buildTemplate(context),
+//     context.size,
+//     context.items.map((item) =>
+//       isPanelData(item)
+//         ? {
+//             type: item.currentValue.type,
+//             value: item.currentValue.value.toNumber(),
+//           }
+//         : { type: item.size.type, value: item.size.value.toNumber() }
+//     )
+//   );
+// }
 
 const useIsomorphicLayoutEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -421,7 +421,7 @@ const PanelGroupImplementation = React.forwardRef<
     };
   }, [send, innerRef, groupId]);
 
-  useDebugGroupMachineContext({ id: groupId });
+  // useDebugGroupMachineContext({ id: groupId });
 
   const fallbackHandleRef = React.useRef<PanelGroupHandle>(null);
 
