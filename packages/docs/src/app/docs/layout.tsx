@@ -48,6 +48,9 @@ async function Sidebar() {
           Conditional Panels
         </SidebarItem>
         <SidebarItem path="/docs/examples/persistance">Persistance</SidebarItem>
+        <SidebarItem path="/docs/examples/static-at-rest">
+          Static at rest
+        </SidebarItem>
       </SidebarGroup>
       <SidebarGroup title="API Docs">
         <SidebarItem path="/docs/api/panel-group">PanelGroup</SidebarItem>
