@@ -24,49 +24,47 @@ async function dragHandle(options: {
   orientation?: "horizontal" | "vertical";
 }) {
   const orientation = options.orientation || "horizontal";
+  const handle = document.querySelector(
+    options.handleId
+      ? `[data-splitter-id="${options.handleId}"]`
+      : '[data-splitter-type="handle"]'
+  );
 
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise<void>(async (resolve) => {
-    const handle = document.querySelector(
-      options.handleId
-        ? `[data-splitter-id="${options.handleId}"]`
-        : '[data-splitter-type="handle"]'
-    );
+  if (!handle) {
+    throw new Error(`Handle not found: ${options.handleId}`);
+  }
 
-    if (!handle) {
-      throw new Error(`Handle not found: ${options.handleId}`);
-    }
+  const rect = handle.getBoundingClientRect();
+  const x = rect.x + rect.width / 2;
+  const y = rect.y + rect.height / 2;
+  const step = options.delta > 0 ? 1 : -1;
 
-    const rect = handle.getBoundingClientRect();
-    const x = rect.x + rect.width / 2;
-    const y = rect.y + rect.height / 2;
-    const step = options.delta > 0 ? 1 : -1;
+  handle.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      bubbles: true,
+      clientX: x,
+      clientY: y,
+    })
+  );
 
+  for (let i = 0; i < Math.abs(options.delta - 1); i++) {
     handle.dispatchEvent(
-      new PointerEvent("pointerdown", { bubbles: true, clientX: x, clientY: y })
-    );
-
-    for (let i = 0; i < Math.abs(options.delta - 1); i++) {
-      handle.dispatchEvent(
-        new PointerEvent("pointermove", {
-          bubbles: true,
-          clientX: orientation === "horizontal" ? x + i * step : x,
-          clientY: orientation === "vertical" ? y + i * step : y,
-        })
-      );
-      await new Promise((r) => setTimeout(r, 10));
-    }
-
-    handle.dispatchEvent(
-      new PointerEvent("pointerup", {
+      new PointerEvent("pointermove", {
         bubbles: true,
-        clientX: orientation === "horizontal" ? x + options.delta : x,
-        clientY: orientation === "vertical" ? y + options.delta : y,
+        clientX: orientation === "horizontal" ? x + i * step : x,
+        clientY: orientation === "vertical" ? y + i * step : y,
       })
     );
+    await new Promise((r) => setTimeout(r, 10));
+  }
 
-    resolve();
-  });
+  handle.dispatchEvent(
+    new PointerEvent("pointerup", {
+      bubbles: true,
+      clientX: orientation === "horizontal" ? x + options.delta : x,
+      clientY: orientation === "vertical" ? y + options.delta : y,
+    })
+  );
 }
 
 async function waitForMeasurement(handle: PanelGroupHandle) {
@@ -263,7 +261,6 @@ describe("Autosave", () => {
 
     expect(document.cookie).toMatchSnapshot();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ActualClass = (Cookies as any).default || Cookies;
     const cookies = new ActualClass(null, { path: "/" });
     const snapshot = cookies.get("autosave-cookie-example");

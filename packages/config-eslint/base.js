@@ -72,4 +72,10 @@ export default [
       "no-console": "error",
     },
   },
+  {
+    files: ["**/*.test.*"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];

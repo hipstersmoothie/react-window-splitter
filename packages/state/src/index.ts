@@ -358,9 +358,9 @@ export function getCursor(
 }
 
 export function prepareSnapshot(snapshot: Snapshot<unknown>) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const snapshotContext = (snapshot as any)
-    .context as unknown as GroupMachineContextValue;
+  const snapshotContext = (
+    snapshot as unknown as { context: GroupMachineContextValue }
+  ).context;
 
   snapshotContext.dragOvershoot = new Big(snapshotContext.dragOvershoot);
 
@@ -1727,8 +1727,7 @@ export const groupMachine = createMachine(
       }),
       onToggleCollapseComplete: assign({
         items: ({ context, event: e }) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const output = (e as any).output as AnimationActorOutput;
+          const { output } = e as unknown as { output: AnimationActorOutput };
           invariant(output, "Expected output from animation actor");
 
           const panel = getPanelWithId(context, output.panelId);
