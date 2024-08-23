@@ -135,7 +135,7 @@ dist
 *storybook.log
 .tshy
 .tshy-build
-src/package.json
+**/src/package.json
 .turbo
 
 packages/docs/analyze/** 
