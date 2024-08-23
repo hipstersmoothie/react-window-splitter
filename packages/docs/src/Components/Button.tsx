@@ -7,21 +7,59 @@ import {
   LinkProps,
 } from "react-aria-components";
 
-const DEFAULT_BUTTON_CLASSES =
-  "bg-blue-solid border-blue-normal text-blue-1 dark:text-bluedark-1 rounded-lg px-3 py-1 text-lg";
+const variants = {
+  primary: "bg-blue-solid rounded-lg px-3 py-1 text-lg flex items-center gap-2",
+  secondary:
+    "bg-gray-action rounded-lg px-3 py-1 text-lg flex items-center gap-2",
+};
 
-export function Button({ className, ...props }: ButtonProps) {
+interface VariantProps {
+  variant?: "primary" | "secondary";
+}
+
+interface IconProps {
+  icon?: React.ReactNode;
+}
+
+export function Button({
+  className,
+  variant = "primary",
+  children,
+  icon,
+  ...props
+}: Omit<ButtonProps, "children"> &
+  VariantProps &
+  IconProps & { children: React.ReactNode }) {
   return (
     <ButtonPrimitive
-      className={`${DEFAULT_BUTTON_CLASSES} ${className}`}
+      className={({ isFocusVisible }) => {
+        return `${variants[variant]} ${className} ${isFocusVisible ? "" : "focus:outline-none"}`;
+      }}
       {...props}
-    />
+    >
+      {icon}
+      {children}
+    </ButtonPrimitive>
   );
 }
 
-export function ButtonLink({ children, className, ...props }: LinkProps) {
+export function ButtonLink({
+  children,
+  className,
+  variant = "primary",
+  icon,
+  ...props
+}: Omit<LinkProps, "children"> &
+  VariantProps &
+  IconProps & { children: React.ReactNode }) {
   return (
-    <Link className={`${DEFAULT_BUTTON_CLASSES} ${className}`} {...props}>
+    <Link
+      className={({ isFocusVisible }) => {
+        return `${variants[variant]} ${className} ${isFocusVisible ? "" : "focus:outline-none"}`;
+      }}
+      {...props}
+    >
+      {icon}
       {children}
     </Link>
   );
