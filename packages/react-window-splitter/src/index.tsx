@@ -389,7 +389,7 @@ const PanelGroupImplementation = React.forwardRef<
   }, [send, innerRef, groupId]);
 
   const childIds = GroupMachineContext.useSelector((state) =>
-    state.context.items.map((i) => i.id)
+    state.context.items.map((i) => i.id).join(",")
   );
   useIsomorphicLayoutEffect(() => {
     return measureGroupChildren(groupId, (childrenSizes) => {
