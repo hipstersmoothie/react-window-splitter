@@ -2011,7 +2011,7 @@ describe("autosave", () => {
     }).start();
 
     expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px 150px 10px 140px"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
     );
   });
 
@@ -2055,7 +2055,7 @@ describe("autosave", () => {
     }).start();
 
     expect(buildTemplate(actor2.getSnapshot().context)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px 150px 10px 140px"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, min(calc(0.51724137931034482759 * (100% - 210px)), 100%)) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
     );
   });
 });

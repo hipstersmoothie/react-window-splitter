@@ -309,6 +309,11 @@ export interface GroupMachineContextValue {
   autosaveStrategy?: "localStorage" | "cookie";
 }
 
+export type GroupMachineSnapshot = Snapshot<unknown> & {
+  context: GroupMachineContextValue;
+  value: string;
+};
+
 export type GroupMachineEvent =
   | RegisterPanelEvent
   | RegisterDynamicPanelEvent
@@ -357,10 +362,8 @@ export function getCursor(
   }
 }
 
-export function prepareSnapshot(snapshot: Snapshot<unknown>) {
-  const snapshotContext = (
-    snapshot as unknown as { context: GroupMachineContextValue }
-  ).context;
+export function prepareSnapshot(snapshot: GroupMachineSnapshot) {
+  const snapshotContext = snapshot.context;
 
   snapshotContext.dragOvershoot = new Big(snapshotContext.dragOvershoot);
 
@@ -1552,6 +1555,7 @@ export const groupMachine = createMachine(
     }),
     states: {
       idle: {
+        entry: ["onAutosave"],
         on: {
           setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
           dragHandleStart: { target: "dragging" },
@@ -1596,7 +1600,7 @@ export const groupMachine = createMachine(
             actions: "runCollapseToggle",
           },
         },
-        exit: ["commit", "onAutosave"],
+        exit: ["commit"],
       },
       togglingCollapse: {
         entry: ["prepare"],
@@ -1605,7 +1609,7 @@ export const groupMachine = createMachine(
           input: (i) => ({ ...i, send: i.self.send }),
           onDone: {
             target: "idle",
-            actions: ["onToggleCollapseComplete", "commit", "onAutosave"],
+            actions: ["onToggleCollapseComplete", "commit"],
           },
         },
         on: {
@@ -1689,7 +1693,10 @@ export const groupMachine = createMachine(
           return;
         }
 
-        const data = JSON.stringify(self.getPersistedSnapshot());
+        const snapshot = self.getPersistedSnapshot() as GroupMachineSnapshot;
+        snapshot.context.items = context.items;
+        snapshot.value = "idle";
+        const data = JSON.stringify(snapshot);
 
         if (context.autosaveStrategy === "localStorage") {
           localStorage.setItem(context.groupId, data);

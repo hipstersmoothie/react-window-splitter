@@ -10,7 +10,6 @@ import React, {
   useMemo,
 } from "react";
 import { mergeProps, useButton, useId, useMove } from "react-aria";
-import { Snapshot } from "xstate";
 import { createActorContext } from "@xstate/react";
 import invariant from "invariant";
 import { useComposedRefs } from "@radix-ui/react-compose-refs";
@@ -18,6 +17,7 @@ import { useIndex, useIndexedChildren } from "reforest";
 import {
   buildTemplate,
   Constraints,
+  GroupMachineSnapshot,
   getCollapsiblePanelForHandleId,
   getGroupSize,
   getPanelWithId,
@@ -128,7 +128,7 @@ export interface PanelGroupProps
   /** Imperative handle to control the group */
   handle?: React.Ref<PanelGroupHandle>;
   /** Persisted state to initialized the machine with */
-  snapshot?: Snapshot<unknown>;
+  snapshot?: GroupMachineSnapshot;
   /** An id to use for autosaving the layout */
   autosaveId?: string;
 }
@@ -296,7 +296,7 @@ const PanelGroupImpl = React.forwardRef<
   const defaultGroupId = `panel-group-${useId()}`;
   const groupId = autosaveId || props.id || defaultGroupId;
   const [snapshot, setSnapshot] = React.useState<
-    Snapshot<unknown> | true | undefined
+    GroupMachineSnapshot | true | undefined
   >(snapshotProp);
 
   if (
