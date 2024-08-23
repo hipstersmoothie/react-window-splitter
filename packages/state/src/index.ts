@@ -917,18 +917,18 @@ function createUnrestrainedPanel(_: GroupMachineContextValue, data: PanelData) {
  */
 
 /** Converts the items to pixels */
-export function prepareItems(context: GroupMachineContextValue) {
+export function prepareItems(context: GroupMachineContextValue): Item[] {
   const staticWidth = getStaticWidth(context);
   const newItems = [];
 
   for (const item of context.items) {
     if (!item || !isPanelData(item)) {
-      newItems.push(item);
+      newItems.push({ ...item });
       continue;
     }
 
     if (item.currentValue.type === "pixel") {
-      newItems.push(item);
+      newItems.push({ ...item });
       continue;
     }
 
@@ -1203,8 +1203,11 @@ function updateLayout(
   );
 
   if (!leftoverSpace.eq(0)) {
-    panelBefore.currentValue.value =
-      panelBefore.currentValue.value.add(leftoverSpace);
+    panelBefore.currentValue.value = clampUnit(
+      context,
+      panelBefore,
+      panelBefore.currentValue.value.add(leftoverSpace)
+    );
   }
 
   return { items: newItems };
@@ -1445,6 +1448,22 @@ interface AnimationActorOutput {
   action: "expand" | "collapse";
 }
 
+function getDeltaForEvent(
+  context: GroupMachineContextValue,
+  event: CollapsePanelEvent | ExpandPanelEvent
+) {
+  const panel = getPanelWithId(context, event.panelId);
+
+  if (event.type === "expandPanel") {
+    return new Big(
+      panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)
+    ).minus(panel.currentValue.value);
+  }
+
+  const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
+  return panel.currentValue.value.minus(collapsedSize);
+}
+
 const animationActor = fromPromise<
   AnimationActorOutput | undefined,
   AnimationActorInput
@@ -1455,18 +1474,11 @@ const animationActor = fromPromise<
       const handle = getHandleForPanelId(context, event.panelId);
 
       let direction = new Big(handle.direction);
-      let fullDelta = new Big(0);
+      const fullDelta = getDeltaForEvent(context, event);
 
-      if (event.type === "expandPanel") {
-        fullDelta = new Big(
-          panel.sizeBeforeCollapse ?? getUnitPixelValue(context, panel.min)
-        ).minus(panel.currentValue.value);
-      } else {
-        const collapsedSize = getUnitPixelValue(context, panel.collapsedSize);
-
+      if (event.type === "collapsePanel") {
         panel.sizeBeforeCollapse = panel.currentValue.value.toNumber();
         direction = direction.mul(new Big(-1));
-        fullDelta = panel.currentValue.value.minus(collapsedSize);
       }
 
       const fps = 60;
@@ -1553,6 +1565,8 @@ export const groupMachine = createMachine(
             { target: "togglingCollapse" },
           ],
           expandPanel: [
+            // This will match if we can't expand and the expansion won't happen
+            { guard: "cannotExpandPanel" },
             {
               actions: "notifyCollapseToggle",
               guard: "shouldNotifyCollapseToggle",
@@ -1625,6 +1639,33 @@ export const groupMachine = createMachine(
         isEvent(event, ["collapsePanel", "expandPanel"]);
         const panel = getPanelWithId(context, event.panelId);
         return panel.collapseIsControlled === true;
+      },
+      cannotExpandPanel: ({ context, event }) => {
+        isEvent(event, ["expandPanel"]);
+        const delta = getDeltaForEvent(context, event);
+        const handle = getHandleForPanelId(context, event.panelId);
+        const pixelItems = prepareItems(context);
+
+        let interimContext = { ...context, items: pixelItems };
+        interimContext = {
+          ...interimContext,
+          ...updateLayout(interimContext, {
+            handleId: handle.item.id,
+            type: "dragHandle",
+            controlled: event.controlled,
+            value: dragHandlePayload({
+              delta: delta.toNumber(),
+              orientation: context.orientation,
+            }),
+          }),
+        };
+        const totalSize = interimContext.items.reduce(
+          (acc, i) =>
+            acc.add(isPanelData(i) ? i.currentValue.value : i.size.value),
+          new Big(0)
+        );
+
+        return totalSize.gt(getGroupSize(context));
       },
     },
     actors: {
