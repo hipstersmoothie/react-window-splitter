@@ -808,6 +808,7 @@ export function getPanelPercentageSize(
 /** Build the grid template from the item values. */
 export function buildTemplate(context: GroupMachineContextValue) {
   const staticWidth = getStaticWidth(context);
+  let hasSeenFillPanel = false;
 
   return context.items
     .map((item) => {
@@ -825,6 +826,15 @@ export function buildTemplate(context: GroupMachineContextValue) {
 
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
+          if (
+            !hasSeenFillPanel &&
+            (item.max === "1fr" ||
+              (item.max.type === "percent" && item.max.value.eq(100)))
+          ) {
+            hasSeenFillPanel = true;
+            return `minmax(${min}, 1fr)`;
+          }
+
           const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
           return `minmax(${min}, min(calc(${item.currentValue.value} * (100% - ${staticWidth}px)), ${max}))`;
         } else if (item.collapsible && item.collapsed) {
