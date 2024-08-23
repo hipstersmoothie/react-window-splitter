@@ -179,7 +179,7 @@ export function VerticalLayout2({
     <StyledPanelGroup
       handle={handle}
       orientation="vertical"
-      style={{ height: 322 }}
+      style={{ height: "calc(100vh - 100px)" }}
     >
       <StyledPanel default="200px" min="200px">
         top
