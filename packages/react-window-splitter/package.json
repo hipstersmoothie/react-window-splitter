@@ -19,7 +19,8 @@
   "scripts": {
     "build": "tshy",
     "test": "vitest",
-    "dev": "tshy -w",
+    "test:ci": "vitest",
+    "dev": "xvfb-run -w",
     "lint": "eslint ."
   },
   "license": "MIT",

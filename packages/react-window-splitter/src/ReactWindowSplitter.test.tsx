@@ -208,8 +208,6 @@ describe("Autosave", () => {
       `"342px 10px 146px"`
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     await waitForCondition(() =>
       Boolean(localStorage.getItem("autosave-example"))
     );

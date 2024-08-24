@@ -1462,6 +1462,10 @@ function handleOverflow(context: GroupMachineContextValue) {
   return { ...newContext, items: commitLayout(newContext) };
 }
 
+function clearLastKnownSize(items: Item[]) {
+  return items.map((i) => ({ ...i, lastKnownSize: undefined }));
+}
+
 // #endregion
 
 // #region Machine
@@ -1582,7 +1586,7 @@ export const groupMachine = createMachine(
           setPanelPixelSize: {
             actions: [
               "prepare",
-              "clearLastKnownSize",
+              "onClearLastKnownSize",
               "onSetPanelSize",
               "commit",
               "onResize",
@@ -1611,7 +1615,7 @@ export const groupMachine = createMachine(
         entry: ["prepare"],
         on: {
           dragHandle: {
-            actions: ["clearLastKnownSize", "onDragHandle", "onResize"],
+            actions: ["onClearLastKnownSize", "onDragHandle", "onResize"],
           },
           dragHandleEnd: { target: "idle" },
           collapsePanel: {
@@ -1626,7 +1630,7 @@ export const groupMachine = createMachine(
         exit: ["commit"],
       },
       togglingCollapse: {
-        entry: ["prepare", "clearLastKnownSize"],
+        entry: ["prepare", "onClearLastKnownSize"],
         invoke: {
           src: "animation",
           input: (i) => ({ ...i, send: i.self.send }),
@@ -1647,7 +1651,7 @@ export const groupMachine = createMachine(
         actions: [
           "prepare",
           "onRegisterDynamicPanel",
-          "clearLastKnownSize",
+          "onClearLastKnownSize",
           "commit",
           "onResize",
           "onAutosave",
@@ -1657,7 +1661,7 @@ export const groupMachine = createMachine(
         actions: [
           "prepare",
           "removeItem",
-          "clearLastKnownSize",
+          "onClearLastKnownSize",
           "commit",
           "onResize",
           "onAutosave",
@@ -1668,7 +1672,7 @@ export const groupMachine = createMachine(
         actions: [
           "prepare",
           "removeItem",
-          "clearLastKnownSize",
+          "onClearLastKnownSize",
           "commit",
           "onResize",
           "onAutosave",
@@ -1676,7 +1680,7 @@ export const groupMachine = createMachine(
       },
       setSize: { actions: ["updateSize", "onResize"] },
       setOrientation: {
-        actions: ["updateOrientation", "clearLastKnownSize", "onResize"],
+        actions: ["updateOrientation", "onClearLastKnownSize", "onResize"],
       },
     },
   },
@@ -1735,7 +1739,7 @@ export const groupMachine = createMachine(
         }
 
         const snapshot = self.getPersistedSnapshot() as GroupMachineSnapshot;
-        snapshot.context.items = context.items;
+        snapshot.context.items = clearLastKnownSize(context.items);
         snapshot.value = "idle";
         const data = JSON.stringify(snapshot);
 
@@ -1796,13 +1800,7 @@ export const groupMachine = createMachine(
             handleOverflow({
               ...context,
               size: event.size,
-              items: prepareItems(context).map((i) => {
-                if (isPanelData(i)) {
-                  return { ...i, lastKnownSize: undefined };
-                }
-
-                return i;
-              }),
+              items: clearLastKnownSize(prepareItems(context)),
             })
           );
         } else {
@@ -1826,10 +1824,8 @@ export const groupMachine = createMachine(
           return event.orientation;
         },
       }),
-      clearLastKnownSize: assign({
-        items: ({ context }) => {
-          return context.items.map((i) => ({ ...i, lastKnownSize: undefined }));
-        },
+      onClearLastKnownSize: assign({
+        items: ({ context }) => clearLastKnownSize(context.items),
       }),
       assignPanelData: assign({
         items: ({ context, event }) => {
