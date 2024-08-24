@@ -121,6 +121,7 @@ export interface PanelGroupHandle {
   setSizes: (items: Array<Unit>) => void;
   /** Get the template for the group in pixels. Useful for testing */
   getTemplate: () => string;
+  getState: () => "idle" | "dragging";
 }
 
 export interface PanelGroupProps
@@ -438,6 +439,8 @@ const PanelGroupImplementation = React.forwardRef<
         const context = machineRef.getSnapshot().context;
         return buildTemplate({ ...context, items: prepareItems(context) });
       },
+      getState: () =>
+        machineRef.getSnapshot().value === "idle" ? "idle" : "dragging",
     };
   });
 

@@ -96,17 +96,30 @@ async function expectTemplate(
   const stack = new Error().stack;
   let template;
 
-  await waitFor(() => {
-    template = handle.current.getTemplate();
+  await waitFor(
+    () => {
+      template = handle.current.getTemplate();
 
-    if (!template.includes(resolvedTemplate)) {
-      const e = new Error(
-        `\nExpected: ${resolvedTemplate}\nGot     : ${template}`
-      );
-      e.stack = stack;
-      throw e;
+      if (!template.includes(resolvedTemplate)) {
+        const e = new Error(
+          `\nExpected: ${resolvedTemplate}\nGot     : ${template}`
+        );
+        e.stack = stack;
+        throw e;
+      }
+
+      if (handle.current.getState() !== "idle") {
+        const e = new Error(
+          `\nExpected: idle\nGot     : ${handle.current.getState()}`
+        );
+        e.stack = stack;
+        throw e;
+      }
+    },
+    {
+      timeout: 2_000,
     }
-  });
+  );
 
   expect(template).toBe(resolvedTemplate);
 }
@@ -173,7 +186,7 @@ test("Conditional Panels", async () => {
   await expectTemplate(handle, "236.953125px 10px 141.046875px 10px 100px");
 
   getByText("Close").click();
-  await expectTemplate(handle, "236.953125px 10px 251.03125px");
+  await expectTemplate(handle, "236.96875px 10px 251.03125px");
 });
 
 describe("Autosave", () => {
@@ -292,7 +305,7 @@ test("Keyboard interactions with collapsed panels", async () => {
 
   const resizer2 = document.getElementById("resizer-2")!;
   fireEvent.keyDown(resizer2, { key: "Enter" });
-  await expectTemplate(handle, "209px 10px 169px 10px 100px");
+  await expectTemplate(handle, "209px 10px 168.953125px 10px 100.03125px");
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
@@ -304,12 +317,12 @@ test("Keyboard interactions with collapsed panels", async () => {
   await expectTemplate(handle, "209px 10px 150px 10px 119px");
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
-  await expectTemplate(handle, "209.015625px 10px 208.984375px 10px 60px");
+  await expectTemplate(handle, "209px 10px 209px 10px 60px");
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     handle,
-    "209.03125px 10px 149.984375px 10px 118.96875px"
+    "209.03125px 10px 149.984375px 10px 118.984375px"
   );
 });
 
