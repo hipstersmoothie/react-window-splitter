@@ -17,7 +17,7 @@ exports[`Autosave > localStorage 3`] = `
     },
     "id": "1",
     "lastKnownSize": {
-      "height": 58,
+      "height": 58.5,
       "width": 342,
     },
     "max": "1fr",
@@ -50,7 +50,7 @@ exports[`Autosave > localStorage 3`] = `
     },
     "id": "2",
     "lastKnownSize": {
-      "height": 58,
+      "height": 58.5,
       "width": 146,
     },
     "max": "1fr",

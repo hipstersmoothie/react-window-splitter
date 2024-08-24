@@ -46,7 +46,7 @@ jobs:
         run: pnpm build
 
       - name: Test
-        run: pnpm test -- -- --coverage
+        run: xvfb-run pnpm test -- -- --coverage
 
       - name: Merge Coverage Reports
         if: always()

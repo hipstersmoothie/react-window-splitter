@@ -373,12 +373,22 @@ const PanelGroupImplementation = React.forwardRef<
       }
 
       const context = machineRef.getSnapshot().context;
-      const handleOverflow =
-        context.orientation === "horizontal"
-          ? entry.contentRect.width < entry.target.scrollWidth
-          : entry.contentRect.height < entry.target.scrollHeight;
+      let handleOverflow: boolean;
+      let overflow: number;
 
-      send({ type: "setSize", size: entry.contentRect, handleOverflow });
+      if (context.orientation === "horizontal") {
+        handleOverflow = entry.contentRect.width < entry.target.scrollWidth;
+        overflow = entry.contentRect.width - entry.target.scrollWidth;
+      } else {
+        handleOverflow = entry.contentRect.height < entry.target.scrollHeight;
+        overflow = entry.contentRect.height - entry.target.scrollHeight;
+      }
+
+      send({
+        type: "setSize",
+        size: entry.contentRect,
+        handleOverflow: handleOverflow && Math.abs(overflow) >= 1,
+      });
     });
 
     observer.observe(el);

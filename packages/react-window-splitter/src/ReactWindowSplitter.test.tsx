@@ -142,7 +142,7 @@ test("vertical layout", async () => {
   );
 });
 
-test.skip("Conditional Panels", async () => {
+test("Conditional Panels", async () => {
   const handle = { current: null } as unknown as {
     current: PanelGroupHandle;
   };
@@ -161,21 +161,21 @@ test.skip("Conditional Panels", async () => {
   getByText("Expand").click();
   await waitForCondition(
     () =>
-      handle.current.getTemplate().startsWith("232.046875px") &&
+      handle.current.getTemplate().startsWith("236.953125px") &&
       handle.current.getTemplate().endsWith("100px")
   );
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"232.046875px 10px 145.9375px 10px 100px"`
+    `"236.953125px 10px 141.046875px 10px 100px"`
   );
 
   getByText("Close").click();
   await waitForCondition(
     () =>
-      handle.current.getTemplate().startsWith("232.046875px") &&
+      handle.current.getTemplate().startsWith("236.953125px") &&
       !handle.current.getTemplate().endsWith("100px")
   );
   expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"232.046875px 10px 255.9375px"`
+    `"236.953125px 10px 251.03125px"`
   );
 });
 
@@ -200,12 +200,15 @@ describe("Autosave", () => {
     );
 
     await dragHandle({ delta: 100 });
+
     await waitForCondition(() =>
       handle.current.getTemplate().endsWith("146px")
     );
     expect(handle.current.getTemplate()).toMatchInlineSnapshot(
       `"342px 10px 146px"`
     );
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     await waitForCondition(() =>
       Boolean(localStorage.getItem("autosave-example"))
@@ -340,19 +343,27 @@ test("Keyboard interactions with collapsed panels", async () => {
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
 
-  await waitFor(() => {
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"209px 10px 150px 10px 119px"`
-    );
+  await waitForCondition(() => {
+    return handle.current
+      .getTemplate()
+      .includes("209.015625px 10px 208.984375px 10px 60px");
   });
+
+  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+    `"209.015625px 10px 208.984375px 10px 60px"`
+  );
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
 
-  await waitFor(() => {
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"209px 10px 149.9375px 10px 119.046875px"`
-    );
+  await waitForCondition(() => {
+    return handle.current
+      .getTemplate()
+      .includes("209.03125px 10px 149.984375px 10px 118.96875px");
   });
+
+  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+    `"209.03125px 10px 149.984375px 10px 118.96875px"`
+  );
 });
 
 describe("imperative panel API", async () => {
