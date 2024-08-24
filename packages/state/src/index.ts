@@ -1626,7 +1626,7 @@ export const groupMachine = createMachine(
         exit: ["commit"],
       },
       togglingCollapse: {
-        entry: ["clearLastKnownSize", "prepare"],
+        entry: ["prepare", "clearLastKnownSize"],
         invoke: {
           src: "animation",
           input: (i) => ({ ...i, send: i.self.send }),

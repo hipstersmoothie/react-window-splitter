@@ -332,27 +332,27 @@ test("Keyboard interactions with collapsed panels", async () => {
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft", shiftKey: true });
 
-  await waitForCondition(() => handle.current.getTemplate().endsWith("119px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 150px 10px 119px"`
-  );
-
-  fireEvent.keyDown(resizer2, { key: "Enter" });
-
-  await waitForCondition(() => handle.current.getTemplate().endsWith("60px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 209px 10px 60px"`
-  );
+  await waitFor(() => {
+    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+      `"209px 10px 150px 10px 119px"`
+    );
+  });
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
 
-  await waitForCondition(() => handle.current.getTemplate().endsWith("119px"));
+  await waitFor(() => {
+    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+      `"209px 10px 150px 10px 119px"`
+    );
+  });
 
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 150px 10px 119px"`
-  );
+  fireEvent.keyDown(resizer2, { key: "Enter" });
+
+  await waitFor(() => {
+    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
+      `"209px 10px 149.9375px 10px 119.046875px"`
+    );
+  });
 });
 
 describe("imperative panel API", async () => {
