@@ -237,7 +237,6 @@ interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
-  handleOverflow?: boolean;
 }
 
 interface SetActualItemsSizeEvent {
@@ -1792,30 +1791,48 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["setSize"]);
-
-        if (event.handleOverflow) {
-          enqueue.assign(
-            handleOverflow({
-              ...context,
-              size: event.size,
-              items: clearLastKnownSize(prepareItems(context)),
-            })
-          );
-        } else {
-          enqueue.assign({ size: event.size });
-        }
+      updateSize: assign({
+        size: ({ event }) => {
+          isEvent(event, ["setSize"]);
+          return event.size;
+        },
       }),
       recordActualItemSize: assign({
         items: ({ context, event }) => {
           isEvent(event, ["setActualItemsSize"]);
 
-          return context.items.map((i) => {
+          const withLastKnownSize = context.items.map((i) => {
             if (!isPanelData(i)) return i;
             const lastKnownSize = event.childrenSizes[i.id] || i.lastKnownSize;
             return { ...i, lastKnownSize };
           });
+
+          let totalSize = 0;
+
+          for (const item of context.items) {
+            if (isPanelData(item)) {
+              const size =
+                item.lastKnownSize?.[
+                  context.orientation === "horizontal" ? "width" : "height"
+                ];
+
+              // If any size is 0 don't handle overflow
+              if (!size) {
+                return withLastKnownSize;
+              }
+
+              totalSize += size;
+            } else {
+              totalSize += item.size.value.toNumber();
+            }
+          }
+
+          if (totalSize > getGroupSize(context)) {
+            return handleOverflow({ ...context, items: withLastKnownSize })
+              .items;
+          }
+
+          return withLastKnownSize;
         },
       }),
       updateOrientation: assign({
