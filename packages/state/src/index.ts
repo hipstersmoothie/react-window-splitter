@@ -1809,7 +1809,7 @@ export const groupMachine = createMachine(
 
           let totalSize = 0;
 
-          for (const item of context.items) {
+          for (const item of withLastKnownSize) {
             if (isPanelData(item)) {
               const size =
                 item.lastKnownSize?.[
@@ -1828,8 +1828,10 @@ export const groupMachine = createMachine(
           }
 
           if (totalSize > getGroupSize(context)) {
-            return handleOverflow({ ...context, items: withLastKnownSize })
-              .items;
+            return handleOverflow({
+              ...context,
+              items: prepareItems({ ...context, items: withLastKnownSize }),
+            }).items;
           }
 
           return withLastKnownSize;

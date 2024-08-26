@@ -1331,11 +1331,6 @@ describe("collapsible panel", () => {
         "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
       );
       initializeSizes(actor, { width: 400, height: 200 });
-      actor.send({
-        type: "setSize",
-        size: { width: 400, height: 200 },
-        handleOverflow: true,
-      });
       // There wasn't enough space to render the panel so the last one is collapsed
       expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
     });
@@ -1368,21 +1363,18 @@ describe("collapsible panel", () => {
       expect(getTemplate(actor)).toBe(
         "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
       );
-      initializeSizes(actor, { width: 500, height: 200 });
+      initializeSizes(actor, { width: 510, height: 200 });
 
       capturePixelValues(actor, () => {
         dragHandle(actor, { id: "resizer-1", delta: 10 });
       });
 
       expect(getTemplate(actor)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, min(calc(0.61224489795918367347 * (100% - 10px)), 100%))"
+        "minmax(200px, 1fr) 10px minmax(300px, min(calc(0.6 * (100% - 10px)), 100%))"
       );
 
-      actor.send({
-        type: "setSize",
-        size: { width: 400, height: 200 },
-        handleOverflow: true,
-      });
+      initializeSizes(actor, { width: 400, height: 200 });
+
       // There wasn't enough space to render the panel so the last one is collapsed
       expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
     });
@@ -1463,13 +1455,12 @@ describe("collapsible panel", () => {
         "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
       );
       initializeSizes(actor, { width: 400, height: 200 });
-      actor.send({
-        type: "setSize",
-        size: { width: 400, height: 200 },
-        handleOverflow: true,
-      });
+
       // There wasn't enough space to render the panel so the last one is collapsed
       expect(getTemplate(actor)).toBe("minmax(200px, 1fr) 10px 60px");
+
+      // update the latest sizes to the new ones
+      initializeSizes(actor, { width: 400, height: 200 });
 
       // Drag the resizer to the right
       capturePixelValues(actor, () => {
