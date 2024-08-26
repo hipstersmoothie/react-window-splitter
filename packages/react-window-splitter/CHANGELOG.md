@@ -1,3 +1,29 @@
+# v0.4.1 (Sun Aug 25 2024)
+
+#### 🐛 Bug Fix
+
+- Responsive Bugs [#38](https://github.com/hipstersmoothie/react-window-splitter/pull/38) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- move handle overflow logic to recordActualItemSize ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix? ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- more ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix rounding errors ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- update test ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- stop re-run ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- updating tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- measure more ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Fix resize/overflow bug where if a panel hits 0 it stays at 0 ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- make story use view height ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- move autosave to state package [#36](https://github.com/hipstersmoothie/react-window-splitter/pull/36) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- fix tests ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- improve lint ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- move autosave to state ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.4.0 (Fri Aug 23 2024)
 
 #### 🚀 Enhancement

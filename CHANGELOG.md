@@ -1,3 +1,17 @@
+# v0.4.1 (Sun Aug 25 2024)
+
+#### 🐛 Bug Fix
+
+- `react-window-splitter`, `@window-splitter/state`
+  - Responsive Bugs [#38](https://github.com/hipstersmoothie/react-window-splitter/pull/38) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+  - move autosave to state package [#36](https://github.com/hipstersmoothie/react-window-splitter/pull/36) ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 1
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+---
+
 # v0.4.0 (Fri Aug 23 2024)
 
 #### 🚀 Enhancement
