@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tshy",
-    "test": "vitest",
+    "test": "CI=true vitest",
     "dev": "tshy -w",
     "lint": "eslint ."
   },

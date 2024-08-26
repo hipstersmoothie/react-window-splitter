@@ -116,6 +116,7 @@ export interface PanelData
   collapseAnimation?:
     | CollapseAnimation
     | { duration: number; easing: CollapseAnimation | ((t: number) => number) };
+  lastKnownSize?: Rect;
 }
 
 function getCollapseAnimation(panel: PanelData) {
@@ -236,7 +237,6 @@ interface SetSizeEvent {
   /** Set the size of the whole group */
   type: "setSize";
   size: Rect;
-  handleOverflow?: boolean;
 }
 
 interface SetActualItemsSizeEvent {
@@ -808,6 +808,7 @@ export function getPanelPercentageSize(
 /** Build the grid template from the item values. */
 export function buildTemplate(context: GroupMachineContextValue) {
   const staticWidth = getStaticWidth(context);
+  let hasSeenFillPanel = false;
 
   return context.items
     .map((item) => {
@@ -825,6 +826,15 @@ export function buildTemplate(context: GroupMachineContextValue) {
 
           return formatUnit(item.currentValue);
         } else if (item.currentValue.type === "percent") {
+          if (
+            !hasSeenFillPanel &&
+            (item.max === "1fr" ||
+              (item.max.type === "percent" && item.max.value.eq(100)))
+          ) {
+            hasSeenFillPanel = true;
+            return `minmax(${min}, 1fr)`;
+          }
+
           const max = item.max === "1fr" ? "100%" : formatUnit(item.max);
           return `minmax(${min}, min(calc(${item.currentValue.value} * (100% - ${staticWidth}px)), ${max}))`;
         } else if (item.collapsible && item.collapsed) {
@@ -944,6 +954,16 @@ export function prepareItems(context: GroupMachineContextValue): Item[] {
   for (const item of context.items) {
     if (!item || !isPanelData(item)) {
       newItems.push({ ...item });
+      continue;
+    }
+
+    if (item.lastKnownSize) {
+      const lastSize = makePixelUnit(
+        context.orientation === "horizontal"
+          ? item.lastKnownSize.width
+          : item.lastKnownSize.height
+      );
+      newItems.push({ ...item, currentValue: lastSize });
       continue;
     }
 
@@ -1441,6 +1461,10 @@ function handleOverflow(context: GroupMachineContextValue) {
   return { ...newContext, items: commitLayout(newContext) };
 }
 
+function clearLastKnownSize(items: Item[]) {
+  return items.map((i) => ({ ...i, lastKnownSize: undefined }));
+}
+
 // #endregion
 
 // #region Machine
@@ -1557,11 +1581,11 @@ export const groupMachine = createMachine(
       idle: {
         entry: ["onAutosave"],
         on: {
-          setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
           dragHandleStart: { target: "dragging" },
           setPanelPixelSize: {
             actions: [
               "prepare",
+              "onClearLastKnownSize",
               "onSetPanelSize",
               "commit",
               "onResize",
@@ -1589,7 +1613,9 @@ export const groupMachine = createMachine(
       dragging: {
         entry: ["prepare"],
         on: {
-          dragHandle: { actions: ["onDragHandle", "onResize"] },
+          dragHandle: {
+            actions: ["onClearLastKnownSize", "onDragHandle", "onResize"],
+          },
           dragHandleEnd: { target: "idle" },
           collapsePanel: {
             guard: "shouldCollapseToggle",
@@ -1603,7 +1629,7 @@ export const groupMachine = createMachine(
         exit: ["commit"],
       },
       togglingCollapse: {
-        entry: ["prepare"],
+        entry: ["prepare", "onClearLastKnownSize"],
         invoke: {
           src: "animation",
           input: (i) => ({ ...i, send: i.self.send }),
@@ -1618,25 +1644,43 @@ export const groupMachine = createMachine(
       },
     },
     on: {
+      setActualItemsSize: { actions: ["recordActualItemSize", "onResize"] },
       registerPanel: { actions: ["assignPanelData"] },
       registerDynamicPanel: {
         actions: [
           "prepare",
           "onRegisterDynamicPanel",
+          "onClearLastKnownSize",
           "commit",
           "onResize",
           "onAutosave",
         ],
       },
       unregisterPanel: {
-        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
+        actions: [
+          "prepare",
+          "removeItem",
+          "onClearLastKnownSize",
+          "commit",
+          "onResize",
+          "onAutosave",
+        ],
       },
       registerPanelHandle: { actions: ["assignPanelHandleData"] },
       unregisterPanelHandle: {
-        actions: ["prepare", "removeItem", "commit", "onResize", "onAutosave"],
+        actions: [
+          "prepare",
+          "removeItem",
+          "onClearLastKnownSize",
+          "commit",
+          "onResize",
+          "onAutosave",
+        ],
       },
       setSize: { actions: ["updateSize", "onResize"] },
-      setOrientation: { actions: ["updateOrientation", "onResize"] },
+      setOrientation: {
+        actions: ["updateOrientation", "onClearLastKnownSize", "onResize"],
+      },
     },
   },
   {
@@ -1694,7 +1738,7 @@ export const groupMachine = createMachine(
         }
 
         const snapshot = self.getPersistedSnapshot() as GroupMachineSnapshot;
-        snapshot.context.items = context.items;
+        snapshot.context.items = clearLastKnownSize(context.items);
         snapshot.value = "idle";
         const data = JSON.stringify(snapshot);
 
@@ -1747,34 +1791,50 @@ export const groupMachine = createMachine(
           return context.items;
         },
       }),
-      updateSize: enqueueActions(({ context, event, enqueue }) => {
-        isEvent(event, ["setSize"]);
-
-        if (event.handleOverflow) {
-          enqueue.assign(handleOverflow({ ...context, size: event.size }));
-        } else {
-          enqueue.assign({ size: event.size });
-        }
+      updateSize: assign({
+        size: ({ event }) => {
+          isEvent(event, ["setSize"]);
+          return event.size;
+        },
       }),
       recordActualItemSize: assign({
         items: ({ context, event }) => {
           isEvent(event, ["setActualItemsSize"]);
 
-          const orientation = context.orientation;
+          const withLastKnownSize = context.items.map((i) => {
+            if (!isPanelData(i)) return i;
+            const lastKnownSize = event.childrenSizes[i.id] || i.lastKnownSize;
+            return { ...i, lastKnownSize };
+          });
 
-          for (const [id, size] of Object.entries(event.childrenSizes)) {
-            const item = context.items.find((i) => i.id === id);
+          let totalSize = 0;
 
-            if (!isPanelData(item)) {
-              continue;
+          for (const item of withLastKnownSize) {
+            if (isPanelData(item)) {
+              const size =
+                item.lastKnownSize?.[
+                  context.orientation === "horizontal" ? "width" : "height"
+                ];
+
+              // If any size is 0 don't handle overflow
+              if (!size) {
+                return withLastKnownSize;
+              }
+
+              totalSize += size;
+            } else {
+              totalSize += item.size.value.toNumber();
             }
-
-            item.currentValue = makePixelUnit(
-              orientation === "horizontal" ? size.width : size.height
-            );
           }
 
-          return commitLayout(context);
+          if (totalSize > getGroupSize(context)) {
+            return handleOverflow({
+              ...context,
+              items: prepareItems({ ...context, items: withLastKnownSize }),
+            }).items;
+          }
+
+          return withLastKnownSize;
         },
       }),
       updateOrientation: assign({
@@ -1782,6 +1842,9 @@ export const groupMachine = createMachine(
           isEvent(event, ["setOrientation"]);
           return event.orientation;
         },
+      }),
+      onClearLastKnownSize: assign({
+        items: ({ context }) => clearLastKnownSize(context.items),
       }),
       assignPanelData: assign({
         items: ({ context, event }) => {
@@ -1933,11 +1996,17 @@ export const groupMachine = createMachine(
       onResize: ({ context }) => {
         for (const item of context.items) {
           if (isPanelData(item)) {
-            const pixel = clampUnit(
-              context,
-              item,
-              getUnitPixelValue(context, item.currentValue)
-            );
+            const pixel = item.lastKnownSize
+              ? new Big(
+                  context.orientation === "horizontal"
+                    ? item.lastKnownSize.width
+                    : item.lastKnownSize.height
+                )
+              : clampUnit(
+                  context,
+                  item,
+                  getUnitPixelValue(context, item.currentValue)
+                );
             const groupSize = getGroupSize(context);
 
             item.onResize?.current?.({

@@ -10,7 +10,10 @@
       "cache": false,
       "persistent": true
     },
-    "test": { "outputs": ["coverage/**"] },
+    "test": {
+      "outputs": ["coverage/**"],
+      "passThroughEnv": ["DISPLAY", "XAUTHORITY", "XDG_RUNTIME_DIR"]
+    },
     "lint": { "outputs": [] },
     "//#lint-root": { "outputs": [] }
   }

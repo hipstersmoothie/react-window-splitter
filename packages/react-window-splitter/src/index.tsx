@@ -89,7 +89,6 @@ function measureGroupChildren(
     }
 
     cb(childrenSizes);
-    childrenObserver.disconnect();
   });
 
   const children = document.querySelectorAll(
@@ -99,6 +98,10 @@ function measureGroupChildren(
   for (const child of children) {
     childrenObserver.observe(child);
   }
+
+  return () => {
+    childrenObserver.disconnect();
+  };
 }
 
 export interface PanelGroupHandle {
@@ -118,6 +121,7 @@ export interface PanelGroupHandle {
   setSizes: (items: Array<Unit>) => void;
   /** Get the template for the group in pixels. Useful for testing */
   getTemplate: () => string;
+  getState: () => "idle" | "dragging";
 }
 
 export interface PanelGroupProps
@@ -198,12 +202,6 @@ function useGroupItem<T extends Item>(
           send({
             type: "registerDynamicPanel",
             data: { ...itemArg, order: index },
-          });
-
-          requestAnimationFrame(() => {
-            measureGroupChildren(context.groupId, (childrenSizes) => {
-              send({ type: "setActualItemsSize", childrenSizes });
-            });
           });
         } else {
           send({
@@ -375,17 +373,7 @@ const PanelGroupImplementation = React.forwardRef<
         return;
       }
 
-      const context = machineRef.getSnapshot().context;
-      const handleOverflow =
-        context.orientation === "horizontal"
-          ? entry.contentRect.width < entry.target.scrollWidth
-          : entry.contentRect.height < entry.target.scrollHeight;
-
-      measureGroupChildren(groupId, (childrenSizes) => {
-        send({ type: "setSize", size: entry.contentRect });
-        send({ type: "setActualItemsSize", childrenSizes });
-        send({ type: "setSize", size: entry.contentRect, handleOverflow });
-      });
+      send({ type: "setSize", size: entry.contentRect });
     });
 
     observer.observe(el);
@@ -394,6 +382,15 @@ const PanelGroupImplementation = React.forwardRef<
       observer.disconnect();
     };
   }, [send, innerRef, groupId]);
+
+  const childIds = GroupMachineContext.useSelector((state) =>
+    state.context.items.map((i) => i.id).join(",")
+  );
+  useIsomorphicLayoutEffect(() => {
+    return measureGroupChildren(groupId, (childrenSizes) => {
+      send({ type: "setActualItemsSize", childrenSizes });
+    });
+  }, [send, groupId, childIds]);
 
   // useDebugGroupMachineContext({ id: groupId });
 
@@ -426,6 +423,8 @@ const PanelGroupImplementation = React.forwardRef<
         const context = machineRef.getSnapshot().context;
         return buildTemplate({ ...context, items: prepareItems(context) });
       },
+      getState: () =>
+        machineRef.getSnapshot().value === "idle" ? "idle" : "dragging",
     };
   });
 

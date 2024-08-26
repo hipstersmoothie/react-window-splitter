@@ -89,6 +89,41 @@ function waitForCondition(condition: () => boolean) {
   );
 }
 
+async function expectTemplate(
+  handle: { current: PanelGroupHandle },
+  resolvedTemplate: string
+) {
+  const stack = new Error().stack;
+  let template;
+
+  await waitFor(
+    () => {
+      template = handle.current.getTemplate();
+
+      if (!template.includes(resolvedTemplate)) {
+        const e = new Error(
+          `\nExpected: ${resolvedTemplate}\nGot     : ${template}`
+        );
+        e.stack = stack;
+        throw e;
+      }
+
+      if (handle.current.getState() !== "idle") {
+        const e = new Error(
+          `\nExpected: idle\nGot     : ${handle.current.getState()}`
+        );
+        e.stack = stack;
+        throw e;
+      }
+    },
+    {
+      timeout: 2_000,
+    }
+  );
+
+  expect(template).toBe(resolvedTemplate);
+}
+
 test("horizontal layout", async () => {
   const handle = { current: null } as unknown as {
     current: PanelGroupHandle;
@@ -104,15 +139,11 @@ test("horizontal layout", async () => {
   expect(getByText("Panel 1")).toBeInTheDocument();
   expect(getByText("Panel 2")).toBeInTheDocument();
 
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"244px 10px 244px"`
-  );
+  await expectTemplate(handle, "244px 10px 244px");
 
   // Should respect the min
   await dragHandle({ delta: 300 });
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"388px 10px 100px"`
-  );
+  await expectTemplate(handle, "388px 10px 100px");
 });
 
 test("vertical layout", async () => {
@@ -131,18 +162,14 @@ test("vertical layout", async () => {
   expect(getByText("middle")).toBeInTheDocument();
   expect(getByText("bottom")).toBeInTheDocument();
 
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"96px 10px 108px 10px 96px"`
-  );
+  await expectTemplate(handle, "96px 10px 108px 10px 96px");
 
   // Should respect the min
   await dragHandle({ delta: 100, orientation: "vertical" });
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"172px 10px 64px 10px 64px"`
-  );
+  await expectTemplate(handle, "172px 10px 64px 10px 64px");
 });
 
-test.skip("Conditional Panels", async () => {
+test("Conditional Panels", async () => {
   const handle = { current: null } as unknown as {
     current: PanelGroupHandle;
   };
@@ -153,30 +180,13 @@ test.skip("Conditional Panels", async () => {
   );
 
   await waitForMeasurement(handle.current);
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"244px 10px 244px"`
-  );
+  await expectTemplate(handle, "244px 10px 244px");
 
   getByText("Expand").click();
-  await waitForCondition(
-    () =>
-      handle.current.getTemplate().startsWith("232.046875px") &&
-      handle.current.getTemplate().endsWith("100px")
-  );
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"232.046875px 10px 145.9375px 10px 100px"`
-  );
+  await expectTemplate(handle, "236.953125px 10px 141.046875px 10px 100px");
 
   getByText("Close").click();
-  await waitForCondition(
-    () =>
-      handle.current.getTemplate().startsWith("232.046875px") &&
-      !handle.current.getTemplate().endsWith("100px")
-  );
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"232.046875px 10px 255.9375px"`
-  );
+  await expectTemplate(handle, "236.96875px 10px 251.03125px");
 });
 
 describe("Autosave", () => {
@@ -194,18 +204,10 @@ describe("Autosave", () => {
     );
 
     await waitForMeasurement(handle.current);
-
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"244px 10px 244px"`
-    );
+    await expectTemplate(handle, "244px 10px 244px");
 
     await dragHandle({ delta: 100 });
-    await waitForCondition(() =>
-      handle.current.getTemplate().endsWith("146px")
-    );
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"342px 10px 146px"`
-    );
+    await expectTemplate(handle, "342px 10px 146px");
 
     await waitForCondition(() =>
       Boolean(localStorage.getItem("autosave-example"))
@@ -243,17 +245,10 @@ describe("Autosave", () => {
     );
 
     await waitForMeasurement(handle.current);
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"245px 10px 245px"`
-    );
+    await expectTemplate(handle, "245px 10px 245px");
 
     await dragHandle({ delta: 100 });
-    await waitForCondition(() =>
-      handle.current.getTemplate().endsWith("147px")
-    );
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"343px 10px 147px"`
-    );
+    await expectTemplate(handle, "343px 10px 147px");
 
     await waitForCondition(() =>
       document.cookie.includes("autosave-cookie-example")
@@ -288,9 +283,7 @@ describe("Autosave", () => {
       </div>
     );
 
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"343px 10px 147px"`
-    );
+    await expectTemplate(handle, "343px 10px 147px");
   });
 });
 
@@ -308,50 +301,28 @@ test("Keyboard interactions with collapsed panels", async () => {
   );
 
   await waitForMeasurement(handle.current);
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 209px 10px 60px"`
-  );
+  await expectTemplate(handle, "209px 10px 209px 10px 60px");
 
   const resizer2 = document.getElementById("resizer-2")!;
   fireEvent.keyDown(resizer2, { key: "Enter" });
-  await waitForCondition(() => handle.current.getTemplate().endsWith("100px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 169px 10px 100px"`
-  );
+  await expectTemplate(handle, "209px 10px 168.953125px 10px 100.03125px");
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 165px 10px 104px"`
-  );
+  await expectTemplate(handle, "209px 10px 165px 10px 104px");
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft", shiftKey: true });
-
-  await waitForCondition(() => handle.current.getTemplate().endsWith("119px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 150px 10px 119px"`
-  );
+  await expectTemplate(handle, "209px 10px 150px 10px 119px");
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
-
-  await waitForCondition(() => handle.current.getTemplate().endsWith("60px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 209px 10px 60px"`
-  );
+  await expectTemplate(handle, "209px 10px 209px 10px 60px");
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
-
-  await waitForCondition(() => handle.current.getTemplate().endsWith("119px"));
-
-  expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-    `"209px 10px 150px 10px 119px"`
+  await expectTemplate(
+    handle,
+    "209.03125px 10px 149.984375px 10px 118.984375px"
   );
 });
 
@@ -389,9 +360,7 @@ describe("imperative panel API", async () => {
       ]
     `);
 
-    expect(handle.current.getTemplate()).toMatchInlineSnapshot(
-      `"209px 10px 209px 10px 60px"`
-    );
+    await expectTemplate(handle, "209px 10px 209px 10px 60px");
   });
 
   test("panel", async () => {
