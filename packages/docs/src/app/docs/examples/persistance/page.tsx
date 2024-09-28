@@ -1,14 +1,12 @@
 import { cookies } from "next/headers";
-import { CodeBlock } from "mdxts/components";
 import { PersistanceExampleVisual } from "../../../../examples/PersistanceExampleVisual";
-import { H1, H2, InlineCode, Paragraph } from "../../../../Components/Content";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import PersistanceExampleCode from "!!raw-loader!./PersistanceExample";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import PersistanceCookieExampleCode from "!!raw-loader!./PersistanceCookieExample";
+import {
+  H1,
+  H2,
+  InlineCode,
+  Paragraph,
+  StyledLink,
+} from "../../../../Components/Content";
 
 export default async function Persistance() {
   const cookieStore = cookies();
@@ -32,12 +30,11 @@ export default async function Persistance() {
         <PersistanceExampleVisual snapshot={snapshot} />
       </div>
 
-      <CodeBlock
-        value={PersistanceExampleCode}
-        language="tsx"
-        allowErrors
-        showToolbar={false}
-      />
+      <Paragraph>
+        <StyledLink href="https://github.com/hipstersmoothie/react-window-splitter/blob/main/packages/docs/src/app/docs/examples/persistance/PersistanceExample.tsx">
+          See the source code
+        </StyledLink>
+      </Paragraph>
 
       <H2 id="cookie-storage">Cookie Storage</H2>
 
@@ -53,12 +50,11 @@ export default async function Persistance() {
         the following example we get the cookies in a Next.js App Router page.
       </Paragraph>
 
-      <CodeBlock
-        value={PersistanceCookieExampleCode}
-        language="tsx"
-        allowErrors
-        showToolbar={false}
-      />
+      <Paragraph>
+        <StyledLink href="https://github.com/hipstersmoothie/react-window-splitter/blob/main/packages/docs/src/app/docs/examples/persistance/PersistanceCookieExample.tsx">
+          See the source code
+        </StyledLink>
+      </Paragraph>
     </>
   );
 }
