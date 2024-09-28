@@ -35,11 +35,7 @@ const project = new Project({
 });
 const file = project.getSourceFile(targetFile);
 
-export default async function ApiPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function ApiPage({ params }: any) {
   const componentName = pascalCase(params.slug);
   const doc = allDocs.find((d) => d.displayName === componentName);
 

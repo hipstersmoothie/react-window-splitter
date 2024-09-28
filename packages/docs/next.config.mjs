@@ -12,6 +12,9 @@ const withBundleAnalyzer = bundleAnalyzer({ enabled: true });
 let nextConfig = withMdxts({
   pageExtensions: ["js", "jsx", "mdx", "ts", "tsx"],
   reactStrictMode: true,
+  experimental: {
+    ppr: "incremental",
+  },
 });
 
 if (process.env.ANALYZE === "true") {

@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { PanelGroup, Panel, PanelResizer } from "react-window-splitter";
 
-export function PersistanceExamplePage() {
-  const persistedState = cookies().get("autosave");
+export async function PersistanceExamplePage() {
+  const allCookies = await cookies();
+  const persistedState = allCookies.get("autosave");
   const snapshot = persistedState
     ? JSON.parse(persistedState.value)
     : undefined;
