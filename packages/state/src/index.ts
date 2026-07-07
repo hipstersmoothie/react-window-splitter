@@ -2031,6 +2031,7 @@ export function groupMachine(
     }
 
     // enter
+    let skipOnUpdate = false;
     switch (to) {
       case "idle":
         actions.onAutosave();
@@ -2041,12 +2042,30 @@ export function groupMachine(
       case "togglingCollapse":
         actions.prepare();
         actions.clearLastKnownSize();
+        // Write post-prepare template to DOM instead of routing through React.
+        // `prepare()` converts % to px (same rendered width) — committing
+        // through React fires a Layout pass before the raf loop starts,
+        // producing a visible hitch on frame 0.
+        if (getGroupElement) {
+          const el = getGroupElement();
+          if (el) {
+            const template = buildTemplate(context);
+            if (context.orientation === "horizontal") {
+              el.style.gridTemplateColumns = template;
+            } else {
+              el.style.gridTemplateRows = template;
+            }
+            skipOnUpdate = true;
+          }
+        }
         break;
     }
 
     state.current = to;
 
-    onUpdate?.(context);
+    if (!skipOnUpdate) {
+      onUpdate?.(context);
+    }
   }
 
   function send(event: GroupMachineEvent) {
