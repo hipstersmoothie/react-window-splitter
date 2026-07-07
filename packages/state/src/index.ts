@@ -2021,7 +2021,7 @@ export function groupMachine(
     },
   };
 
-  function transition(to: State) {
+  function transition(to: State): boolean {
     // exit
     switch (state.current) {
       case "dragging":
@@ -2031,6 +2031,7 @@ export function groupMachine(
     }
 
     // enter
+    let skipOnUpdate = false;
     switch (to) {
       case "idle":
         actions.onAutosave();
@@ -2041,12 +2042,34 @@ export function groupMachine(
       case "togglingCollapse":
         actions.prepare();
         actions.clearLastKnownSize();
+        // Write post-prepare template to DOM instead of routing through React.
+        // `prepare()` converts % to px (same rendered width) — committing
+        // through React fires a Layout pass before the raf loop starts,
+        // producing a visible hitch on frame 0. Callers propagate the
+        // returned flag into send()'s skipOnUpdate so the trailing onUpdate
+        // there is suppressed too.
+        if (getGroupElement) {
+          const el = getGroupElement();
+          if (el) {
+            const template = buildTemplate(context);
+            if (context.orientation === "horizontal") {
+              el.style.gridTemplateColumns = template;
+            } else {
+              el.style.gridTemplateRows = template;
+            }
+            skipOnUpdate = true;
+          }
+        }
         break;
     }
 
     state.current = to;
 
-    onUpdate?.(context);
+    if (!skipOnUpdate) {
+      onUpdate?.(context);
+    }
+
+    return skipOnUpdate;
   }
 
   function send(event: GroupMachineEvent) {
@@ -2309,7 +2332,7 @@ export function groupMachine(
             const panel = getPanelWithId(context, event.panelId);
 
             if (!panel.collapsed) {
-              transition("togglingCollapse");
+              if (transition("togglingCollapse")) skipOnUpdate = true;
               abortController.abort();
               animationActor(context, event, send, abortController).then(
                 (output) => {
@@ -2332,7 +2355,7 @@ export function groupMachine(
             const panel = getPanelWithId(context, event.panelId);
 
             if (panel.collapsed) {
-              transition("togglingCollapse");
+              if (transition("togglingCollapse")) skipOnUpdate = true;
               abortController.abort();
               animationActor(context, event, send, abortController).then(
                 (output) => {
