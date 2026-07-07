@@ -627,6 +627,34 @@ describe("constraints", () => {
       document.body.removeChild(groupEl);
     });
 
+    test("collapsePanel does not fire onUpdate when getGroupElement is provided (frame-0 hitch)", async () => {
+      const groupEl = document.createElement("div");
+      groupEl.style.display = "grid";
+      document.body.appendChild(groupEl);
+
+      let updateCount = 0;
+      const actor = setupCollapsibleActor(groupEl, () => {
+        updateCount++;
+      });
+      registerCollapsibleLayout(actor);
+
+      const updatesBeforeCollapse = updateCount;
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+
+      expect(actor.state.current).toBe("togglingCollapse");
+      // Neither transition() nor send()'s trailing onUpdate should fire —
+      // otherwise React commits + Layout runs before frame 1 of the animation.
+      expect(updateCount).toBe(updatesBeforeCollapse);
+
+      // DOM template must be written synchronously so the animation actor
+      // starts against pixel-form values.
+      expect(groupEl.style.gridTemplateColumns).toBeTruthy();
+
+      await waitForIdle(actor);
+      document.body.removeChild(groupEl);
+    });
+
     test("onUpdate IS called after animation ends (final sync)", async () => {
       const groupEl = document.createElement("div");
       document.body.appendChild(groupEl);
