@@ -1,3 +1,20 @@
+# v1.2.0 (Wed Jul 08 2026)
+
+#### 🚀 Enhancement
+
+- apply animations directly to dom [#85](https://github.com/hipstersmoothie/window-splitter/pull/85) ([@hipstersmoothie](https://github.com/hipstersmoothie) [@vikr01](https://github.com/vikr01))
+
+#### 🐛 Bug Fix
+
+- apply animations directly to dom ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 2
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Vik R ([@vikr01](https://github.com/vikr01))
+
+---
+
 # v1.1.2 (Mon Jul 21 2025)
 
 #### ⚠️ Pushed to `main`

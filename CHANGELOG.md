@@ -1,3 +1,22 @@
+# v1.2.0 (Wed Jul 08 2026)
+
+#### 🚀 Enhancement
+
+- `@window-splitter/react`, `@window-splitter/solid`, `@window-splitter/state`, `@window-splitter/svelte`, `@window-splitter/vue`, `@window-splitter/web-component`
+  - apply animations directly to dom [#85](https://github.com/hipstersmoothie/window-splitter/pull/85) ([@hipstersmoothie](https://github.com/hipstersmoothie) [@vikr01](https://github.com/vikr01))
+
+#### 🐛 Bug Fix
+
+- `@window-splitter/state`
+  - Also skip onUpdate on transition into togglingCollapse to remove frame-0 hitch [#86](https://github.com/hipstersmoothie/window-splitter/pull/86) ([@vikr01](https://github.com/vikr01))
+
+#### Authors: 2
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Vik R ([@vikr01](https://github.com/vikr01))
+
+---
+
 # v1.1.4 (Mon Jun 29 2026)
 
 #### 🐛 Bug Fix

@@ -1,3 +1,23 @@
+# v1.2.0 (Wed Jul 08 2026)
+
+#### 🚀 Enhancement
+
+- apply animations directly to dom [#85](https://github.com/hipstersmoothie/window-splitter/pull/85) ([@hipstersmoothie](https://github.com/hipstersmoothie) [@vikr01](https://github.com/vikr01))
+
+#### 🐛 Bug Fix
+
+- Also skip onUpdate on transition into togglingCollapse to remove frame-0 hitch [#86](https://github.com/hipstersmoothie/window-splitter/pull/86) ([@vikr01](https://github.com/vikr01))
+- Propagate DOM-write skip up to send() and add regression test ([@vikr01](https://github.com/vikr01))
+- Also skip onUpdate on transition into togglingCollapse to remove frame-0 hitch ([@vikr01](https://github.com/vikr01))
+- apply animations directly to dom ([@hipstersmoothie](https://github.com/hipstersmoothie))
+
+#### Authors: 2
+
+- Andrew Lisowski ([@hipstersmoothie](https://github.com/hipstersmoothie))
+- Vik R ([@vikr01](https://github.com/vikr01))
+
+---
+
 # v1.1.4 (Mon Jun 29 2026)
 
 #### 🐛 Bug Fix
