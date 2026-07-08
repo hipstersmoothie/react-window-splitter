@@ -130,7 +130,8 @@ export class PanelGroup extends LitElement {
         }
 
         this.requestUpdate();
-      }
+      },
+      () => this.renderRoot?.querySelector("div") ?? null
     );
 
     this.state = machineState;

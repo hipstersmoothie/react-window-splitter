@@ -1827,7 +1827,15 @@ let groupId = 0;
 
 export function groupMachine(
   input: Partial<GroupMachineContextValue>,
-  onUpdate?: (context: GroupMachineContextValue) => void
+  onUpdate?: (context: GroupMachineContextValue) => void,
+  /**
+   * A lazy getter for the group's DOM element. When provided and it returns
+   * an element, `applyDelta` frames during collapse/expand animations write
+   * the grid template directly to the DOM and skip `onUpdate` — avoiding a
+   * full reactive re-render per animation frame. Other events still call
+   * `onUpdate` as usual.
+   */
+  getGroupElement?: () => HTMLElement | null
 ) {
   const abortController = new AbortController();
   const state = {
@@ -2013,7 +2021,7 @@ export function groupMachine(
     },
   };
 
-  function transition(to: State) {
+  function transition(to: State): boolean {
     // exit
     switch (state.current) {
       case "dragging":
@@ -2023,6 +2031,7 @@ export function groupMachine(
     }
 
     // enter
+    let skipOnUpdate = false;
     switch (to) {
       case "idle":
         actions.onAutosave();
@@ -2033,15 +2042,39 @@ export function groupMachine(
       case "togglingCollapse":
         actions.prepare();
         actions.clearLastKnownSize();
+        // Write post-prepare template to DOM instead of routing through React.
+        // `prepare()` converts % to px (same rendered width) — committing
+        // through React fires a Layout pass before the raf loop starts,
+        // producing a visible hitch on frame 0. Callers propagate the
+        // returned flag into send()'s skipOnUpdate so the trailing onUpdate
+        // there is suppressed too.
+        if (getGroupElement) {
+          const el = getGroupElement();
+          if (el) {
+            const template = buildTemplate(context);
+            if (context.orientation === "horizontal") {
+              el.style.gridTemplateColumns = template;
+            } else {
+              el.style.gridTemplateRows = template;
+            }
+            skipOnUpdate = true;
+          }
+        }
         break;
     }
 
     state.current = to;
 
-    onUpdate?.(context);
+    if (!skipOnUpdate) {
+      onUpdate?.(context);
+    }
+
+    return skipOnUpdate;
   }
 
   function send(event: GroupMachineEvent) {
+    let skipOnUpdate = false;
+
     switch (event.type) {
       case "lockGroup":
         locked = true;
@@ -2183,6 +2216,15 @@ export function groupMachine(
         actions.onAutosave();
         break;
       case "setActualItemsSize": {
+        // During direct-DOM animations the machine writes grid-template to the
+        // DOM each frame, which causes panel sizes to change, which fires the
+        // ResizeObserver in measureGroupChildren, which sends this event.
+        // Ignore it so we don't trigger an onUpdate and re-render mid-animation.
+        if (state.current === "togglingCollapse" && getGroupElement) {
+          skipOnUpdate = true;
+          break;
+        }
+
         const withLastKnownSize = context.items.map((i) => {
           if (!isPanelData(i)) return i;
           const lastKnownSize = event.childrenSizes[i.id] || i.lastKnownSize;
@@ -2290,7 +2332,7 @@ export function groupMachine(
             const panel = getPanelWithId(context, event.panelId);
 
             if (!panel.collapsed) {
-              transition("togglingCollapse");
+              if (transition("togglingCollapse")) skipOnUpdate = true;
               abortController.abort();
               animationActor(context, event, send, abortController).then(
                 (output) => {
@@ -2313,7 +2355,7 @@ export function groupMachine(
             const panel = getPanelWithId(context, event.panelId);
 
             if (panel.collapsed) {
-              transition("togglingCollapse");
+              if (transition("togglingCollapse")) skipOnUpdate = true;
               abortController.abort();
               animationActor(context, event, send, abortController).then(
                 (output) => {
@@ -2365,11 +2407,28 @@ export function groupMachine(
             })
           );
           actions.onResize();
+
+          if (getGroupElement) {
+            const el = getGroupElement();
+
+            if (el) {
+              const template = buildTemplate(context);
+
+              if (context.orientation === "horizontal") {
+                el.style.gridTemplateColumns = template;
+              } else {
+                el.style.gridTemplateRows = template;
+              }
+              skipOnUpdate = true;
+            }
+          }
           break;
       }
     }
 
-    onUpdate?.(context);
+    if (!skipOnUpdate) {
+      onUpdate?.(context);
+    }
   }
 
   return [context, send, state] as const;

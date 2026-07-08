@@ -10,6 +10,7 @@ import {
   getPanelGroupPixelSizes,
   getPanelPercentageSize,
   getPanelPixelSize,
+  GroupMachineContextValue,
   GroupMachineEvent,
   initializePanel,
   initializePanelHandleData,
@@ -537,6 +538,262 @@ describe("constraints", () => {
     await waitForIdle(actor);
   });
 
+  describe("direct-DOM animation path (getGroupElement)", () => {
+    function setupCollapsibleActor(
+      groupEl: HTMLElement,
+      onUpdate?: (context: GroupMachineContextValue) => void
+    ) {
+      return createActor(
+        { groupId: "group" },
+        onUpdate,
+        () => groupEl
+      );
+    }
+
+    function registerCollapsibleLayout(actor: Actor) {
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "100px",
+            default: "200px",
+            collapseAnimation: {
+              easing: "ease-in-out",
+              duration: 5000, // Long animation so we can intercept mid-flight
+            },
+          }),
+        },
+      ]);
+
+      initializeSizes(actor, { width: 500, height: 200 });
+    }
+
+    test("applyDelta writes grid template directly to the DOM element when getGroupElement is provided", async () => {
+      const groupEl = document.createElement("div");
+      groupEl.style.display = "grid";
+      document.body.appendChild(groupEl);
+
+      const actor = setupCollapsibleActor(groupEl);
+      registerCollapsibleLayout(actor);
+
+      const templateBefore = groupEl.style.gridTemplateColumns;
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(actor.state.current).toBe("togglingCollapse");
+
+      const templateAfter = groupEl.style.gridTemplateColumns;
+      expect(templateAfter).toBeTruthy();
+      expect(templateAfter).not.toEqual(templateBefore);
+
+      await waitForIdle(actor);
+      document.body.removeChild(groupEl);
+    });
+
+    test("onUpdate is NOT called during applyDelta when getGroupElement returns an element", async () => {
+      const groupEl = document.createElement("div");
+      document.body.appendChild(groupEl);
+
+      let updateCount = 0;
+      const actor = setupCollapsibleActor(groupEl, () => {
+        updateCount++;
+      });
+      registerCollapsibleLayout(actor);
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(actor.state.current).toBe("togglingCollapse");
+      // The collapsePanel event itself fires onUpdate (transition + prepare),
+      // but the per-frame applyDelta events do NOT.
+      const updatesAfterAnimationStarted = updateCount;
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(actor.state.current).toBe("togglingCollapse");
+      expect(updateCount).toBe(updatesAfterAnimationStarted);
+
+      await waitForIdle(actor);
+      document.body.removeChild(groupEl);
+    });
+
+    test("collapsePanel does not fire onUpdate when getGroupElement is provided (frame-0 hitch)", async () => {
+      const groupEl = document.createElement("div");
+      groupEl.style.display = "grid";
+      document.body.appendChild(groupEl);
+
+      let updateCount = 0;
+      const actor = setupCollapsibleActor(groupEl, () => {
+        updateCount++;
+      });
+      registerCollapsibleLayout(actor);
+
+      const updatesBeforeCollapse = updateCount;
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+
+      expect(actor.state.current).toBe("togglingCollapse");
+      // Neither transition() nor send()'s trailing onUpdate should fire —
+      // otherwise React commits + Layout runs before frame 1 of the animation.
+      expect(updateCount).toBe(updatesBeforeCollapse);
+
+      // DOM template must be written synchronously so the animation actor
+      // starts against pixel-form values.
+      expect(groupEl.style.gridTemplateColumns).toBeTruthy();
+
+      await waitForIdle(actor);
+      document.body.removeChild(groupEl);
+    });
+
+    test("onUpdate IS called after animation ends (final sync)", async () => {
+      const groupEl = document.createElement("div");
+      document.body.appendChild(groupEl);
+
+      let updateCount = 0;
+      const actor = setupCollapsibleActor(groupEl, () => {
+        updateCount++;
+      });
+
+      // Short animation so it completes quickly
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "100px",
+            default: "200px",
+            collapseAnimation: {
+              easing: "linear",
+              duration: 50,
+            },
+          }),
+        },
+      ]);
+      initializeSizes(actor, { width: 500, height: 200 });
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+      await waitForIdle(actor);
+
+      expect(actor.state.current).toBe("idle");
+      expect(updateCount).toBeGreaterThan(0);
+
+      document.body.removeChild(groupEl);
+    });
+
+    test("behavior unchanged when getGroupElement is omitted (onUpdate fires per frame)", async () => {
+      let updateCount = 0;
+      const actor = createActor({ groupId: "group" }, () => {
+        updateCount++;
+      });
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({ id: "panel-1" }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "100px",
+            default: "200px",
+            collapseAnimation: {
+              easing: "ease-in-out",
+              duration: 5000,
+            },
+          }),
+        },
+      ]);
+      initializeSizes(actor, { width: 500, height: 200 });
+
+      const updatesBeforeAnimation = updateCount;
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(actor.state.current).toBe("togglingCollapse");
+      expect(updateCount).toBeGreaterThan(updatesBeforeAnimation);
+
+      await waitForIdle(actor);
+    });
+
+    test("onResize still fires each frame during applyDelta", async () => {
+      const groupEl = document.createElement("div");
+      document.body.appendChild(groupEl);
+
+      let resizeCount = 0;
+      const actor = createActor(
+        { groupId: "group" },
+        () => {},
+        () => groupEl
+      );
+
+      sendAll(actor, [
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-1",
+          }),
+        },
+        {
+          type: "registerPanelHandle",
+          data: initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+        },
+        {
+          type: "registerPanel",
+          data: initializePanel({
+            id: "panel-2",
+            collapsible: true,
+            min: "100px",
+            default: "200px",
+            collapseAnimation: {
+              easing: "ease-in-out",
+              duration: 5000,
+            },
+            onResize: {
+              current: () => {
+                resizeCount++;
+              },
+            },
+          }),
+        },
+      ]);
+      initializeSizes(actor, { width: 500, height: 200 });
+
+      actor.send({ type: "collapsePanel", panelId: "panel-2" });
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(actor.state.current).toBe("togglingCollapse");
+      expect(resizeCount).toBeGreaterThan(0);
+
+      await waitForIdle(actor);
+      document.body.removeChild(groupEl);
+    });
+  });
 
   test("overflow measurements should not collapse panels during animation", async () => {
     const actor = createActor({ groupId: "group" });

@@ -56,6 +56,7 @@ const isPrerender = ref(true);
 provide("isPrerender", isPrerender);
 
 const groupId = autosaveId || id || useId();
+const elementRef = ref<HTMLDivElement | null>(null);
 const [initialState, send, machineState] = groupMachine(
   {
     orientation: orientation,
@@ -67,6 +68,7 @@ const [initialState, send, machineState] = groupMachine(
   (s) => {
     context.value = { ...s };
   },
+  () => elementRef.value,
 );
 
 onMounted(() => {
@@ -87,8 +89,6 @@ const gridStyle = computed(() => {
 provide("send", send);
 provide("state", context);
 provide("id", machineState);
-
-const elementRef = ref<HTMLDivElement | null>(null);
 
 onMounted(() => {
   const observer = new ResizeObserver(([entry]) => {

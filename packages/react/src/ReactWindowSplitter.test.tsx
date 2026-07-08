@@ -406,3 +406,121 @@ describe("imperative panel API", async () => {
     expect(leftHandle.current.isExpanded()).toBe(true);
   });
 });
+
+describe("direct-DOM animation path", () => {
+  test("grid template updates on the DOM during collapse animation", async () => {
+    const handle = { current: null } as unknown as {
+      current: PanelGroupHandle;
+    };
+    const panelHandle = { current: null } as unknown as {
+      current: PanelHandle;
+    };
+
+    render(
+      <div style={{ width: 500 }}>
+        <PanelGroup
+          handle={handle}
+          orientation="horizontal"
+          style={{ height: 200 }}
+        >
+          <Panel id="panel1">1</Panel>
+          <PanelResizer id="resizer1" size="10px" />
+          <Panel
+            id="panel2"
+            handle={panelHandle}
+            min="100px"
+            collapsible
+            collapsedSize="60px"
+            defaultCollapsed
+            collapseAnimation={{ easing: "linear", duration: 300 }}
+          >
+            2
+          </Panel>
+        </PanelGroup>
+      </div>
+    );
+
+    await waitForMeasurement(handle.current);
+    const templateBefore = handle.current.getTemplate();
+    expect(templateBefore).toContain("60px");
+
+    panelHandle.current.expand();
+
+    // Wait for animation to be in progress
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(handle.current.getState()).toBe("dragging");
+
+    const groupEl = document.querySelector(
+      "[data-group-id]"
+    ) as HTMLElement;
+    expect(groupEl).toBeTruthy();
+    const domTemplateDuringAnimation = groupEl.style.gridTemplateColumns;
+    expect(domTemplateDuringAnimation).toBeTruthy();
+    expect(domTemplateDuringAnimation).not.toContain("60px");
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(handle.current.getState()).toBe("idle");
+
+    // After animation ends, onUpdate fires once and React re-renders with the
+    // committed template. The DOM should no longer contain the collapsed size.
+    const finalDomTemplate = groupEl.style.gridTemplateColumns;
+    expect(finalDomTemplate).not.toContain("60px");
+  });
+
+  test("panel children do not re-render during animation", async () => {
+    const handle = { current: null } as unknown as {
+      current: PanelGroupHandle;
+    };
+    const panelHandle = { current: null } as unknown as {
+      current: PanelHandle;
+    };
+
+    let renderCount = 0;
+    const RenderCounter = () => {
+      renderCount++;
+      return <div data-testid="counter">renders: {renderCount}</div>;
+    };
+
+    render(
+      <div style={{ width: 500 }}>
+        <PanelGroup
+          handle={handle}
+          orientation="horizontal"
+          style={{ height: 200 }}
+        >
+          <Panel id="panel1">
+            <RenderCounter />
+          </Panel>
+          <PanelResizer id="resizer1" size="10px" />
+          <Panel
+            id="panel2"
+            handle={panelHandle}
+            min="100px"
+            collapsible
+            collapsedSize="60px"
+            defaultCollapsed
+            collapseAnimation={{ easing: "linear", duration: 300 }}
+          >
+            2
+          </Panel>
+        </PanelGroup>
+      </div>
+    );
+
+    await waitForMeasurement(handle.current);
+    const rendersBeforeAnimation = renderCount;
+
+    panelHandle.current.expand();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(handle.current.getState()).toBe("dragging");
+
+    const rendersDuringAnimation = renderCount;
+    expect(rendersDuringAnimation).toBe(rendersBeforeAnimation);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(handle.current.getState()).toBe("idle");
+
+    expect(renderCount).toBe(rendersBeforeAnimation);
+  });
+});

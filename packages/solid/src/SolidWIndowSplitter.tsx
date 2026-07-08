@@ -72,6 +72,7 @@ export function PanelGroup(props: PanelGroupProps) {
     "snapshot",
     "shiftAmount",
   ]);
+  let elementRef: HTMLDivElement | undefined;
   const [intiialValue, send, machineState, groupId] = createRoot(() => {
     const defaultGroupId = `panel-group-${createUniqueId()}`;
     const groupIdInit = props.autosaveId || props.id || defaultGroupId;
@@ -105,7 +106,8 @@ export function PanelGroup(props: PanelGroupProps) {
         },
         (value) => {
           setCurrentValue({ ...value });
-        }
+        },
+        () => elementRef ?? null
       ),
       groupIdInit,
     ];
@@ -131,8 +133,6 @@ export function PanelGroup(props: PanelGroupProps) {
     </GroupMachineProvider>
   ));
   setIsInitialPrerender(false);
-
-  let elementRef: HTMLDivElement | undefined;
 
   // Measure group size
   onMount(() => {

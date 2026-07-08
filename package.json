@@ -70,7 +70,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "mdxts@1.6.2": "patches/mdxts@1.6.2.patch"
+      "mdxts@1.6.2": "patches/mdxts@1.6.2.patch",
+      "storybook-solidjs-vite@1.0.0-beta.6": "patches/storybook-solidjs-vite@1.0.0-beta.6.patch"
     }
   }
 }

@@ -48,6 +48,8 @@
   const defaultId = $props.id();
   const id = autosaveId || defaultId;
 
+  let elementRef = $state<HTMLDivElement>();
+
   const [initialState, send, machineState] = groupMachine(
     {
       orientation,
@@ -56,7 +58,8 @@
       shiftAmount,
       ...(snapshot ? prepareSnapshot(snapshot) : undefined),
     },
-    (s) => updateContext(s)
+    (s) => updateContext(s),
+    () => elementRef ?? null
   );
 
   const context = $state<GroupMachineContextValue>(initialState);
@@ -76,8 +79,6 @@
   $effect(() => {
     isPrerender.current = false;
   });
-
-  let elementRef = $state<HTMLDivElement>();
 
   $effect(() => {
     const observer = new ResizeObserver(([entry]) => {

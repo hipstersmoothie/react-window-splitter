@@ -75,6 +75,9 @@ const GroupMachineStateContextRef = createContext<
 const GroupMachineActor = createContext<(e: GroupMachineEvent) => void>(
   () => {}
 );
+const GroupMachineAnimationDomRef = createContext<
+  React.MutableRefObject<HTMLElement | null>
+>({ current: null });
 const GroupMachine = {
   useSelector<R>(
     selector: (data: { context: GroupMachineContextValue }) => R
@@ -107,12 +110,17 @@ const GroupMachine = {
     input: GroupMachineInput;
     children: React.ReactNode;
   }) => {
+    const animationDomRef = useRef<HTMLElement | null>(null);
     const [initialValue, send, state] = useMemo(
       () =>
-        groupMachine(input, (value) => {
-          currentContextRef.current = value;
-          setCurrentValue({ ...value });
-        }),
+        groupMachine(
+          input,
+          (value) => {
+            currentContextRef.current = value;
+            setCurrentValue({ ...value });
+          },
+          () => animationDomRef.current
+        ),
       // We only want this to run once, we dont care about changes to the input
       // eslint-disable-next-line react-hooks/exhaustive-deps
       []
@@ -136,7 +144,9 @@ const GroupMachine = {
         <GroupMachineStateContextRef.Provider value={currentContextRef}>
           <GroupMachineContext.Provider value={currentValue}>
             <GroupMachineActor.Provider value={send}>
-              {children}
+              <GroupMachineAnimationDomRef.Provider value={animationDomRef}>
+                {children}
+              </GroupMachineAnimationDomRef.Provider>
             </GroupMachineActor.Provider>
           </GroupMachineContext.Provider>
         </GroupMachineStateContextRef.Provider>
@@ -414,6 +424,7 @@ const PanelGroupImplementation = React.forwardRef<
 ) {
   const { send } = GroupMachine.useActorRef();
   const machineRef = GroupMachine.useContextRef();
+  const animationDomRef = useContext(GroupMachineAnimationDomRef);
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = mergeRefs(outerRef, innerRef);
   const orientation = GroupMachine.useSelector(
@@ -428,6 +439,16 @@ const PanelGroupImplementation = React.forwardRef<
   if (orientationProp && orientationProp !== orientation) {
     send({ type: "setOrientation", orientation: orientationProp });
   }
+
+  // Register the group's DOM element so the machine can write
+  // grid-template directly during collapse/expand animations,
+  // bypassing React re-renders for each animation frame.
+  useLayoutEffect(() => {
+    animationDomRef.current = innerRef.current;
+    return () => {
+      animationDomRef.current = null;
+    };
+  }, [animationDomRef]);
 
   // Track the size of the group
   useLayoutEffect(() => {
