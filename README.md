@@ -36,6 +36,9 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/EugeneKite"><img src="https://avatars.githubusercontent.com/u/123805703?v=4?s=100" width="100px;" alt=""/><br /><sub><b>EugeneKite</b></sub></a><br /><a href="https://github.com/hipstersmoothie/window-splitter/commits?author=EugeneKite" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/PawelMalakVolue"><img src="https://avatars.githubusercontent.com/u/247119765?v=4?s=100" width="100px;" alt=""/><br /><sub><b>PawelMalakVolue</b></sub></a><br /><a href="https://github.com/hipstersmoothie/window-splitter/commits?author=PawelMalakVolue" title="Code">💻</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/vikr01"><img src="https://avatars.githubusercontent.com/u/28772991?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Vik R</b></sub></a><br /><a href="https://github.com/hipstersmoothie/window-splitter/commits?author=vikr01" title="Tests">⚠️</a> <a href="https://github.com/hipstersmoothie/window-splitter/commits?author=vikr01" title="Code">💻</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->

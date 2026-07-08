@@ -76,6 +76,16 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "vikr01",
+      "name": "Vik R",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28772991?v=4",
+      "profile": "https://github.com/vikr01",
+      "contributions": [
+        "test",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
