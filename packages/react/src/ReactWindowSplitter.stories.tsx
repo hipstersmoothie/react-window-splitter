@@ -752,7 +752,7 @@ export function SiblingCollapsiblePanels() {
     } else {
       if (editModeSize) {
         panelGroupRef.current?.setSizes(
-          editModeSize.map((i) => `${i * 100}%` as PercentUnit)
+          editModeSize.map((i) => `${i * 100}%` as PercentUnit),
         );
       }
 
@@ -772,7 +772,7 @@ export function SiblingCollapsiblePanels() {
         setIsSidebarCollapsed(isCollapsed);
       }
     },
-    [isEditMode]
+    [isEditMode],
   );
   const handleEditorCollapseChange = useCallback(
     (isCollapsed: boolean) => {
@@ -780,7 +780,7 @@ export function SiblingCollapsiblePanels() {
         setIsEditorCollapsed(isCollapsed);
       }
     },
-    [isEditMode]
+    [isEditMode],
   );
   const handlePreviewCollapseChange = useCallback(
     (isCollapsed: boolean) => {
@@ -788,7 +788,7 @@ export function SiblingCollapsiblePanels() {
         setIsPreviewCollapsed(isCollapsed);
       }
     },
-    [isEditMode]
+    [isEditMode],
   );
 
   return (
@@ -857,7 +857,7 @@ export function SiblingCollapsiblePanels() {
             type="button"
             onClick={() =>
               setIsSidebarCollapsed(
-                (prevSidebarCollapsed) => !prevSidebarCollapsed
+                (prevSidebarCollapsed) => !prevSidebarCollapsed,
               )
             }
             style={{
@@ -871,7 +871,7 @@ export function SiblingCollapsiblePanels() {
             type="button"
             onClick={() =>
               setIsEditorCollapsed(
-                (prevEditorCollapsed) => !prevEditorCollapsed
+                (prevEditorCollapsed) => !prevEditorCollapsed,
               )
             }
             style={{
@@ -885,7 +885,7 @@ export function SiblingCollapsiblePanels() {
             type="button"
             onClick={() =>
               setIsPreviewCollapsed(
-                (prevPreviewCollapsed) => !prevPreviewCollapsed
+                (prevPreviewCollapsed) => !prevPreviewCollapsed,
               )
             }
             style={{

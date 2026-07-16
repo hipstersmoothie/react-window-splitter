@@ -189,7 +189,7 @@ export function getPanelResizerDomAttributes({
 
 export function measureGroupChildren(
   groupId: string,
-  cb: (childrenSizes: Record<string, Rect>) => void
+  cb: (childrenSizes: Record<string, Rect>) => void,
 ) {
   const childrenObserver = new ResizeObserver((childrenEntries) => {
     const childrenSizes: Record<string, { width: number; height: number }> = {};

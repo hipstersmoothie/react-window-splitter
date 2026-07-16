@@ -5,7 +5,7 @@ import fs from "fs/promises";
 async function main() {
   const filepaths = await glob("coverage/summary-combined/**/*.json");
   const files = await Promise.all(
-    filepaths.map((f) => fs.readFile(f, "utf-8").then(JSON.parse))
+    filepaths.map((f) => fs.readFile(f, "utf-8").then(JSON.parse)),
   );
   const combined = files.reduce((acc, { total, ...filesResults }) => {
     if (!acc.total) {
@@ -34,7 +34,7 @@ async function main() {
 
   await fs.writeFile(
     path.join(process.cwd(), "coverage", "combined", "summary.json"),
-    JSON.stringify(combined, null, 2)
+    JSON.stringify(combined, null, 2),
   );
 }
 

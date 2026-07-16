@@ -6,18 +6,18 @@ export type MaybeAccessor<T> = T | (() => T);
 export function mergeSolidAttributes<T>(source: MaybeAccessor<T>): T;
 export function mergeSolidAttributes<T, U>(
   source: MaybeAccessor<T>,
-  source1: MaybeAccessor<U>
+  source1: MaybeAccessor<U>,
 ): T & U;
 export function mergeSolidAttributes<T, U, V>(
   source: MaybeAccessor<T>,
   source1: MaybeAccessor<U>,
-  source2: MaybeAccessor<V>
+  source2: MaybeAccessor<V>,
 ): T & U & V;
 export function mergeSolidAttributes<T, U, V, W>(
   source: MaybeAccessor<T>,
   source1: MaybeAccessor<U>,
   source2: MaybeAccessor<V>,
-  source3: MaybeAccessor<W>
+  source3: MaybeAccessor<W>,
 ): T & U & V & W;
 export function mergeSolidAttributes(...sources: any[]) {
   const target = {};

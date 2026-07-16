@@ -13,7 +13,7 @@ You can mark a panel as collapsible by using the `collapsible` prop.
 By default the panel will collapse to `0px` when collapsed.
 You can control this by using the `collapsedSize` prop.
 
-<ColorfulPanelGroup className='my-6' style={{ height: 200 }}>
+<ColorfulPanelGroup className="my-6" style={{ height: 200 }}>
   <ColorfulPanel
     id="1"
     color="green"
@@ -115,7 +115,7 @@ The component support 3 basic animations:
 You can also customize the `duration` by providing and object to the `collapseAnimation` prop.
 Try focus one of the resizer handles and pressing `Enter` to see the animation in action.
 
-<ColorfulPanelGroup className='my-6' style={{ height: 200 }}>
+<ColorfulPanelGroup className="my-6" style={{ height: 200 }}>
   <ColorfulPanel
     id="1"
     color="green"
@@ -161,7 +161,7 @@ function CollapsibleExample() {
 You can completely customize the easing function by providing a function to the `collapseAnimation` prop.
 
 The function provided to `ease` takes a number `t` that represent the progress of the animation in the range of `[0, 1]`.
-The return value of the function should be a number between `[0, 1]` that represents the altered progress of the animation. 
+The return value of the function should be a number between `[0, 1]` that represents the altered progress of the animation.
 
 Some good libraries you can use to create your own easing function are:
 

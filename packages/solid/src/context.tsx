@@ -2,7 +2,7 @@ import { createContext, useContext, Accessor, JSXElement } from "solid-js";
 import { GroupMachineContextValue, SendFn } from "@window-splitter/state";
 
 export const InitialPrerenderContext = createContext<Accessor<boolean>>(
-  () => false
+  () => false,
 );
 export const MachineActorContext = createContext<SendFn>();
 export const GroupIdContext = createContext<string>();

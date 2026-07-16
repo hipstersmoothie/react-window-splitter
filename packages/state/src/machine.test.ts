@@ -30,7 +30,7 @@ function dragHandle(
     orientation?: "horizontal" | "vertical";
     id: string;
     shiftKey?: boolean;
-  }
+  },
 ) {
   for (let i = 0; i < Math.abs(options.delta); i++) {
     actor.send({
@@ -80,7 +80,7 @@ function initializeSizes(
   options: {
     width: number;
     height: number;
-  }
+  },
 ) {
   const context = actor.value;
   const { orientation, items } = context;
@@ -143,38 +143,38 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     // Drag the resizer to the right
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: 10 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"255px 10px 235px"`
+        `"255px 10px 235px"`,
       );
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`,
     );
 
     // Drag the resizer to the left
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"255px 10px 235px"`
+        `"255px 10px 235px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -20 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"235px 10px 255px"`
+        `"235px 10px 255px"`,
       );
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`,
     );
   });
 
@@ -194,7 +194,7 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -218,7 +218,7 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.53389830508474576271 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.53389830508474576271 * (100% - 10px)), 100%))"`,
     );
   });
 
@@ -238,7 +238,7 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 40%) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, 40%) 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -248,7 +248,7 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, min(calc(0.40816326530612244898 * (100% - 10px)), 40%)) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, min(calc(0.40816326530612244898 * (100% - 10px)), 40%)) 10px minmax(0px, 1fr)"`,
     );
   });
 
@@ -265,14 +265,14 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 200, height: 500 });
 
     // Drag the resizer down
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       dragHandle(actor, {
         id: "resizer-1",
@@ -280,18 +280,18 @@ describe("constraints", () => {
         orientation: "vertical",
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"255px 10px 235px"`
+        `"255px 10px 235px"`,
       );
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.47959183673469387755 * (100% - 10px)), 100%))"`,
     );
 
     // Drag the resizer to the up
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"255px 10px 235px"`
+        `"255px 10px 235px"`,
       );
       dragHandle(actor, {
         id: "resizer-1",
@@ -299,12 +299,12 @@ describe("constraints", () => {
         orientation: "vertical",
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"235px 10px 255px"`
+        `"235px 10px 255px"`,
       );
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`
+      `"minmax(0px, 1fr) 10px minmax(0px, min(calc(0.52040816326530612245 * (100% - 10px)), 100%))"`,
     );
   });
 
@@ -333,13 +333,13 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -383,7 +383,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       actor.send({
         type: "dragHandle",
@@ -391,7 +391,7 @@ describe("constraints", () => {
         value: dragHandlePayload({ delta: 0 }),
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -409,11 +409,11 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -1, shiftKey: true });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"230px 10px 260px"`
+        `"230px 10px 260px"`,
       );
     });
   });
@@ -429,17 +429,17 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(40%, 1fr) 10px 30%"`
+      `"minmax(40%, 1fr) 10px 30%"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"340px 10px 150px"`
+        `"340px 10px 150px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 290px"`
+        `"200px 10px 290px"`,
       );
     });
   });
@@ -455,21 +455,21 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 90%) 10px minmax(30%, 1fr)"`
+      `"minmax(0px, 90%) 10px minmax(30%, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-1", delta: 500 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"450px 10px 40px"`
+        `"450px 10px 40px"`,
       );
     });
   });
 
   // Test for https://github.com/hipstersmoothie/window-splitter/issues/79
-  // The bug: applyDelta in togglingCollapse state calls updateLayout without 
-  // ensuring items are in pixel format first. If items somehow end up in 
+  // The bug: applyDelta in togglingCollapse state calls updateLayout without
+  // ensuring items are in pixel format first. If items somehow end up in
   // percentage format during the animation, it fails.
   test("applyDelta should handle percentage format items during animation", async () => {
     const actor = createActor({ groupId: "group" });
@@ -514,7 +514,7 @@ describe("constraints", () => {
     const groupSize = 500;
     const staticWidth = 10;
     const availableSpace = groupSize - staticWidth;
-    
+
     for (const item of actor.value.items) {
       if (isPanelData(item) && !item.collapsed) {
         const pixelValue = item.currentValue.value.toNumber();
@@ -541,13 +541,9 @@ describe("constraints", () => {
   describe("direct-DOM animation path (getGroupElement)", () => {
     function setupCollapsibleActor(
       groupEl: HTMLElement,
-      onUpdate?: (context: GroupMachineContextValue) => void
+      onUpdate?: (context: GroupMachineContextValue) => void,
     ) {
-      return createActor(
-        { groupId: "group" },
-        onUpdate,
-        () => groupEl
-      );
+      return createActor({ groupId: "group" }, onUpdate, () => groupEl);
     }
 
     function registerCollapsibleLayout(actor: Actor) {
@@ -749,7 +745,7 @@ describe("constraints", () => {
       const actor = createActor(
         { groupId: "group" },
         () => {},
-        () => groupEl
+        () => groupEl,
       );
 
       sendAll(actor, [
@@ -839,7 +835,7 @@ describe("constraints", () => {
     });
 
     const panelBefore = actor.value.items.find(
-      (item) => isPanelData(item) && item.id === "panel-1"
+      (item) => isPanelData(item) && item.id === "panel-1",
     );
     expect(panelBefore?.collapsed).toBe(false);
 
@@ -861,7 +857,7 @@ describe("constraints", () => {
     });
 
     const panelAfter = actor.value.items.find(
-      (item) => isPanelData(item) && item.id === "panel-1"
+      (item) => isPanelData(item) && item.id === "panel-1",
     );
     expect(panelAfter?.collapsed).toBe(false);
 
@@ -885,7 +881,7 @@ describe("constraints", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(200px, 1fr) 10px 60px"`
+      `"minmax(200px, 1fr) 10px 60px"`,
     );
   });
 
@@ -939,11 +935,11 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       // First collapse both panels
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 200px 10px 380px"`
+        `"200px 10px 200px 10px 380px"`,
       );
       dragHandle(actor, { id: "resizer-2", delta: -410 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"0px 10px 0px 10px 780px"`
+        `"0px 10px 0px 10px 780px"`,
       );
     });
 
@@ -956,7 +952,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"100px 10px 0px 10px 680px"`
+        `"100px 10px 0px 10px 680px"`,
       );
     });
   });
@@ -1012,15 +1008,15 @@ describe("constraints", () => {
     // Collapse middle panel from the left
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 200px 10px 380px"`
+        `"200px 10px 200px 10px 380px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: 200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"450px 10px 0px 10px 330px"`
+        `"450px 10px 0px 10px 330px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"249px 10px 201px 10px 330px"`
+        `"249px 10px 201px 10px 330px"`,
       );
     });
 
@@ -1028,11 +1024,11 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-2", delta: -200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 0px 10px 580px"`
+        `"200px 10px 0px 10px 580px"`,
       );
       dragHandle(actor, { id: "resizer-2", delta: 200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 201px 10px 379px"`
+        `"200px 10px 201px 10px 379px"`,
       );
     });
 
@@ -1040,11 +1036,11 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-1", delta: -200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"0px 10px 401px 10px 379px"`
+        `"0px 10px 401px 10px 379px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: 200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"150px 10px 251px 10px 379px"`
+        `"150px 10px 251px 10px 379px"`,
       );
     });
 
@@ -1052,11 +1048,11 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-2", delta: 600 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"150px 10px 630px 10px 0px"`
+        `"150px 10px 630px 10px 0px"`,
       );
       dragHandle(actor, { id: "resizer-2", delta: -600 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"150px 10px 300px 10px 330px"`
+        `"150px 10px 300px 10px 330px"`,
       );
     });
 
@@ -1064,7 +1060,7 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-1", delta: 1000 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"780px 10px 0px 10px 0px"`
+        `"780px 10px 0px 10px 0px"`,
       );
     });
 
@@ -1072,7 +1068,7 @@ describe("constraints", () => {
     capturePixelValues(actor, () => {
       dragHandle(actor, { id: "resizer-2", delta: -1000 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"0px 10px 0px 10px 780px"`
+        `"0px 10px 0px 10px 780px"`,
       );
     });
   });
@@ -1129,7 +1125,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 200px 10px 380px"`
+        `"200px 10px 200px 10px 380px"`,
       );
     });
 
@@ -1137,7 +1133,7 @@ describe("constraints", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 0px 10px 580px"`
+        `"200px 10px 0px 10px 580px"`,
       );
     });
 
@@ -1145,7 +1141,7 @@ describe("constraints", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"780px 10px 0px 10px 0px"`
+        `"780px 10px 0px 10px 0px"`,
       );
     });
 
@@ -1153,7 +1149,7 @@ describe("constraints", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"580px 10px 200px 10px 0px"`
+        `"580px 10px 200px 10px 0px"`,
       );
     });
 
@@ -1161,7 +1157,7 @@ describe("constraints", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"100px 10px 0px 10px 680px"`
+        `"100px 10px 0px 10px 680px"`,
       );
     });
   });
@@ -1182,17 +1178,17 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: 200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
     });
   });
@@ -1213,7 +1209,7 @@ describe("constraints", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(0px, 300px)"`
+      `"minmax(0px, 1fr) 10px minmax(0px, 300px)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -1221,11 +1217,11 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"190px 10px 300px"`
+        `"190px 10px 300px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -200 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"190px 10px 300px"`
+        `"190px 10px 300px"`,
       );
     });
   });
@@ -1247,12 +1243,12 @@ describe("constraints", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px 300px"`
+      `"minmax(0px, 1fr) 10px 300px"`,
     );
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"190px 10px 300px"`
+        `"190px 10px 300px"`,
       );
     });
   });
@@ -1288,11 +1284,11 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"80px 10px 300px 10px 100px"`
+        `"80px 10px 300px 10px 100px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: 160 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"180px 10px 200px 10px 100px"`
+        `"180px 10px 200px 10px 100px"`,
       );
     });
   });
@@ -1316,7 +1312,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"100px 10px 390px"`
+        `"100px 10px 390px"`,
       );
     });
 
@@ -1328,7 +1324,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"125px 10px 365px"`
+        `"125px 10px 365px"`,
       );
     });
   });
@@ -1349,7 +1345,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -1357,7 +1353,7 @@ describe("constraints", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"95px 10px 95px"`
+        `"95px 10px 95px"`,
       );
     });
   });
@@ -1400,7 +1396,7 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toBe(
-      "minmax(0px, 1fr) 10px minmax(100px, 1fr)"
+      "minmax(0px, 1fr) 10px minmax(100px, 1fr)",
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -1478,37 +1474,37 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px 60px"`
+      `"minmax(0px, 1fr) 10px 60px"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"430px 10px 60px"`
+        `"430px 10px 60px"`,
       );
 
       // Drag into the the panel
       dragHandle(actor, { id: "resizer-1", delta: 50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"430px 10px 60px"`
+        `"430px 10px 60px"`,
       );
 
       // Drag into the start
       dragHandle(actor, { id: "resizer-1", delta: -50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"430px 10px 60px"`
+        `"430px 10px 60px"`,
       );
 
       // Drag into the drag buffer but not past it
       dragHandle(actor, { id: "resizer-1", delta: -25 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"430px 10px 60px"`
+        `"430px 10px 60px"`,
       );
 
       // Drag past the buffer
       dragHandle(actor, { id: "resizer-1", delta: -25 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
     });
   });
@@ -1533,31 +1529,31 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px 200px"`
+      `"minmax(0px, 1fr) 10px 200px"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
 
       // Drag into the the panel
       dragHandle(actor, { id: "resizer-1", delta: 50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
 
       // Drag into the start
       dragHandle(actor, { id: "resizer-1", delta: -50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
 
       // Drag into the drag buffer but not past it
       dragHandle(actor, { id: "resizer-1", delta: -25 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"265px 10px 225px"`
+        `"265px 10px 225px"`,
       );
     });
   });
@@ -1589,7 +1585,7 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
     });
   });
@@ -1616,37 +1612,37 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"60px 10px minmax(0px, 1fr)"`
+      `"60px 10px minmax(0px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"60px 10px 430px"`
+        `"60px 10px 430px"`,
       );
 
       // Drag into the the panel
       dragHandle(actor, { id: "resizer-1", delta: -50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"60px 10px 430px"`
+        `"60px 10px 430px"`,
       );
 
       // Drag to the start
       dragHandle(actor, { id: "resizer-1", delta: 50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"60px 10px 430px"`
+        `"60px 10px 430px"`,
       );
 
       // Drag into the drag buffer but not past it
       dragHandle(actor, { id: "resizer-1", delta: 25 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"60px 10px 430px"`
+        `"60px 10px 430px"`,
       );
 
       // Drag past the buffer
       dragHandle(actor, { id: "resizer-1", delta: 25 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"200px 10px 290px"`
+        `"200px 10px 290px"`,
       );
     });
   });
@@ -1675,11 +1671,11 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
       dragHandle(actor, { id: "resizer-1", delta: -50 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"195px 10px 295px"`
+        `"195px 10px 295px"`,
       );
     });
 
@@ -1688,7 +1684,7 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"430px 10px 60px"`
+        `"430px 10px 60px"`,
       );
     });
 
@@ -1697,7 +1693,7 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"195px 10px 295px"`
+        `"195px 10px 295px"`,
       );
     });
   });
@@ -1727,27 +1723,27 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     // collapse the panel
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
 
       // Drag into the drag buffer but not past it
       dragHandle(actor, { id: "resizer-1", delta: 160 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
 
       // Drag past the drag buffer and collapse the panel
       dragHandle(actor, { id: "resizer-1", delta: 100 });
       expect(spy).toHaveBeenCalledWith(true);
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"490px 10px 0px"`
+        `"490px 10px 0px"`,
       );
     });
 
@@ -1758,12 +1754,12 @@ describe("collapsible panel", () => {
       // The panel doesn't actually expand yet
       dragHandle(actor, { id: "resizer-1", delta: -150 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
 
       expect(spy).toHaveBeenCalledWith(false);
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
 
       // Actually collapse the panel
@@ -1773,7 +1769,7 @@ describe("collapsible panel", () => {
         controlled: true,
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"290px 10px 200px"`
+        `"290px 10px 200px"`,
       );
     });
   });
@@ -1799,13 +1795,13 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px 100px"`
+      `"minmax(0px, 1fr) 10px 100px"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
     });
 
@@ -1814,7 +1810,7 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"490px 10px 0px"`
+        `"490px 10px 0px"`,
       );
     });
 
@@ -1823,7 +1819,7 @@ describe("collapsible panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
     });
   });
@@ -1856,26 +1852,26 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
     // collapse the panel via drag
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
 
       dragHandle(actor, { id: "resizer-1", delta: 160 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
 
       // The panel doesn't actually collapse yet
       dragHandle(actor, { id: "resizer-1", delta: 100 });
       expect(spy).toHaveBeenCalledWith(true);
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"390px 10px 100px"`
+        `"390px 10px 100px"`,
       );
 
       // Actually collapse the panel
@@ -1885,7 +1881,7 @@ describe("collapsible panel", () => {
         controlled: true,
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
     });
 
@@ -1896,12 +1892,12 @@ describe("collapsible panel", () => {
       // The panel doesn't actually expand yet
       dragHandle(actor, { id: "resizer-1", delta: -150 });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
 
       expect(spy).toHaveBeenCalledWith(false);
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
 
       // Actually collapse the panel
@@ -1911,7 +1907,7 @@ describe("collapsible panel", () => {
         controlled: true,
       });
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"321px 10px 169px"`
+        `"321px 10px 169px"`,
       );
     });
 
@@ -1925,7 +1921,7 @@ describe("collapsible panel", () => {
     // collapse the panel via drag
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
     });
 
@@ -1935,7 +1931,7 @@ describe("collapsible panel", () => {
     // collapse the panel via drag
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"321px 10px 169px"`
+        `"321px 10px 169px"`,
       );
     });
   });
@@ -1968,7 +1964,7 @@ describe("collapsible panel", () => {
     ]);
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`
+      `"minmax(0px, 1fr) 10px minmax(100px, 1fr)"`,
     );
     initializeSizes(actor, { width: 500, height: 200 });
 
@@ -1980,7 +1976,7 @@ describe("collapsible panel", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
     spy.mockReset();
@@ -1992,7 +1988,7 @@ describe("collapsible panel", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
     });
 
@@ -2004,7 +2000,7 @@ describe("collapsible panel", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"470px 10px 20px"`
+        `"470px 10px 20px"`,
       );
     });
     spy.mockReset();
@@ -2016,7 +2012,7 @@ describe("collapsible panel", () => {
     await waitForIdle(actor);
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -2046,7 +2042,7 @@ describe("collapsible panel", () => {
       ]);
 
       expect(buildTemplate(actor.value)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)",
       );
       initializeSizes(actor, { width: 400, height: 200 });
       // There wasn't enough space to render the panel so the last one is collapsed
@@ -2077,7 +2073,7 @@ describe("collapsible panel", () => {
       ]);
 
       expect(buildTemplate(actor.value)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)",
       );
       initializeSizes(actor, { width: 510, height: 200 });
 
@@ -2086,7 +2082,7 @@ describe("collapsible panel", () => {
       });
 
       expect(buildTemplate(actor.value)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, min(calc(0.6 * (100% - 10px)), 100%))"
+        "minmax(200px, 1fr) 10px minmax(300px, min(calc(0.6 * (100% - 10px)), 100%))",
       );
 
       initializeSizes(actor, { width: 400, height: 200 });
@@ -2119,7 +2115,7 @@ describe("collapsible panel", () => {
       ]);
 
       expect(buildTemplate(actor.value)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)",
       );
       initializeSizes(actor, { width: 400, height: 200 });
       actor.send({
@@ -2163,7 +2159,7 @@ describe("collapsible panel", () => {
       ]);
 
       expect(buildTemplate(actor.value)).toBe(
-        "minmax(200px, 1fr) 10px minmax(300px, 1fr)"
+        "minmax(200px, 1fr) 10px minmax(300px, 1fr)",
       );
       initializeSizes(actor, { width: 400, height: 200 });
 
@@ -2200,7 +2196,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -2217,7 +2213,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 135px 10px 100px"`
+        `"245px 10px 135px 10px 100px"`,
       );
     });
 
@@ -2228,7 +2224,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -2252,7 +2248,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -2274,7 +2270,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 235px 10px 0px"`
+        `"245px 10px 235px 10px 0px"`,
       );
     });
 
@@ -2285,7 +2281,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -2309,7 +2305,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -2329,7 +2325,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 110px 10px 125px"`
+        `"245px 10px 110px 10px 125px"`,
       );
     });
 
@@ -2340,7 +2336,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -2361,7 +2357,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -2385,7 +2381,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 100px 10px 135px"`
+        `"245px 10px 100px 10px 135px"`,
       );
     });
 
@@ -2396,7 +2392,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
 
@@ -2407,7 +2403,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"245px 10px 245px"`
+        `"245px 10px 245px"`,
       );
     });
   });
@@ -2432,7 +2428,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"20px 10px 10px 10px 300px 10px 10px 10px 120px"`
+        `"20px 10px 10px 10px 300px 10px 10px 10px 120px"`,
       );
     });
 
@@ -2443,7 +2439,7 @@ describe("conditional panel", () => {
 
     capturePixelValues(actor, () => {
       expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-        `"20px 10px 50px 10px 50px 10px 300px"`
+        `"20px 10px 50px 10px 50px 10px 300px"`,
       );
     });
   });
@@ -2458,7 +2454,7 @@ describe("errors", () => {
         type: "registerPanel",
         // @ts-expect-error Testing the error
         data: initializePanel({ id: "panel-1", min: "40fr" }),
-      })
+      }),
     ).toThrowErrorMatchingInlineSnapshot(`[Error: Invalid unit: 40fr]`);
   });
 
@@ -2500,7 +2496,7 @@ describe("errors", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
       expect((error as Error).message).toBe(
-        "Expected panel handle with id: handle-2"
+        "Expected panel handle with id: handle-2",
       );
     }
   });
@@ -2653,7 +2649,7 @@ describe("static at rest", () => {
     initializeSizes(actor, { width: 500, height: 200 });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"minmax(20px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, 1fr)"`
+      `"minmax(20px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, 1fr)"`,
     );
 
     capturePixelValues(actor, () => {
@@ -2661,7 +2657,7 @@ describe("static at rest", () => {
     });
 
     expect(buildTemplate(actor.value)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`,
     );
   });
 });
@@ -2696,12 +2692,12 @@ describe("autosave", () => {
     await waitForIdle(actor);
 
     const snapshot = prepareSnapshot(
-      JSON.parse(localStorage.getItem("group")!)
+      JSON.parse(localStorage.getItem("group")!),
     );
     const actor2 = createActor(snapshot!);
 
     expect(buildTemplate(actor2.value)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`,
     );
   });
 
@@ -2737,7 +2733,7 @@ describe("autosave", () => {
     const actor2 = createActor(snapshot!);
 
     expect(buildTemplate(actor2.value)).toMatchInlineSnapshot(
-      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`
+      `"clamp(20px, 190px, 200px) 10px minmax(50px, 1fr) 10px minmax(50px, min(calc(0.48275862068965517241 * (100% - 210px)), 100%))"`,
     );
   });
 });

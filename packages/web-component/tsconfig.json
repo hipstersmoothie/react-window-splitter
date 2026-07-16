@@ -1,8 +1,8 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "experimentalDecorators": true,
-        "target": "ES2021",
-        "types": ["@testing-library/jest-dom"]
-    }
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "ES2021",
+    "types": ["@testing-library/jest-dom"]
+  }
 }

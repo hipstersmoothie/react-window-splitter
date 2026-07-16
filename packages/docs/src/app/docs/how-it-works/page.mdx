@@ -80,21 +80,24 @@ Once the user starts resizing we start a 3 step process to update the layout.
    can convert all the panel sizes into pixels. Converting into pixels
    makes doing the math for the updates easier.
 
-    ```css
-    grid-template-columns: 500px 1px 300px;
-    ```
+   ```css
+   grid-template-columns: 500px 1px 300px;
+   ```
 
 2. `updateLayout` - This is where the actual updates are applied.
    This is where the user's drag interactions are applied. We also
    use this to collapse/expand panels by simulating a drag interaction.
 
-    ```css
-    grid-template-columns: 490px 1px 310px;
-    ```
+   ```css
+   grid-template-columns: 490px 1px 310px;
+   ```
 
 3. `commitLayout` - Once the updates have been applied we convert the
    updated sizes back into a format that allows for the benefits mentioned above.
 
-    ```css
-    grid-template-columns: minmax(100px, min(calc(0.06117 * (100% - 1px)), 100%)) 1px minmax(100px, min(calc(0.0387 * (100% - 1px)), 300px));
-    ```
+   ```css
+   grid-template-columns: minmax(100px, min(calc(0.06117 * (100% - 1px)), 100%)) 1px minmax(
+       100px,
+       min(calc(0.0387 * (100% - 1px)), 300px)
+     );
+   ```

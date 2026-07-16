@@ -3,9 +3,7 @@
   "projectOwner": "hipstersmoothie",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "files": [
-    "README.md"
-  ],
+  "files": ["README.md"],
   "imageSize": 100,
   "commit": false,
   "commitConvention": "none",
@@ -15,77 +13,56 @@
       "name": "Andrew Lisowski",
       "avatar_url": "https://avatars.githubusercontent.com/u/1192452?v=4",
       "profile": "http://hipstersmoothie.com/",
-      "contributions": [
-        "code",
-        "doc",
-        "example",
-        "test",
-        "infra"
-      ]
+      "contributions": ["code", "doc", "example", "test", "infra"]
     },
     {
       "login": "Rel1cx",
       "name": "Eva1ent",
       "avatar_url": "https://avatars.githubusercontent.com/u/24217275?v=4",
       "profile": "https://github.com/Rel1cx",
-      "contributions": [
-        "code"
-      ]
+      "contributions": ["code"]
     },
     {
       "login": "sfc-gh-alisowski",
       "name": "Andrew Lisowski",
       "avatar_url": "https://avatars.githubusercontent.com/u/196691327?v=4",
       "profile": "https://github.com/sfc-gh-alisowski",
-      "contributions": [
-        "code"
-      ]
+      "contributions": ["code"]
     },
     {
       "login": "justinfagnani",
       "name": "Justin Fagnani",
       "avatar_url": "https://avatars.githubusercontent.com/u/522948?v=4",
       "profile": "http://justinfagnani.com/",
-      "contributions": [
-        "doc"
-      ]
+      "contributions": ["doc"]
     },
     {
       "login": "y4ure",
       "name": "Adam Yau",
       "avatar_url": "https://avatars.githubusercontent.com/u/16659947?v=4",
       "profile": "https://github.com/y4ure",
-      "contributions": [
-        "code"
-      ]
+      "contributions": ["code"]
     },
     {
       "login": "EugeneKite",
       "name": "EugeneKite",
       "avatar_url": "https://avatars.githubusercontent.com/u/123805703?v=4",
       "profile": "https://github.com/EugeneKite",
-      "contributions": [
-        "code"
-      ]
+      "contributions": ["code"]
     },
     {
       "login": "PawelMalakVolue",
       "name": "PawelMalakVolue",
       "avatar_url": "https://avatars.githubusercontent.com/u/247119765?v=4",
       "profile": "https://github.com/PawelMalakVolue",
-      "contributions": [
-        "code"
-      ]
+      "contributions": ["code"]
     },
     {
       "login": "vikr01",
       "name": "Vik R",
       "avatar_url": "https://avatars.githubusercontent.com/u/28772991?v=4",
       "profile": "https://github.com/vikr01",
-      "contributions": [
-        "test",
-        "code"
-      ]
+      "contributions": ["test", "code"]
     }
   ],
   "contributorsPerLine": 7,

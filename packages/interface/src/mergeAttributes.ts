@@ -33,7 +33,7 @@ type TupleTypes<T> = { [P in keyof T]: T[P] } extends { [key: number]: infer V }
 type NullToObject<T> = T extends null | undefined ? object : T;
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I
+  k: infer I,
 ) => void
   ? I
   : never;

@@ -542,7 +542,7 @@ export const ImperativePanel = {
           alert(
             `Sizes: ${(window as unknown as Record<string, PanelGroup>)[
               "panel-group"
-            ]?.getPixelSizes()}`
+            ]?.getPixelSizes()}`,
           )}
       >
         Get pixel sizes
@@ -553,7 +553,7 @@ export const ImperativePanel = {
           alert(
             `Sizes: ${(window as unknown as Record<string, PanelGroup>)[
               "panel-group"
-            ]?.getPercentageSizes()}`
+            ]?.getPercentageSizes()}`,
           )}
       >
         Get percent sizes
@@ -583,7 +583,7 @@ export const ImperativePanel = {
           alert(
             `Collapsed: ${(window as unknown as Record<string, Panel>)[
               "panel-1"
-            ]?.isCollapsed()}`
+            ]?.isCollapsed()}`,
           )}
       >
         Is Collapsed?
@@ -601,7 +601,7 @@ export const ImperativePanel = {
           alert(
             `Expanded: ${(window as unknown as Record<string, Panel>)[
               "panel-1"
-            ]?.isExpanded()}`
+            ]?.isExpanded()}`,
           )}
       >
         Is Expanded?
@@ -610,7 +610,7 @@ export const ImperativePanel = {
         type="button"
         @click=${() =>
           alert(
-            `Id: ${(window as unknown as Record<string, Panel>)["panel-1"]?.id}`
+            `Id: ${(window as unknown as Record<string, Panel>)["panel-1"]?.id}`,
           )}
       >
         Get Id
@@ -621,7 +621,7 @@ export const ImperativePanel = {
           alert(
             `Size: ${(window as unknown as Record<string, Panel>)[
               "panel-1"
-            ]?.getPixelSize()}`
+            ]?.getPixelSize()}`,
           )}
       >
         Get Pixel Size
@@ -632,7 +632,7 @@ export const ImperativePanel = {
           alert(
             `Percentage: ${(window as unknown as Record<string, Panel>)[
               "panel-1"
-            ]?.getPercentageSize()}`
+            ]?.getPercentageSize()}`,
           )}
       >
         Get Percentage Size
@@ -641,7 +641,7 @@ export const ImperativePanel = {
         type="button"
         @click=${() =>
           (window as unknown as Record<string, Panel>)["panel-1"]?.setSize(
-            "30px"
+            "30px",
           )}
       >
         Set size to 100px
@@ -650,7 +650,7 @@ export const ImperativePanel = {
         type="button"
         @click=${() =>
           (window as unknown as Record<string, Panel>)["panel-1"]?.setSize(
-            "50%"
+            "50%",
           )}
       >
         Set size to 50%
@@ -725,7 +725,7 @@ class ConditionalPanelElement extends LitElement {
                 Close
               </button>
             </window-panel>
-          `
+          `,
         )}
       </window-splitter>
 
@@ -810,7 +810,7 @@ class ConditionalPanelComplexElement extends LitElement {
                 Close
               </button>
             </window-panel>
-          `
+          `,
         )}
         <window-panel-resizer
           id="handle-4"
@@ -829,7 +829,7 @@ class ConditionalPanelComplexElement extends LitElement {
 
 customElements.define(
   "conditional-panel-complex",
-  ConditionalPanelComplexElement
+  ConditionalPanelComplexElement,
 );
 
 export const ConditionalPanelComplex = {

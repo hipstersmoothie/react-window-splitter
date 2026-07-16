@@ -72,7 +72,7 @@ export function useIndexedChildren(childrenProp: React.ReactNode) {
               {child}
             </IndexContext.Provider>
           );
-        }
+        },
       )}
     </>
   );

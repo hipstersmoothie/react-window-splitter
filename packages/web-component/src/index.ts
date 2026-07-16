@@ -51,7 +51,7 @@ const getNextId = () => {
 function updateAttributes(
   element: HTMLElement,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  attributes: Record<string, any> | { style: Record<string, any> }
+  attributes: Record<string, any> | { style: Record<string, any> },
 ) {
   for (const attr of Object.keys(attributes)) {
     if (attr === "style") {
@@ -91,7 +91,7 @@ export class PanelGroup extends LitElement {
     const autosaveId = this.getAttribute("autosaveId");
     const autosaveStrategy =
       (this.getAttribute(
-        "autosaveStrategy"
+        "autosaveStrategy",
       ) as GroupMachineContextValue["autosaveStrategy"]) || "localStorage";
 
     this.groupId = this.getAttribute("id") || autosaveId || getNextId();
@@ -131,7 +131,7 @@ export class PanelGroup extends LitElement {
 
         this.requestUpdate();
       },
-      () => this.renderRoot?.querySelector("div") ?? null
+      () => this.renderRoot?.querySelector("div") ?? null,
     );
 
     this.state = machineState;
@@ -327,7 +327,7 @@ export class Panel extends LitElement {
 
   public isCollapsed() {
     return Boolean(
-      this.getPanelData()?.collapsible && this.getPanelData()?.collapsed
+      this.getPanelData()?.collapsible && this.getPanelData()?.collapsed,
     );
   }
 
@@ -345,7 +345,7 @@ export class Panel extends LitElement {
 
   public isExpanded() {
     return Boolean(
-      this.getPanelData()?.collapsible && !this.getPanelData()?.collapsed
+      this.getPanelData()?.collapsible && !this.getPanelData()?.collapsed,
     );
   }
 
@@ -441,7 +441,7 @@ export class Panel extends LitElement {
 
   disconnectedCallback(): void {
     requestAnimationFrame(() =>
-      this.send({ type: "unregisterPanel", id: this.id })
+      this.send({ type: "unregisterPanel", id: this.id }),
     );
   }
 
@@ -536,7 +536,7 @@ export class PanelResizer extends LitElement {
 
   private getAttributes() {
     const handleIndex = this.context?.items.findIndex(
-      (item) => item.id === this.id
+      (item) => item.id === this.id,
     );
 
     const panelBeforeHandle =
@@ -609,7 +609,7 @@ export class PanelResizer extends LitElement {
 
       const collapsiblePanel = getCollapsiblePanelForHandleId(
         this.context,
-        this.id
+        this.id,
       );
 
       if (e.key === "Enter" && collapsiblePanel) {
@@ -652,7 +652,7 @@ export class PanelResizer extends LitElement {
         currentHandleData &&
         haveConstraintsChangedForPanelHandle(
           currentHandleData,
-          this.initPanelResizer()
+          this.initPanelResizer(),
         )
       ) {
         this.send({ type: "updateConstraints", data: this.initPanelResizer() });
@@ -662,7 +662,7 @@ export class PanelResizer extends LitElement {
 
   disconnectedCallback(): void {
     requestAnimationFrame(() =>
-      this.send({ type: "unregisterPanelHandle", id: this.id })
+      this.send({ type: "unregisterPanelHandle", id: this.id }),
     );
   }
 

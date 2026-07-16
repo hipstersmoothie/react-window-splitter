@@ -10,7 +10,7 @@ import { CodeBlock } from "mdxts/components";
 The default behavior of the window splitter is represent the panel widths as percentages of the available space.
 Notice in the following example that as you resize the window, all the panels scale proportionally.
 
-<div className="overflow-scroll my-6" style={{ resize:'horizontal' }}>
+<div className="overflow-scroll my-6" style={{ resize: "horizontal" }}>
   <ColorfulPanelGroup style={{ height: 200 }}>
     <ColorfulPanel color="green" min="80px" max="200px" id="1" />
     <ColorfulPanelResizer id="2" />
@@ -23,7 +23,7 @@ Notice in the following example that as you resize the window, all the panels sc
 This is desired for most use cases, but you can also use the `isStaticAtRest` prop to make the panel width pixel-based.
 This means when the user resizes the window or container, the panel will stay the same size.
 
-<div className="overflow-scroll my-6" style={{ resize:'horizontal' }}>
+<div className="overflow-scroll my-6" style={{ resize: "horizontal" }}>
   <ColorfulPanelGroup style={{ height: 200 }}>
     <ColorfulPanel color="green" min="80px" max="200px" id="1" isStaticAtRest />
     <ColorfulPanelResizer id="2" />

@@ -107,7 +107,7 @@ export function PanelGroup(props: PanelGroupProps) {
         (value) => {
           setCurrentValue({ ...value });
         },
-        () => elementRef ?? null
+        () => elementRef ?? null,
       ),
       groupIdInit,
     ];
@@ -150,7 +150,7 @@ export function PanelGroup(props: PanelGroupProps) {
   const childIds = createDeferred(() =>
     currentValue()
       .items.map((i) => i.id)
-      .join(",")
+      .join(","),
   );
 
   // Measure children size
@@ -161,7 +161,7 @@ export function PanelGroup(props: PanelGroupProps) {
       });
 
       onCleanup(cleanup);
-    })
+    }),
   );
 
   createRefContent(
@@ -187,7 +187,7 @@ export function PanelGroup(props: PanelGroupProps) {
         return buildTemplate({ ...context, items: prepareItems(context) });
       },
       getState: () => (machineState.current === "idle" ? "idle" : "dragging"),
-    })
+    }),
   );
 
   const getTemplate = () => buildTemplate(getContext());
@@ -222,7 +222,7 @@ export function PanelGroup(props: PanelGroupProps) {
 
 function createRefContent<T extends Exclude<unknown, () => void>>(
   getRef: () => Ref<T> | undefined,
-  createRef: () => T
+  createRef: () => T,
 ) {
   createRenderEffect(() => {
     const refProp = getRef();
@@ -328,7 +328,7 @@ export function Panel(props: PanelProps) {
     on(contraintChanged, () => {
       if (!hasMounted) return;
       send?.({ type: "updateConstraints", data: initPanel() });
-    })
+    }),
   );
 
   onMount(() => {
@@ -341,7 +341,7 @@ export function Panel(props: PanelProps) {
     if (!panelElement) return;
 
     const groupElement = panelElement.closest(
-      `[data-panel-group-wrapper]`
+      `[data-panel-group-wrapper]`,
     ) as HTMLDivElement;
 
     if (!groupElement || !panelElement) return;
@@ -372,7 +372,7 @@ export function Panel(props: PanelProps) {
       } else {
         send?.({ type: "expandPanel", panelId: panelId(), controlled: true });
       }
-    })
+    }),
   );
 
   createRefContent(
@@ -420,7 +420,7 @@ export function Panel(props: PanelProps) {
         if (!s) throw new Error("No state");
         return getPanelPercentageSize(s, panelId());
       },
-    })
+    }),
   );
 
   onCleanup(() => {
@@ -524,7 +524,7 @@ export function PanelResizer(props: PanelResizerProps) {
     on(contraintChanged, () => {
       if (!hasMounted) return;
       send?.({ type: "updateConstraints", data: initHandle() });
-    })
+    }),
   );
 
   onMount(() => {
@@ -537,7 +537,7 @@ export function PanelResizer(props: PanelResizerProps) {
     if (!handleElement) return;
 
     const groupElement = handleElement.closest(
-      `[data-panel-group-wrapper]`
+      `[data-panel-group-wrapper]`,
     ) as HTMLDivElement;
 
     if (!groupElement || !handleElement) return;
@@ -616,7 +616,7 @@ export function PanelResizer(props: PanelResizerProps) {
     try {
       const collapsiblePanel = getCollapsiblePanelForHandleId(
         currentState,
-        handleId()
+        handleId(),
       );
 
       if (e.key === "Enter" && collapsiblePanel) {
@@ -654,7 +654,7 @@ export function PanelResizer(props: PanelResizerProps) {
             ...dimensions(),
             ...props.style,
           },
-        }
+        },
       )}
       id={handleId()}
     />

@@ -80,7 +80,7 @@ Things of note:
 - `@window-splitter/solid` is feature complete and passes the test full test suite
 - `@window-splitter/interface` was created to house the shared component types and some help functions
 
-In creating the solid adapter we had to make vanilla JS versions of some functions we previously got from a dependency. This resulted in a 7.4% bundle size reduction for the react package 🎉 
+In creating the solid adapter we had to make vanilla JS versions of some functions we previously got from a dependency. This resulted in a 7.4% bundle size reduction for the react package 🎉
 
 ### Breaking Change
 

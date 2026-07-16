@@ -76,7 +76,7 @@ export function move(props: MoveEvents): MoveResult {
     originalEvent: EventBase,
     pointerType: PointerType,
     deltaX: number,
-    deltaY: number
+    deltaY: number,
   ) => {
     if (deltaX === 0 && deltaY === 0) {
       return;
@@ -137,7 +137,7 @@ export function move(props: MoveEvents): MoveResult {
         e,
         pointerType,
         e.pageX - (state.lastPosition?.pageX ?? 0),
-        e.pageY - (state.lastPosition?.pageY ?? 0)
+        e.pageY - (state.lastPosition?.pageY ?? 0),
       );
       state.lastPosition = { pageX: e.pageX, pageY: e.pageY };
     }
@@ -170,7 +170,7 @@ export function move(props: MoveEvents): MoveResult {
   const triggerKeyboardMove = (
     e: EventBase,
     deltaX: number,
-    deltaY: number
+    deltaY: number,
   ) => {
     start();
     onMove(e, "keyboard", deltaX, deltaY);

@@ -104,10 +104,10 @@ describe("Autosave", () => {
     await expectTemplate(autosaveHandle, "342px 10px 146px");
 
     await waitForCondition(() =>
-      Boolean(localStorage.getItem("autosave-example-svelte"))
+      Boolean(localStorage.getItem("autosave-example-svelte")),
     );
     const obj = JSON.parse(
-      localStorage.getItem("autosave-example-svelte") || "{}"
+      localStorage.getItem("autosave-example-svelte") || "{}",
     );
     expect(obj.items).toMatchSnapshot();
   });
@@ -158,7 +158,7 @@ describe("Autosave", () => {
     await expectTemplate(handle.current!, "343px 10px 147px");
 
     await waitForCondition(() =>
-      document.cookie.includes("autosave-cookie-svelte")
+      document.cookie.includes("autosave-cookie-svelte"),
     );
 
     expect(document.cookie).toMatchSnapshot();
@@ -235,7 +235,7 @@ describe("imperative panel API", async () => {
     expect(leftHandle.isCollapsed()).toBe(true);
     expect(leftHandle.isExpanded()).toBe(false);
     expect(rightHandle.getPercentageSize()).toBe(
-      leftHandle.getPercentageSize()
+      leftHandle.getPercentageSize(),
     );
     expect(rightHandle.getPixelSize()).toBe(leftHandle.getPixelSize());
 
@@ -257,7 +257,7 @@ test("Keyboard interactions with collapsed panels", async () => {
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     collapsibleHandle,
-    "209.015625px 10px 167px 10px 101.984375px"
+    "209.015625px 10px 167px 10px 101.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
@@ -266,24 +266,24 @@ test("Keyboard interactions with collapsed panels", async () => {
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   await expectTemplate(
     collapsibleHandle,
-    "209.015625px 10px 163px 10px 105.984375px"
+    "209.015625px 10px 163px 10px 105.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft", shiftKey: true });
   await expectTemplate(
     collapsibleHandle,
-    "209.03125px 10px 147.984375px 10px 120.984375px"
+    "209.03125px 10px 147.984375px 10px 120.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     collapsibleHandle,
-    "209.03125px 10px 208.96875px 10px 60px"
+    "209.03125px 10px 208.96875px 10px 60px",
   );
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     collapsibleHandle,
-    "209.046875px 10px 144.9375px 10px 124.015625px"
+    "209.046875px 10px 144.9375px 10px 124.015625px",
   );
 });

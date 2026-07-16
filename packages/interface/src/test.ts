@@ -10,7 +10,7 @@ export async function dragHandle(options: {
   const handle = document.querySelector(
     options.handleId
       ? `[data-splitter-id="${options.handleId}"]`
-      : '[data-splitter-type="handle"]'
+      : '[data-splitter-type="handle"]',
   );
 
   if (!handle) {
@@ -30,7 +30,7 @@ export async function dragHandle(options: {
       clientY: y,
       pointerId,
       button: 0,
-    })
+    }),
   );
 
   for (let i = 0; i < Math.abs(options.delta - 1); i++) {
@@ -40,7 +40,7 @@ export async function dragHandle(options: {
         pointerId,
         clientX: orientation === "horizontal" ? x + i * step : x,
         clientY: orientation === "vertical" ? y + i * step : y,
-      })
+      }),
     );
     await new Promise((r) => setTimeout(r, 10));
   }
@@ -51,7 +51,7 @@ export async function dragHandle(options: {
       pointerId,
       clientX: orientation === "horizontal" ? x + options.delta : x,
       clientY: orientation === "vertical" ? y + options.delta : y,
-    })
+    }),
   );
 }
 
@@ -59,7 +59,7 @@ type WaitForFn = <T>(
   callback: () => T | Promise<T>,
   options?: {
     timeout?: number;
-  }
+  },
 ) => Promise<T>;
 
 function waitForCondition(waitFor: WaitForFn, condition: () => boolean) {
@@ -75,17 +75,17 @@ function waitForCondition(waitFor: WaitForFn, condition: () => boolean) {
     },
     {
       timeout: 10_000,
-    }
+    },
   );
 }
 
 async function waitForMeasurement(
   waitFor: WaitForFn,
-  handle: PanelGroupHandle
+  handle: PanelGroupHandle,
 ) {
   await waitForCondition(
     waitFor,
-    () => !handle.getTemplate().includes("minmax")
+    () => !handle.getTemplate().includes("minmax"),
   );
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
@@ -93,7 +93,7 @@ async function waitForMeasurement(
 async function expectTemplate(
   waitFor: WaitForFn,
   handle: PanelGroupHandle,
-  resolvedTemplate: string
+  resolvedTemplate: string,
 ) {
   const stack = new Error().stack;
   let template;
@@ -104,7 +104,7 @@ async function expectTemplate(
 
       if (!template.includes(resolvedTemplate)) {
         const e = new Error(
-          `\nExpected: ${resolvedTemplate}\nGot     : ${template}`
+          `\nExpected: ${resolvedTemplate}\nGot     : ${template}`,
         );
         e.stack = stack;
         throw e;
@@ -118,7 +118,7 @@ async function expectTemplate(
     },
     {
       timeout: 4_000,
-    }
+    },
   );
 
   expect(template).toBe(resolvedTemplate);

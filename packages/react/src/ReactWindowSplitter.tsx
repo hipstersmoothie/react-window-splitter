@@ -65,7 +65,7 @@ const GroupMachineState = createContext<{ current: State | undefined }>({
   current: undefined,
 });
 const GroupMachineContext = createContext<GroupMachineContextValue | undefined>(
-  undefined
+  undefined,
 );
 const GroupMachineStateContextRef = createContext<
   React.MutableRefObject<GroupMachineContextValue>
@@ -73,19 +73,19 @@ const GroupMachineStateContextRef = createContext<
   current: undefined,
 } as unknown as React.MutableRefObject<GroupMachineContextValue>);
 const GroupMachineActor = createContext<(e: GroupMachineEvent) => void>(
-  () => {}
+  () => {},
 );
 const GroupMachineAnimationDomRef = createContext<
   React.MutableRefObject<HTMLElement | null>
 >({ current: null });
 const GroupMachine = {
   useSelector<R>(
-    selector: (data: { context: GroupMachineContextValue }) => R
+    selector: (data: { context: GroupMachineContextValue }) => R,
   ): R {
     const context = useContext(GroupMachineContext);
     if (!context) {
       throw new Error(
-        "GroupMachineContext must be used within a GroupMachineProvider"
+        "GroupMachineContext must be used within a GroupMachineProvider",
       );
     }
     return selector({ context });
@@ -98,7 +98,7 @@ const GroupMachine = {
     const ref = useContext(GroupMachineStateContextRef);
     if (!ref) {
       throw new Error(
-        "GroupMachineContext must be used within a GroupMachineProvider"
+        "GroupMachineContext must be used within a GroupMachineProvider",
       );
     }
     return ref;
@@ -119,11 +119,11 @@ const GroupMachine = {
             currentContextRef.current = value;
             setCurrentValue({ ...value });
           },
-          () => animationDomRef.current
+          () => animationDomRef.current,
         ),
       // We only want this to run once, we dont care about changes to the input
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      []
+      [],
     );
     const currentContextRef = useRef(initialValue);
     const [currentValue, setCurrentValue] = useState(initialValue);
@@ -207,7 +207,7 @@ function PrerenderTree({
 }
 
 function useGroupItem<T extends Item>(
-  itemArg: Omit<T, "id"> & { id?: string }
+  itemArg: Omit<T, "id"> & { id?: string },
 ): T {
   const isPrerender = React.useContext(PreRenderContext);
   const initialMap = React.useContext(InitialMapContext);
@@ -257,7 +257,7 @@ function useGroupItem<T extends Item>(
       if (!contextItem) {
         if (!itemArg.id) {
           throw new Error(
-            "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well."
+            "When using dynamic panels you must provide an id on the items. This applies to React strict mode as well.",
           );
         }
 
@@ -295,7 +295,7 @@ function useGroupItem<T extends Item>(
       if (!unmountId) return;
 
       const el = document.querySelector(
-        `[data-splitter-id="${unmountId}"]`
+        `[data-splitter-id="${unmountId}"]`,
       ) as HTMLElement;
 
       if (el || !unmountId) {
@@ -355,7 +355,7 @@ export const PanelGroup = React.forwardRef<HTMLDivElement, PanelGroupProps>(
         </PanelGroupImpl>
       </InitialMapContext.Provider>
     );
-  }
+  },
 );
 
 const PanelGroupImpl = React.forwardRef<
@@ -372,7 +372,7 @@ const PanelGroupImpl = React.forwardRef<
     shiftAmount,
     ...props
   },
-  ref
+  ref,
 ) {
   const defaultGroupId = `panel-group-${useId()}`;
   const groupId = autosaveId || props.id || defaultGroupId;
@@ -420,7 +420,7 @@ const PanelGroupImplementation = React.forwardRef<
   PanelGroupProps
 >(function PanelGroupImplementation(
   { handle, orientation: orientationProp, ...props },
-  outerRef
+  outerRef,
 ) {
   const { send } = GroupMachine.useActorRef();
   const machineRef = GroupMachine.useContextRef();
@@ -428,11 +428,11 @@ const PanelGroupImplementation = React.forwardRef<
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = mergeRefs(outerRef, innerRef);
   const orientation = GroupMachine.useSelector(
-    (state) => state.context.orientation
+    (state) => state.context.orientation,
   );
   const groupId = GroupMachine.useSelector((state) => state.context.groupId);
   const template = GroupMachine.useSelector((state) =>
-    buildTemplate(state.context)
+    buildTemplate(state.context),
   );
 
   // When the prop for `orientation` updates also update the state machine
@@ -478,7 +478,7 @@ const PanelGroupImplementation = React.forwardRef<
   }, [send, innerRef, groupId]);
 
   const childIds = GroupMachine.useSelector((state) =>
-    state.context.items.map((i) => i.id).join(",")
+    state.context.items.map((i) => i.id).join(","),
   );
   useLayoutEffect(() => {
     return measureGroupChildren(groupId, (childrenSizes) => {
@@ -561,7 +561,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
       isStaticAtRest,
       ...props
     },
-    outerRef
+    outerRef,
   ) {
     const { collapsible = false, collapsed } = props;
     const isPrerender = React.useContext(PreRenderContext);
@@ -615,7 +615,7 @@ export const Panel = React.forwardRef<HTMLDivElement, PanelProps>(
         panelId={panelId}
       />
     );
-  }
+  },
 );
 
 const PanelVisible = React.forwardRef<
@@ -636,7 +636,7 @@ const PanelVisible = React.forwardRef<
   }
 >(function PanelVisible(
   { collapsible = false, collapsed, handle, panelId, panelProp, ...props },
-  outerRef
+  outerRef,
 ) {
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = mergeRefs(outerRef, innerRef);
@@ -745,7 +745,7 @@ const PanelVisible = React.forwardRef<
             minHeight: 0,
             overflow: "hidden",
           },
-        }
+        },
       )}
     />
   );
@@ -769,7 +769,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
         size: parseUnit(size) as ParsedPixelUnit,
         id: props.id,
       }),
-      [size, props.id]
+      [size, props.id],
     );
 
     const { id: handleId } = useGroupItem(data);
@@ -786,7 +786,7 @@ export const PanelResizer = React.forwardRef<HTMLDivElement, PanelResizerProps>(
         handleId={handleId}
       />
     );
-  }
+  },
 );
 
 const PanelResizerVisible = React.forwardRef<
@@ -806,7 +806,7 @@ const PanelResizerVisible = React.forwardRef<
     handleId: handleIdProp,
     ...props
   },
-  outerRef
+  outerRef,
 ) {
   const innerRef = React.useRef<HTMLDivElement>(null);
   const ref = mergeRefs(outerRef, innerRef);
@@ -838,16 +838,16 @@ const PanelResizerVisible = React.forwardRef<
     }
   });
   const orientation = GroupMachine.useSelector(
-    (state) => state.context.orientation
+    (state) => state.context.orientation,
   );
   const groupsSize = GroupMachine.useSelector((state) =>
-    getGroupSize(state.context)
+    getGroupSize(state.context),
   );
   const overshoot = GroupMachine.useSelector(
-    (state) => state.context.dragOvershoot
+    (state) => state.context.dragOvershoot,
   );
   const activeDragHandleId = GroupMachine.useSelector(
-    (state) => state.context.activeDragHandleId
+    (state) => state.context.activeDragHandleId,
   );
   const groupId = GroupMachine.useSelector((state) => state.context.groupId);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -939,7 +939,7 @@ const PanelResizerVisible = React.forwardRef<
               ? { width: unit.value.toNumber(), height: "100%" }
               : { height: unit.value.toNumber(), width: "100%" }),
           },
-        }
+        },
       )}
     />
   );

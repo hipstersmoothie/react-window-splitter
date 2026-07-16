@@ -134,7 +134,12 @@ defineExpose<PanelHandle>({
   collapse: async () => {
     if (!panelData.value?.collapsible) return;
     return await new Promise<void>((resolve) => {
-      send?.({ type: "collapsePanel", panelId: panelId, controlled: true, resolve });
+      send?.({
+        type: "collapsePanel",
+        panelId: panelId,
+        controlled: true,
+        resolve,
+      });
     });
   },
   isCollapsed: () =>
@@ -142,7 +147,12 @@ defineExpose<PanelHandle>({
   expand: async () => {
     if (!panelData.value?.collapsible) return;
     return await new Promise<void>((resolve) => {
-      send?.({ type: "expandPanel", panelId: panelId, controlled: true, resolve });
+      send?.({
+        type: "expandPanel",
+        panelId: panelId,
+        controlled: true,
+        resolve,
+      });
     });
   },
   isExpanded: () =>

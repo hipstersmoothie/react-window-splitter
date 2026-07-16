@@ -27,7 +27,7 @@ test("horizontal layout", async () => {
   const { getByText } = render(
     <div style={{ width: 500 }}>
       <Simple handle={handle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -49,7 +49,7 @@ test("vertical layout", async () => {
   const { getByText } = render(
     <div style={{ width: 500 }}>
       <VerticalLayout handle={handle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -72,7 +72,7 @@ test("Conditional Panels", async () => {
   const { getByText } = render(
     <div style={{ width: 500 }}>
       <ConditionalPanel handle={handle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -81,7 +81,7 @@ test("Conditional Panels", async () => {
   getByText("Expand").click();
   await expectTemplate(
     handle.current,
-    "236.953125px 10px 141.046875px 10px 100px"
+    "236.953125px 10px 141.046875px 10px 100px",
   );
 
   getByText("Close").click();
@@ -95,7 +95,7 @@ test("Complex Conditional Panels", async () => {
   const { getByText } = render(
     <div style={{ width: 800 }}>
       <Admin handle={handle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -115,7 +115,7 @@ test("Dynamic constraints", async () => {
   const { getByText } = render(
     <div style={{ width: 1000 }}>
       <DynamicConstraints handle={handle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -139,7 +139,7 @@ describe("Autosave", () => {
     render(
       <div style={{ width: 500 }}>
         <Autosave handle={handle} />
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);
@@ -149,7 +149,7 @@ describe("Autosave", () => {
     await expectTemplate(handle.current, "342px 10px 146px");
 
     await waitForCondition(() =>
-      Boolean(localStorage.getItem("autosave-example"))
+      Boolean(localStorage.getItem("autosave-example")),
     );
     const obj = JSON.parse(localStorage.getItem("autosave-example") || "{}");
     expect(obj.items).toMatchSnapshot();
@@ -167,7 +167,7 @@ describe("Autosave", () => {
     render(
       <div style={{ width: 500 }}>
         <AutosaveCollapsible handle={handle} onCollapseChange={spy} />
-      </div>
+      </div>,
     );
 
     await dragHandle({ delta: -200 });
@@ -179,7 +179,7 @@ describe("Autosave", () => {
     render(
       <div style={{ width: 500 }}>
         <AutosaveCollapsible handle={handle} onCollapseChange={spy} />
-      </div>
+      </div>,
     );
 
     await expectTemplate(handle.current, "100px 10px 388px");
@@ -212,7 +212,7 @@ describe("Autosave", () => {
           />
           <Panel id="panel2">2</Panel>
         </PanelGroup>
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);
@@ -222,7 +222,7 @@ describe("Autosave", () => {
     await expectTemplate(handle.current, "343px 10px 147px");
 
     await waitForCondition(() =>
-      document.cookie.includes("autosave-cookie-example")
+      document.cookie.includes("autosave-cookie-example"),
     );
 
     expect(document.cookie).toMatchSnapshot();
@@ -249,7 +249,7 @@ describe("Autosave", () => {
           />
           <Panel id="panel2">2</Panel>
         </PanelGroup>
-      </div>
+      </div>,
     );
 
     await expectTemplate(handle.current, "343px 10px 147px");
@@ -266,7 +266,7 @@ test("Keyboard interactions with collapsed panels", async () => {
   render(
     <div style={{ width: 500 }}>
       <Collapsible handle={handle} rightPanelHandle={rightHandle} />
-    </div>
+    </div>,
   );
 
   await waitForMeasurement(handle.current);
@@ -276,7 +276,7 @@ test("Keyboard interactions with collapsed panels", async () => {
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     handle.current,
-    "209.015625px 10px 167px 10px 101.984375px"
+    "209.015625px 10px 167px 10px 101.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
@@ -285,25 +285,25 @@ test("Keyboard interactions with collapsed panels", async () => {
   fireEvent.keyDown(resizer2, { key: "ArrowLeft" });
   await expectTemplate(
     handle.current,
-    "209.015625px 10px 163px 10px 105.984375px"
+    "209.015625px 10px 163px 10px 105.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "ArrowLeft", shiftKey: true });
   await expectTemplate(
     handle.current,
-    "209.03125px 10px 147.984375px 10px 120.984375px"
+    "209.03125px 10px 147.984375px 10px 120.984375px",
   );
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     handle.current,
-    "209.03125px 10px 208.96875px 10px 60px"
+    "209.03125px 10px 208.96875px 10px 60px",
   );
 
   fireEvent.keyDown(resizer2, { key: "Enter" });
   await expectTemplate(
     handle.current,
-    "209.046875px 10px 144.9375px 10px 124.015625px"
+    "209.046875px 10px 144.9375px 10px 124.015625px",
   );
 });
 
@@ -316,7 +316,7 @@ describe("imperative panel API", async () => {
     render(
       <div style={{ width: 500 }}>
         <Collapsible handle={handle} />
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);
@@ -362,7 +362,7 @@ describe("imperative panel API", async () => {
           leftPanelHandle={leftHandle}
           rightPanelHandle={rightHandle}
         />
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);
@@ -393,10 +393,10 @@ describe("imperative panel API", async () => {
     expect(leftHandle.current.isCollapsed()).toBe(true);
     expect(leftHandle.current.isExpanded()).toBe(false);
     expect(rightHandle.current.getPercentageSize()).toBe(
-      leftHandle.current.getPercentageSize()
+      leftHandle.current.getPercentageSize(),
     );
     expect(rightHandle.current.getPixelSize()).toBe(
-      leftHandle.current.getPixelSize()
+      leftHandle.current.getPixelSize(),
     );
 
     leftHandle.current.expand();
@@ -437,7 +437,7 @@ describe("direct-DOM animation path", () => {
             2
           </Panel>
         </PanelGroup>
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);
@@ -450,9 +450,7 @@ describe("direct-DOM animation path", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(handle.current.getState()).toBe("dragging");
 
-    const groupEl = document.querySelector(
-      "[data-group-id]"
-    ) as HTMLElement;
+    const groupEl = document.querySelector("[data-group-id]") as HTMLElement;
     expect(groupEl).toBeTruthy();
     const domTemplateDuringAnimation = groupEl.style.gridTemplateColumns;
     expect(domTemplateDuringAnimation).toBeTruthy();
@@ -504,7 +502,7 @@ describe("direct-DOM animation path", () => {
             2
           </Panel>
         </PanelGroup>
-      </div>
+      </div>,
     );
 
     await waitForMeasurement(handle.current);

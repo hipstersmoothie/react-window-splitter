@@ -6,5 +6,5 @@ import typescriptEslint from "typescript-eslint";
 
 export default typescriptEslint.config(
   ...base,
-  eslintPluginLit.configs["flat/recommended"]
+  eslintPluginLit.configs["flat/recommended"],
 );
