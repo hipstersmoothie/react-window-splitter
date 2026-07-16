@@ -2257,14 +2257,21 @@ export function groupMachine(
         if (useLastKnownSize) {
           context.items = withLastKnownSize;
         } else if (
-          totalSize > getGroupSize(context) &&
+          totalSize - getGroupSize(context) >= 1 &&
           state.current === "idle"
         ) {
+          // Real overflow (>= 1px): collapse/redistribute panels to fit.
           context.items = handleOverflow({
             ...context,
             items: prepareItems({ ...context, items: withLastKnownSize }),
           }).items;
         } else {
+          // Either no overflow, or a sub-pixel overflow (< 1px) which is a
+          // rounding artefact commonly produced at non-100% browser zoom.
+          // Keep the percent-mode items so buildTemplate keeps generating
+          // responsive minmax/calc strings instead of locking to fixed
+          // pixels. prepareItems still reproduces the exact measured sizes
+          // from lastKnownSize when a pixel layout is needed.
           context.items = withLastKnownSize;
         }
 

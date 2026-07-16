@@ -2737,3 +2737,51 @@ describe("autosave", () => {
     );
   });
 });
+
+describe("browser zoom", () => {
+  test("template stays responsive (minmax/calc) after browser zoom causes sub-pixel overflow", () => {
+    // Regression test: when browser zoom is active, ResizeObserver reports
+    // fractional CSS pixel values. The sum of panel lastKnownSizes + configured
+    // handle size can exceed the group size by < 1px, which previously caused
+    // handleOverflow to leave items in pixel mode, locking the template into
+    // fixed pixel values instead of the responsive minmax/calc format.
+    const actor = createActor({ groupId: "group" });
+
+    sendAll(actor, [
+      { type: "registerPanel", data: initializePanel({ id: "panel-1" }) },
+      {
+        type: "registerPanelHandle",
+        data: initializePanelHandleData({ id: "resizer-1", size: "10px" }),
+      },
+      { type: "registerPanel", data: initializePanel({ id: "panel-2" }) },
+    ]);
+
+    // Initialize at 100% zoom: 1000px group, 495px panels, 10px handle
+    actor.send({ type: "setSize", size: { width: 1000, height: 200 } });
+    actor.send({
+      type: "setActualItemsSize",
+      childrenSizes: {
+        "panel-1": { width: 495, height: 200 },
+        "panel-2": { width: 495, height: 200 },
+      },
+    });
+
+    // Simulate browser zoom-in: the group shrinks to 900px CSS pixels.
+    // ResizeObserver reports fractional panel sizes that sum to 900.6px —
+    // slightly over the group size but under 1px overflow.
+    actor.send({ type: "setSize", size: { width: 900, height: 200 } });
+    actor.send({
+      type: "setActualItemsSize",
+      childrenSizes: {
+        "panel-1": { width: 445.3, height: 200 },
+        "panel-2": { width: 445.3, height: 200 },
+      },
+    });
+
+    // Template must remain in the responsive minmax/calc format, not switch to
+    // fixed pixel values (e.g. "445.3px 10px 445.3px").
+    const template = buildTemplate(actor.value);
+    expect(template).not.toMatch(/^\d/);
+    expect(template).toMatch(/minmax/);
+  });
+});
